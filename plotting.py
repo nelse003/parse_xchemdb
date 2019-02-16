@@ -74,6 +74,22 @@ def plot_histogram_collection_bin(data,
     plt.savefig(file_path)
     plt.close()
 
+def refinement_summary_plot(refinement_csv, out_file_path):
+
+    summary = pd.read_csv(refinement_csv, header=None, names=['comment','total'])
+    color_map = {}
+    color_map['Correctly occupied'] = 'green'
+    color_map['Refinement latest is dimple'] = 'red'
+    summary['color'] = summary.comment.map(color_map)
+    summary.replace(np.nan, 'orange', regex=True, inplace=True)
+    summary.set_index('comment', inplace=True)
+    title = "Xchem databse hit refinement: {} crystals".format(summary.total.sum())
+    ax = summary.plot.bar(y='total',color=summary.color, title=title, legend=False)
+    ax.set_ylabel('Number of crystals')
+    fig = ax.get_figure()
+    fig.set_size_inches(10, 12)
+    fig.subplots_adjust(bottom=0.2)
+    fig.savefig(out_file_path, dpi=300)
 
 def main():
     occ_conv_csv = "/dls/science/groups/i04-1/elliot-dev/Work/" \
