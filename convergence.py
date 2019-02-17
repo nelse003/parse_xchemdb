@@ -54,21 +54,6 @@ def read_lig_occ_group_from_refmac_log(log_path, lig_chain):
 
     return lig_occ_groups
 
-
-# TODO Replace with sourcing from xchem database table
-def pdb_path_to_crystal_target(pdb_path):
-    pdb_path_split = pdb_path.split('/')
-    crystal_name = [path_part for path_part in pdb_path_split if '-x' in path_part]
-    print(crystal_name)
-    if len(crystal_name) == 0:
-        raise ValueError("Failing to parse crystal name "
-                         "from pdb: {}".format(pdb_path))
-    crystal_name = crystal_name[0]
-    target = crystal_name.split('-')[0]
-
-    return crystal_name, target
-
-
 def get_lig_chain_id(pdb_path, lig_name='LIG'):
     """Get chain which ligand is in
 
@@ -115,8 +100,8 @@ def combine_cols(df, cols, col_label):
 
     return want_df
 
+def get_occupancy_df(log_path, pdb_path, crystal, lig_name='LIG'):
 
-def get_occupancy_df(log_path, pdb_path, crystal, lig_name='LIG', ):
     chain = get_lig_chain_id(pdb_path=pdb_path, lig_name=lig_name)
 
     lig_groups = read_lig_occ_group_from_refmac_log(log_path=log_path,
@@ -150,11 +135,18 @@ def get_occupancy_df(log_path, pdb_path, crystal, lig_name='LIG', ):
     for col in column_bound:
         bound += occ_conv_df[col].values
     if len(column_ground) > 2:
+        print(log_path)
         multiplicity_ground = len(column_ground) / 2
+        print(len(column_ground))
+        print(multiplicity_ground)
     else:
         multiplicity_ground = 1
     if len(column_bound) > 2:
+        print(log_path)
         multiplicity_bound = len(column_bound) / 2
+        print(len(column_ground))
+        print(multiplicity_ground)
+        exit()
     else:
         multiplicity_bound = 1
 
@@ -184,38 +176,24 @@ def get_occupancy_df(log_path, pdb_path, crystal, lig_name='LIG', ):
 
     return occ_df
 
+def main(log_pdb_mtz_csv="/dls/science/groups/i04-1/elliot-dev/"
+                         "Work/exhaustive_parse_xchem_db/log_pdb_mtz.csv",
+         occ_conv_csv="/dls/science/groups/i04-1/elliot-dev/"
+                         "Work/exhaustive_parse_xchem_db/occ_conv.csv",
+         occ_conv_fails_csv="/dls/science/groups/i04-1/elliot-dev/"
+                         "Work/exhaustive_parse_xchem_db/occ_conv_failures.csv"):
 
-if __name__ == "__main__":
-    """
-    Process log files from refmac runs to get occupancy convergence
-
-    Requires ccp4-python
-
-    """
-
-    # TODO Sort utils/plotting into ccp4 dependent and ccp4 non dependent sections
-
-    log_csv = "/dls/science/groups/i04-1/elliot-dev/Work/" \
-              "exhaustive_parse_xchem_db/log_pdb_mtz.csv"
-
-    occ_conv_csv = "/dls/science/groups/i04-1/elliot-dev/Work/" \
-                   "exhaustive_parse_xchem_db/occ_conv.csv"
-
-    occ_conv_fails_csv = "/dls/science/groups/i04-1/elliot-dev/Work/" \
-                         "exhaustive_parse_xchem_db/occ_conv_failures.csv"
-
-    log_df = pd.read_csv(log_csv)
+    log_df = pd.read_csv(log_pdb_mtz_csv)
 
     occ_conv_df_list = []
     failures = []
     for index, row in log_df.iterrows():
         print(row.refine_log)
         try:
-            crystal, target = pdb_path_to_crystal_target(row.pdb_latest)
             occ_df = get_occupancy_df(log_path=row.refine_log,
                                       pdb_path=row.pdb_latest,
                                       lig_name='LIG',
-                                      crystal=crystal)
+                                      crystal=row.crystal_name)
         except ValueError:
             # This is for handling the exception,
             # utilising it's traceback to determine
@@ -235,6 +213,7 @@ if __name__ == "__main__":
         # labelling the occupancy with comment, and convergence figure
         comment = {}
         converge = {}
+        crystal = row.crystal_name
         if all(occ_df.values[0]) == 0:
             comment[(crystal, 'ground')] = "Zero occupancy ground state"
 
@@ -285,4 +264,16 @@ if __name__ == "__main__":
     occ_conv_summary_df.to_csv(occ_conv_csv)
 
     len(occ_conv_summary_df)
+
+if __name__ == "__main__":
+    """
+    Process log files from refmac runs to get occupancy convergence
+
+    Requires ccp4-python
+
+    """
+    main()
+    # TODO Sort utils/plotting into ccp4 dependent and ccp4 non dependent sections
+
+
 

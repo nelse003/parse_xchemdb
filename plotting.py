@@ -92,6 +92,17 @@ def refinement_summary_plot(refinement_csv, out_file_path):
     fig.savefig(out_file_path, dpi=300)
 
 def main():
+
+    occ_conv_csv = "/dls/science/groups/i04-1/elliot-dev/Work/" \
+                   "exhaustive_parse_xchem_db/occ_conv.csv"
+
+    occ_df = pd.read_csv(occ_conv_csv, index_col=[0, 1])
+    over_occupied = occ_df[occ_df['comment'] == 'Over occupied']
+    under_occupied = occ_df[occ_df['comment'] == 'Under occupied']
+    print(over_occupied.head())
+    print(under_occupied.head())
+
+def old_main():
     occ_conv_csv = "/dls/science/groups/i04-1/elliot-dev/Work/" \
                    "exhaustive_parse_xchem_db/occ_conv.csv"
 

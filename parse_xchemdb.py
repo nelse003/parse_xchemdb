@@ -10,6 +10,7 @@ pd.options.display.max_columns = 30
 pd.options.display.max_colwidth = 50
 
 def parse_args():
+    # TODO Refactor into luigi config
     parser = argparse.ArgumentParser()
 
     # PanDDA run
@@ -17,7 +18,9 @@ def parse_args():
     # default="/dls/labxchem/data/2018/lb19758-9/processing/analysis/panddas_run12_all_onlydmso"
 
     # Output
-    parser.add_argument("-o", "--output", default="/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db")
+    parser.add_argument("-o", "--output",
+                        default="/dls/science/groups/i04-1/elliot-dev/"
+                                "Work/exhaustive_parse_xchem_db")
 
     # Database
     parser.add_argument("-hs", "--host", default="172.23.142.43")
@@ -68,6 +71,8 @@ def get_databases(args):
 
     compounds = pd.read_sql_query("SELECT * FROM compounds", con=engine)
 
+    target = pd.read_sql_query("SELECT * FROM target", con=engine)
+
     databases = {"pandda_analyses": pandda_analysis,
                  "pandda_runs": pandda_run ,
                  "pandda_events": pandda_events,
@@ -78,7 +83,8 @@ def get_databases(args):
                  "ligand_stats": ligand_stats,
                  "data_processing": data_processing,
                  "refinement": refinement,
-                 "compounds": compounds}
+                 "compounds": compounds,
+                 "target":target}
 
     return databases
 
@@ -94,11 +100,9 @@ def prepare_output_folder():
 def get_table_df(table_name, databases=None, args=None):
 
     if args is None:
-        parse_args()
+        args = parse_args()
     if databases is None:
-        get_databases(args)
-
-    args = parse_args()
+        databases = get_databases(args)
 
     if not os.path.exists(args.output):
         try:
@@ -172,6 +176,15 @@ def drop_pdb_with_missing_logs(df):
 
     return df
 
+def get_crystal_target(args, databases):
+
+    target_df = get_table_df('target', databases=databases, args=args)
+    crystal_df = get_table_df('crystals', databases=databases, args=args)
+    crystal_df.set_index('target_id',inplace=True)
+    target_df.set_index('id',inplace=True)
+    crystal_target_df = crystal_df.join(target_df)
+    return crystal_target_df
+
 def process_refined_crystals():
 
     args = parse_args()
@@ -179,45 +192,42 @@ def process_refined_crystals():
     refine_df = get_table_df(table_name='refinement',
                               databases=databases,
                               args=args)
+
+    # merge crystal and target information into refine_df
+    crystal_target_df = get_crystal_target(args=args, databases=databases)
+    crystal_target_df.set_index('id', inplace=True)
+    crystal_target_df.rename_axis('crystal_name_id', inplace=True)
+    crystal_target_df.drop(['status'],axis=1, inplace=True)
+    refine_df.set_index('crystal_name_id', inplace=True)
+    refine_df = refine_df.join(crystal_target_df)
+
     # Drop crystals
     pdb_df = refine_df[refine_df.pdb_latest.notnull()]
-
     pdb_df = drop_pdb_not_in_filesystem(pdb_df)
     pdb_no_dimple_df = drop_only_dimple_processing(pdb_df)
     pdb_no_dimple_mtz_df = drop_missing_mtz(pdb_no_dimple_df)
     pdb_log_mtz_df = drop_pdb_with_missing_logs(pdb_no_dimple_mtz_df)
+
     pdb_log_mtz_df.to_csv(os.path.join(args.output, 'log_pdb_mtz.csv'))
 
+def ground_bound_files():
 
-def main():
-    """ To Be removed"""
+    # Not tested
 
-    refine_df = get_table_df(table_name='refinement')
-    # drop non null
+    args = parse_args()
+    databases = get_databases(args)
+    refine_df = get_table_df(table_name='refinement',
+                              databases=databases,
+                              args=args)
     pdb_df = refine_df[refine_df.pdb_latest.notnull()]
-
-    print("Length of refinement table: {}".format(len(refine_df)))
-    print("Length of refinement table with pdb latest"
-          "specified: {}".format(len(pdb_df)))
-
-    # Get only rows with bound conformation
-    bound_df = refine_df[refine_df.bound_conf.notnull()]
-
-    print("Length of refinement table with bound state "
-          "specified: {}".format(len(bound_df)))
-
-    # drops NaN if both bound_conf and pdb_latest are NaN
-    with_pdb_df = refine_df.dropna(axis='index', how='all', subset=['bound_conf', 'pdb_latest'])
-
-    print("Length of refinement table with either bound state "
-          "or superposed state specified: {}".format(len(with_pdb_df)))
+    pdb_df = drop_pdb_not_in_filesystem(pdb_df)
 
     # Check path exists for bound, ground and refine.pdb
     bound_missing_ids = []
     superposed_missing_ids = []
     ground_missing_ids = []
 
-    for index, row in with_pdb_df.iterrows():
+    for index, row in pdb_df.iterrows():
 
         if row.bound_conf is not None:
             bound_conf_dir = os.path.dirname(row.bound_conf)
@@ -242,86 +252,33 @@ def main():
 
     print("Number of rows where bound structure is not present in filesystem: "
           "{}".format(len(bound_missing_ids)))
-    missing_bound_df = with_pdb_df[with_pdb_df['id'].isin(bound_missing_ids)]
+    missing_bound_df = pdb_df[pdb_df['id'].isin(bound_missing_ids)]
 
     print("Number of rows where latest pdb structure is not present in "
           "filesystem: {}".format(len(superposed_missing_ids)))
-    missing_superposed_df = with_pdb_df[with_pdb_df['id'].isin(superposed_missing_ids)]
+    missing_superposed_df = pdb_df[pdb_df['id'].isin(superposed_missing_ids)]
 
     print("Number of rows where ground structure is not present in "
           "filesystem: {}".format(len(ground_missing_ids)))
-    missing_ground_df = with_pdb_df[with_pdb_df['id'].isin(ground_missing_ids)]
-
+    missing_ground_df = pdb_df[pdb_df['id'].isin(ground_missing_ids)]
     ground_bound_missing_ids = list(set(bound_missing_ids +
                                         ground_missing_ids))
 
-    missing_ground_bound_df = with_pdb_df[
+    missing_ground_bound_df = pdb_df[
         with_pdb_df['id'].isin(ground_bound_missing_ids)]
 
     missing_ids = list(set(bound_missing_ids +
                            ground_missing_ids +
                            superposed_missing_ids))
     # ~ inverts the bool
-    with_all_pdb_df = with_pdb_df[~with_pdb_df['id'].isin(missing_ids)]
-
-    print("Number of rows where ground, "
-          "bound and latest pdbs exist "
-          "in db and filesystem: {}".format(len(with_all_pdb_df)))
-
-    missing_mtz_ids = []
-    dimple_is_latest_ids = []
-    for index, row in pdb_df.iterrows():
-        if row.mtz_latest is not None:
-            if not os.path.isfile(row.mtz_latest):
-                missing_mtz_ids.append(row.id)
-        else:
-            missing_mtz_ids.append(row.id)
-
-        if "dimple" in row.pdb_latest:
-            dimple_is_latest_ids.append(row.id)
-
-    print("Number of rows with dimple in latest pdb: {}".format(len(dimple_is_latest_ids)))
-    print("Number of mtzs that missing: {}".format(len(missing_mtz_ids)))
-
-    # Drop files with dimple in path from superposed list
-    superposed_df = superposed_df[
-        ~superposed_df['id'].isin(dimple_is_latest_ids)]
-
-    # requires superposed and mtz
-    superposed_mtz_df = superposed_df[
-        ~superposed_df['id'].isin(missing_mtz_ids)]
-
-    print("Number of rows where superposed pdbs and mtz exist "
-          "in db and filesystem: {}".format(len(superposed_mtz_df)))
-
-    log_not_found_ids = []
-    log_names = {}
-    for index, row in superposed_mtz_df.iterrows():
-        # print(row.pdb_latest)
-        dir_name = os.path.dirname(row.pdb_latest)
-        base_name = os.path.basename(row.pdb_latest)
-        log_name = base_name.replace('.pdb', '.quick-refine.log')
-        log_path = os.path.join(dir_name, log_name)
-
-        if not os.path.isfile(log_path):
-            log_not_found_ids.append(row.id)
-            log_names[row.id] = None
-        else:
-            log_names[row.id] = log_path
-
-        superposed_mtz_log_df = superposed_mtz_df[
-            ~superposed_mtz_df['id'].isin(log_not_found_ids)]
-
-    # Add log names to df
-    superposed_mtz_log_df['refine_log'] = superposed_mtz_log_df['id'].map(log_names)
-
-    print("Number of rows with superposed pdb, mtz and log: {}".format(
-        len(superposed_mtz_log_df)))
-
-    superposed_mtz_log_df.to_csv(os.path.join(args.output, 'log_pdb_mtz.csv'), index=False)
+    with_all_pdb_df = pdb_df[~pdb_df['id'].isin(missing_ids)]
 
 
 
+
+def main():
+    process_refined_crystals()
+    pass
 
 if __name__ == "__main__":
     main()
