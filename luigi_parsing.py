@@ -1,10 +1,14 @@
 import luigi
 import os
 import pandas as pd
+
 from parse_xchemdb import process_refined_crystals
 from parse_xchemdb import get_table_df
 from parse_xchemdb import drop_only_dimple_processing
 from parse_xchemdb import drop_pdb_not_in_filesystem
+
+from convergence import get_occ_from_log
+
 from plotting import main as plot_occ
 from plotting import refinement_summary_plot
 from refinement_summary import refinement_summary
@@ -17,6 +21,11 @@ class Path(luigi.Config):
     # CSVS
     log_pdb_mtz = luigi.Parameter(
         default=os.path.join(out_dir,'log_pdb_mtz.csv'))
+    log_occ = luigi.Parameter(
+        default=os.path.join(out_dir,'log_occ.csv'))
+    log_occ_resname = luigi.Parameter(
+        default=os.path.join(out_dir,'log_occ_resname.csv'))
+
     occ_conv = luigi.Parameter(
         default=os.path.join(out_dir,'occ_conv.csv'))
     refinement_summary = luigi.Parameter(
@@ -97,8 +106,23 @@ class SummaryRefinementPlot(luigi.Task):
         refinement_summary_plot(refinement_csv=Path().refinement_summary,
                                 out_file_path=Path().refinement_summary_plot)
 
-# TODO Occupancy convergence failures to atomistic?
-# Split up ccp4 and non-ccp4 tasks
+class OccFromLog(luigi.Task):
+    def requires(self):
+        return ParseXChemDBToDF()
+    def output(self):
+        return luigi.LocalTarget(Path().log_occ)
+    def run(self):
+        get_occ_from_log(log_pdb_mtz_csv=Path().log_pdb_mtz,
+                         log_occ_csv=Path().log_occ)
+
+class ResnameToOccLog(luigi.Task):
+    def requires(self):
+        return OccFromLog()
+    def output(self):
+        return luigi.LocalTarget(Path().log_occ_resname)
+    def run(self):
+        os.system("ccp4-python resnames_using_ccp4.py {} {}".format(
+            Path().log_occ, Path().log_occ_resname))
 
 class OccConvergence(luigi.Task):
     def requires(self):
@@ -119,6 +143,7 @@ class PlottingOccHistogram(luigi.Task):
 
 if __name__ == '__main__':
     luigi.build([PlottingOccHistogram(),
+                 ResnameToOccLog(),
                  SummaryRefinementPlot()],
                 local_scheduler=True,
                 workers=10)
