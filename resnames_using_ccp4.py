@@ -1,7 +1,30 @@
+import time, sys
 import pandas as pd
 import numpy as np
 from iotbx.pdb import hierarchy
 import argparse
+
+def update_progress(progress):
+
+    """https://stackoverflow.com/questions/3160699/python-progress-bar"""
+
+    barLength = 10 # Modify this to change the length of the progress bar
+    status = ""
+    if isinstance(progress, int):
+        progress = float(progress)
+    if not isinstance(progress, float):
+        progress = 0
+        status = "error: progress var must be float\r\n"
+    if progress < 0:
+        progress = 0
+        status = "Halt...\r\n"
+    if progress >= 1:
+        progress = 1
+        status = "Done...\r\n"
+    block = int(round(barLength*progress))
+    text = "\rPercent: [{0}] {1}% {2}".format( "#"*block + "-"*(barLength-block), progress*100, status)
+    sys.stdout.write(text)
+    sys.stdout.flush()
 
 def update_from_pdb(pdb_df):
 
@@ -42,26 +65,28 @@ def update_from_pdb(pdb_df):
                              "of pdb: {}".format(chain, resid, alte, pdb))
 
 
-    return pd.concat(rows, axis=1)
+    pdb_df = pd.concat(rows, axis=1)
 
+    return pdb_df.T
 
 
 def get_resname_for_log_occ(log_occ_csv, log_occ_resname_csv):
 
     log_df = pd.read_csv(log_occ_csv)
 
+    print(len(log_df.pdb_latest.unique()))
+
     log_df_list = []
-    for pdb in log_df.pdb_latest.unique():
+    for pos, pdb in enumerate(log_df.pdb_latest.unique()):
+
         pdb_df = log_df.loc[log_df['pdb_latest'] == pdb]
         pdb_df = update_from_pdb(pdb_df)
-        print(pdb_df)
-        print(pdb_df.columns)
-        break
+        update_progress(float(pos)/float(len(log_df.pdb_latest.unique())))
         log_df_list.append(pdb_df)
 
-    raise Exception
-
     log_occ_resname_df = pd.concat(log_df_list)
+    print(log_occ_resname_df)
+
     log_occ_resname_df.to_csv(log_occ_resname_csv)
 
 def main():

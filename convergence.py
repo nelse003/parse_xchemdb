@@ -6,6 +6,9 @@ import traceback
 import itertools
 import re
 
+pd.options.display.max_columns = 35
+pd.options.display.max_colwidth = 50
+
 def match_occ(occ_group, complete_groups):
     for group in complete_groups:
         if occ_group in group:
@@ -74,6 +77,85 @@ def combine_cols(df, cols, col_label):
     want_df[col_label] = col_np_array
 
     return want_df
+
+def is_lig(row):
+    if row.resname == "LIG":
+        return "bound"
+
+def lig_alt(row, complete_group):
+    if row.resname == "LIG":
+        if row['complete group'] == complete_group:
+            return row.alte
+
+def altloc_to_state(row, complete_group, ligand_altlocs):
+    if row['complete group'] == complete_group:
+        if row.alte in ligand_altlocs:
+            return "bound"
+        elif row.alte not in ligand_altlocs:
+            return "ground"
+    else:
+        return row.state
+
+def comment_complete(row, complete_group):
+    if row['complete group'] == complete_group:
+        return "Complete group is split between ground and bound"
+    else:
+        try:
+            return row.comment
+        except AttributeError:
+            return None
+
+def comment_all_bound(row, complete_group):
+    if row['complete group'] == complete_group:
+        return "All bound state"
+    else:
+        try:
+            return row.comment
+        except AttributeError:
+            return None
+
+def process_ground_bound(pdb_df):
+
+    # TODO Check that the sum of ground + bound in a complete group is close to 1.00
+
+    # TODO Fails at 471
+
+    # # Add state to ligand lines
+    pdb_df['state'] = pdb_df.apply(is_lig, axis=1)
+
+    for complete_group in pdb_df['complete group'].unique():
+
+        ligand_altlocs = pdb_df.apply(func=lig_alt,
+                                     complete_group=complete_group,
+                                     axis=1).dropna().values
+
+        pdb_df['state'] = pdb_df.apply(func=altloc_to_state,
+                                         complete_group=complete_group,
+                                         ligand_altlocs=ligand_altlocs,
+                                         axis=1)
+
+
+        unique_states = pdb_df.loc[pdb_df['complete group'] == complete_group]['state'].unique()
+        if len(unique_states) == 1:
+            if unique_states[0] == "bound":
+                pdb_df['comment'] = pdb_df.apply(func=comment_all_bound,
+                                                 complete_group=complete_group,
+                                                 axis=1)
+
+
+        elif len(unique_states) == 2:
+                pdb_df['comment'] = pdb_df.apply(func=comment_complete,
+                                                 complete_group=complete_group,
+                                                 axis=1)
+
+    if all(pdb_df['comment'].notnull()):
+        return pdb_df
+    else:
+        print(pdb_df)
+        raise Exception
+
+
+    #
 
 def get_occupancy_df(log_path, pdb_path, crystal, lig_name='LIG'):
 
@@ -217,42 +299,50 @@ def get_occ_from_log(log_pdb_mtz_csv, log_occ_csv):
     occ_log_df.to_csv(log_occ_csv)
 
 
-def main(log_pdb_mtz_csv="/dls/science/groups/i04-1/elliot-dev/"
-                         "Work/exhaustive_parse_xchem_db/log_pdb_mtz.csv",
+def main(log_labelled_csv="/dls/science/groups/i04-1/elliot-dev/"
+                         "Work/exhaustive_parse_xchem_db/log_test.csv",
          occ_conv_csv="/dls/science/groups/i04-1/elliot-dev/"
                          "Work/exhaustive_parse_xchem_db/occ_conv.csv",
          occ_conv_fails_csv="/dls/science/groups/i04-1/elliot-dev/"
                          "Work/exhaustive_parse_xchem_db/occ_conv_failures.csv"):
 
-
-    
-    raise Exception
+    log_df = pd.read_csv(log_labelled_csv)
 
     occ_conv_df_list = []
     failures = []
-    for index, row in log_df.iterrows():
-        try:
-            occ_df = get_occupancy_df(log_path=row.refine_log,
-                                      pdb_path=row.pdb_latest,
-                                      lig_name='LIG',
-                                      crystal=row.crystal_name)
-        except ValueError:
-            # This is for handling the exception,
-            # utilising it's traceback to determine
-            # the consitent errors
-            #
-            # This is python 2.7 specific
-            #
-            # Could alternatively be done by logging
+    for pos, pdb in enumerate(log_df.pdb_latest.unique()):
 
-            ex_type, ex, tb = sys.exc_info()
-            tb_txt = traceback.extract_tb(tb)
-            error = (row.refine_log, ex_type, ex, tb_txt)
-            failures.append(error)
-            print('Error')
-            continue
+        print("******* POS {} ************".format(pos))
+        pdb_df = log_df.loc[log_df['pdb_latest'] == pdb]
 
-        occ_conv_df_list.append(occ_df)
+        comment_df = process_ground_bound(pdb_df)
+
+
+
+        # try:
+        #
+        #
+        #     # occ_df = get_occupancy_df(log_path=row.refine_log,
+        #     #                           pdb_path=row.pdb_latest,
+        #     #                           lig_name='LIG',
+        #     #                           crystal=row.crystal_name)
+        # except ValueError:
+        #     # This is for handling the exception,
+        #     # utilising it's traceback to determine
+        #     # the consitent errors
+        #     #
+        #     # This is python 2.7 specific
+        #     #
+        #     # Could alternatively be done by logging
+        #
+        #     ex_type, ex, tb = sys.exc_info()
+        #     tb_txt = traceback.extract_tb(tb)
+        #     error = (row.refine_log, ex_type, ex, tb_txt)
+        #     failures.append(error)
+        #     print('Error')
+        #     continue
+
+        occ_conv_df_list.append(comment_df)
 
     failures_df = pd.DataFrame(failures, columns=['log',
                                                   'exception_type',
