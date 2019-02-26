@@ -24,7 +24,7 @@ class Path(luigi.Config):
     out_dir = "/dls/science/groups/i04-1/elliot-dev/Work/" \
               "exhaustive_parse_xchem_db/"
     tmp_dir = os.path.join(out_dir, "tmp")
-    
+
 
     # CSVS
     log_pdb_mtz = luigi.Parameter(
