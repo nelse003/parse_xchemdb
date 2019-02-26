@@ -6,7 +6,12 @@ import argparse
 
 def update_progress(progress):
 
-    """https://stackoverflow.com/questions/3160699/python-progress-bar"""
+    """ Progress bar
+
+    Notes
+    ------------
+
+    https://stackoverflow.com/questions/3160699/python-progress-bar"""
 
     barLength = 10 # Modify this to change the length of the progress bar
     status = ""

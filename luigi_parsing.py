@@ -3,12 +3,15 @@ import os
 import pandas as pd
 import glob
 
+import cluster_submission
+
 from parse_xchemdb import process_refined_crystals
 from parse_xchemdb import get_table_df
 from parse_xchemdb import drop_only_dimple_processing
 from parse_xchemdb import drop_pdb_not_in_filesystem
 
 from convergence import get_occ_from_log
+from convergence import main as convergence
 
 from plotting import main as plot_occ
 from plotting import refinement_summary_plot
@@ -16,10 +19,13 @@ from refinement_summary import refinement_summary
 ### Config ###
 
 class Path(luigi.Config):
+
     script_dir = "/dls/science/groups/i04-1/elliot-dev/parse_xchemdb"
     out_dir = "/dls/science/groups/i04-1/elliot-dev/Work/" \
               "exhaustive_parse_xchem_db/"
     tmp_dir = os.path.join(out_dir, "tmp")
+    
+
     # CSVS
     log_pdb_mtz = luigi.Parameter(
         default=os.path.join(out_dir,'log_pdb_mtz.csv'))
@@ -132,11 +138,12 @@ class ResnameToOccLog(luigi.Task):
 
 class OccConvergence(luigi.Task):
     def requires(self):
-        return ParseXChemDBToDF()
+        return ResnameToOccLog()
     def output(self):
         return luigi.LocalTarget(Path().occ_conv)
     def run(self):
-        os.system("ccp4-python {}".format(Path().convergence_py))
+        convergence(log_labelled_csv=Path().log_occ_resname,
+                    occ_conv_csv=Path().occ_conv)
 
 # TODO plot_occ to atomistic
 class PlottingOccHistogram(luigi.Task):
@@ -178,7 +185,7 @@ class BatchCheck(luigi.Task):
 
 class CheckQsub(luigi.Task):
 
-    """Check whether batch jobs on cluster have been run
+    """Initiate batch jobs on cluster
 
     NOT WORKING
 
@@ -216,7 +223,7 @@ class CheckQsub(luigi.Task):
                 print(output)
 
 
-                remote_sub_command = 'ssh -tt uzw12877@nx.diamond.ac.uk'
+                remote_sub_command = 'ssh -tt jot97277@nx.diamond.ac.uk'
                 submission_string = ' '.join([
                     remote_sub_command,
                     '"',
@@ -255,7 +262,10 @@ class CheckQsub(luigi.Task):
 
 class GenererateRefmacJobs(luigi.Task):
 
-    """ Produces Refmac Jobs"""
+    """ Produces Refmac Jobs
+
+    NOT WORKING
+    """
 
     def output(self):
         pass

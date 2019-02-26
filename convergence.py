@@ -122,7 +122,8 @@ def process_ground_bound(pdb_df):
                                          axis=1)
 
 
-        unique_states = pdb_df.loc[pdb_df['complete group'] == complete_group]['state'].unique()
+        unique_states = pdb_df.loc[
+            pdb_df['complete group'] == complete_group]['state'].unique()
         if len(unique_states) == 1:
             if unique_states[0] == "bound":
                 pdb_df['comment'] = pdb_df.apply(func=comment_cg,
@@ -174,128 +175,6 @@ def process_ground_bound(pdb_df):
         raise Exception
 
 
-
-def get_occupancy_df(log_path, pdb_path, crystal, lig_name='LIG'):
-
-    """ Keep for reference until process_ground_bound proven to work"""
-
-    log_df = read_occ_group_from_refmac_log(log_path=log_path)
-
-    # Get columns associated with bound & ground from
-    # ligand groups
-
-    column_bound = list(
-        set(occ_conv_df.columns.values).intersection(
-            set(lig_groups)))
-
-    print(occ_conv_df)
-    print(column_bound)
-
-    if len(column_bound) == 0:
-        raise ValueError("No bound state identified")
-
-    column_ground = list(
-        set(occ_conv_df.columns.values).symmetric_difference(
-            set(lig_groups)))
-
-    print(column_ground)
-
-    raise Exception
-
-    if len(column_bound) == 0:
-        raise ValueError("No ground state identified")
-
-    # Add columns together
-    ground = np.zeros(len(occ_conv_df))
-    bound = np.zeros(len(occ_conv_df))
-    for col in column_ground:
-        ground += occ_conv_df[col].values
-    for col in column_bound:
-        bound += occ_conv_df[col].values
-
-
-    if len(column_ground) > 2:
-        multiplicity_ground = len(column_ground) / 2
-    else:
-        multiplicity_ground = 1
-    if len(column_bound) > 2:
-        multiplicity_bound = len(column_bound) / 2
-    else:
-        multiplicity_bound = 1
-
-    occ_conv_df['ground'] = ground / multiplicity_ground
-    occ_conv_df['bound'] = bound / multiplicity_bound
-
-    occ_corrected_df = occ_conv_df.drop(column_ground + column_bound, axis=1)
-
-    # Check whether all occupancy values are 1.0
-    if len(pd.unique(occ_corrected_df.values)) == 1:
-        if pd.unique(occ_corrected_df.values)[0] == 1.0:
-            raise ValueError("All occupancies are {}. "
-                             "Likely there is no ground state".format(
-                pd.unique(occ_corrected_df.values)[0]))
-
-
-    occ_df = occ_corrected_df.T
-    occ_df.reset_index(level=0, inplace=True)
-    occ_df.rename(columns={'index': 'state'},
-                  index=str,
-                  inplace=True)
-    occ_df['crystal'] = [crystal, crystal]
-    occ_df = occ_df.set_index(['crystal', 'state'])
-
-    # labelling the occupancy with comment, and convergence figure
-    comment = {}
-    converge = {}
-
-    if len(np.unique(occ_df.values[0])) == 1:
-        if np.unique(occ_df.values[0]) == 0:
-            comment[(crystal, 'ground')] = "Zero occupancy ground state"
-        else:
-            comment[(crystal, 'ground')] = \
-                "Ground state has single occupancy:{}".format(
-                    np.unique(occ_df.values[0]))
-
-    if len(np.unique(occ_df.values[1])) == 1:
-        if np.unique(occ_df.values[1]) == 1:
-            comment[(crystal, 'bound')] = "Full occupancy bound state"
-        else:
-            comment[(crystal, 'bound')] = \
-                "Bound state has single occupancy: {}".format(
-                    np.unique(occ_df.values[1]))
-
-    if not comment:
-        for g, b in zip(occ_df.values[0], occ_df.values[1]):
-            if g + b > 1.01:
-                comment[(crystal, 'ground')] = "Over occupied"
-                comment[(crystal, 'bound')] = "Over occupied"
-                break
-            elif g + b < 0.99:
-                comment[(crystal, 'ground')] = "Under occupied"
-                comment[(crystal, 'bound')] = "Under occupied"
-                break
-
-            comment[(crystal, 'ground')] = "Correctly occupied"
-            comment[(crystal, 'bound')] = "Correctly occupied"
-            converge[(crystal, 'ground')] = abs(occ_df.values[0][-1] /
-                                                occ_df.values[0][-2] - 1)
-            converge[(crystal, 'bound')] = abs(occ_df.values[1][-1] /
-                                               occ_df.values[1][-2] - 1)
-
-    occ_df['comment'] = occ_df.index
-    occ_df['comment'] = occ_df['comment'].map(comment)
-
-    occ_df['converge'] = occ_df.index
-    occ_df['converge'] = occ_df['converge'].map(converge)
-
-    occ_df['chain'] = chain
-    occ_df['resid'] = resid
-    occ_df.reset_index(level=0, inplace=True)
-    occ_df.reset_index(level=0, inplace=True)
-    occ_df = occ_df.set_index(['crystal', 'state', 'chain', 'resid'])
-
-    return occ_df
-
 def get_occ_from_log(log_pdb_mtz_csv, log_occ_csv):
 
     log_df = pd.read_csv(log_pdb_mtz_csv)
@@ -319,10 +198,7 @@ def get_occ_from_log(log_pdb_mtz_csv, log_occ_csv):
     occ_log_df.to_csv(log_occ_csv)
 
 
-def main(log_labelled_csv="/dls/science/groups/i04-1/elliot-dev/"
-                         "Work/exhaustive_parse_xchem_db/log_test.csv",
-         occ_conv_csv="/dls/science/groups/i04-1/elliot-dev/"
-                         "Work/exhaustive_parse_xchem_db/occ_conv.csv"):
+def main(log_labelled_csv, occ_conv_csv):
 
     log_df = pd.read_csv(log_labelled_csv)
 
@@ -333,7 +209,6 @@ def main(log_labelled_csv="/dls/science/groups/i04-1/elliot-dev/"
         pdb_df = log_df.loc[log_df['pdb_latest'] == pdb]
         comment_df = process_ground_bound(pdb_df)
         occ_conv_df_list.append(comment_df)
-
 
     occ_conv_summary_df = pd.concat(occ_conv_df_list)
     occ_conv_summary_df.to_csv(occ_conv_csv)
