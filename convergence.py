@@ -96,18 +96,9 @@ def altloc_to_state(row, complete_group, ligand_altlocs):
     else:
         return row.state
 
-def comment_complete(row, complete_group):
+def comment_cg(row, complete_group, comment):
     if row['complete group'] == complete_group:
-        return "Complete group is split between ground and bound"
-    else:
-        try:
-            return row.comment
-        except AttributeError:
-            return None
-
-def comment_all_bound(row, complete_group):
-    if row['complete group'] == complete_group:
-        return "All bound state"
+        return comment
     else:
         try:
             return row.comment
@@ -115,10 +106,6 @@ def comment_all_bound(row, complete_group):
             return None
 
 def process_ground_bound(pdb_df):
-
-    # TODO Check that the sum of ground + bound in a complete group is close to 1.00
-
-    # TODO Fails at 471
 
     # # Add state to ligand lines
     pdb_df['state'] = pdb_df.apply(is_lig, axis=1)
@@ -138,26 +125,59 @@ def process_ground_bound(pdb_df):
         unique_states = pdb_df.loc[pdb_df['complete group'] == complete_group]['state'].unique()
         if len(unique_states) == 1:
             if unique_states[0] == "bound":
-                pdb_df['comment'] = pdb_df.apply(func=comment_all_bound,
+                pdb_df['comment'] = pdb_df.apply(func=comment_cg,
                                                  complete_group=complete_group,
+                                                 comment="All bound state",
                                                  axis=1)
+            if unique_states[0] == "ground":
 
+                # TODO Cases where might also contain LIG not present,
+                #  such as NUDT7A_Crude-x2116 where ligand seems to be FRG
 
+                pdb_df['comment'] = pdb_df.apply(func=comment_cg,
+                                                 complete_group=complete_group,
+                                                 comment="All ground state",
+                                                 axis=1)
         elif len(unique_states) == 2:
-                pdb_df['comment'] = pdb_df.apply(func=comment_complete,
+
+            # Check that the sum of ground + bound in a complete group is 1.00
+
+            cg_df = pdb_df.loc[pdb_df['complete group'] == complete_group]
+            cg_df = cg_df.dropna(axis=1).drop(['chain','complete group',
+                                              'resid','resname', 'B_mean',
+                                              'state','Unnamed: 0',
+                                              'pdb_latest','refine_log',
+                                              'occupancy group',
+                                              'crystal','B_std'], axis=1)
+
+            unique_by_alt_df = cg_df.groupby('alte').nunique().drop(
+                ['alte'], axis=1)
+            if unique_by_alt_df.empty:
+                pdb_df['comment'] = pdb_df.apply(func=comment_cg,
                                                  complete_group=complete_group,
+                                                 comment="No occupancy convergence data in log",
                                                  axis=1)
+            elif np.unique(unique_by_alt_df.values) == 1:
+                pdb_df['comment'] = pdb_df.apply(func=comment_cg,
+                                                 complete_group=complete_group,
+                                                 comment="Correctly Occupied",
+                                                 axis=1)
+            else:
+                print(pdb_df)
+                raise Exception
 
     if all(pdb_df['comment'].notnull()):
         return pdb_df
     else:
+        import pdb; pdb.set_trace()
         print(pdb_df)
         raise Exception
 
 
-    #
 
 def get_occupancy_df(log_path, pdb_path, crystal, lig_name='LIG'):
+
+    """ Keep for reference until process_ground_bound proven to work"""
 
     log_df = read_occ_group_from_refmac_log(log_path=log_path)
 
@@ -302,58 +322,21 @@ def get_occ_from_log(log_pdb_mtz_csv, log_occ_csv):
 def main(log_labelled_csv="/dls/science/groups/i04-1/elliot-dev/"
                          "Work/exhaustive_parse_xchem_db/log_test.csv",
          occ_conv_csv="/dls/science/groups/i04-1/elliot-dev/"
-                         "Work/exhaustive_parse_xchem_db/occ_conv.csv",
-         occ_conv_fails_csv="/dls/science/groups/i04-1/elliot-dev/"
-                         "Work/exhaustive_parse_xchem_db/occ_conv_failures.csv"):
+                         "Work/exhaustive_parse_xchem_db/occ_conv.csv"):
 
     log_df = pd.read_csv(log_labelled_csv)
 
     occ_conv_df_list = []
-    failures = []
+
     for pos, pdb in enumerate(log_df.pdb_latest.unique()):
 
-        print("******* POS {} ************".format(pos))
         pdb_df = log_df.loc[log_df['pdb_latest'] == pdb]
-
         comment_df = process_ground_bound(pdb_df)
-
-
-
-        # try:
-        #
-        #
-        #     # occ_df = get_occupancy_df(log_path=row.refine_log,
-        #     #                           pdb_path=row.pdb_latest,
-        #     #                           lig_name='LIG',
-        #     #                           crystal=row.crystal_name)
-        # except ValueError:
-        #     # This is for handling the exception,
-        #     # utilising it's traceback to determine
-        #     # the consitent errors
-        #     #
-        #     # This is python 2.7 specific
-        #     #
-        #     # Could alternatively be done by logging
-        #
-        #     ex_type, ex, tb = sys.exc_info()
-        #     tb_txt = traceback.extract_tb(tb)
-        #     error = (row.refine_log, ex_type, ex, tb_txt)
-        #     failures.append(error)
-        #     print('Error')
-        #     continue
-
         occ_conv_df_list.append(comment_df)
 
-    failures_df = pd.DataFrame(failures, columns=['log',
-                                                  'exception_type',
-                                                  'exception',
-                                                  'traceback'])
-    failures_df.to_csv(occ_conv_fails_csv)
 
     occ_conv_summary_df = pd.concat(occ_conv_df_list)
     occ_conv_summary_df.to_csv(occ_conv_csv)
-
-    len(occ_conv_summary_df)
 
 if __name__ == "__main__":
     """
