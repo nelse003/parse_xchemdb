@@ -43,4 +43,4 @@ def write_job(execute_directory, job_directory, job_filename, job_name, job_comm
 
     f = open(output, 'w')
     f.write(job_script)
-os.chdir(directory)
+    os.chdir(directory)

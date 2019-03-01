@@ -3,7 +3,8 @@ import os
 import pandas as pd
 import glob
 
-import cluster_submission
+from cluster_submission import submit_job
+from cluster_submission import write_job
 
 from parse_xchemdb import process_refined_crystals
 from parse_xchemdb import get_table_df
