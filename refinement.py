@@ -73,6 +73,7 @@ def write_quick_refine_csh(refine_pdb,
             + module_load +
             '\n'
             + source +
+            '\n' +
             'cd {}\n'.format(out_dir) +
             'giant.quick_refine'
             ' input.pdb=%s' % refine_pdb +
@@ -101,7 +102,14 @@ def write_quick_refine_csh(refine_pdb,
     cmd.write(refmacCmds)
     cmd.close()
 
-def write_refmac_csh(crystal, pdb, cif, out_dir, refinement_script_dir, extra_params="NCYC=50"):
+def write_refmac_csh(crystal,
+                     pdb,
+                     cif,
+                     out_dir,
+                     refinement_script_dir,
+                     extra_params="NCYC=50",
+                     free_mtz=None,
+                     params=None):
 
     """
     Write a single refmac file
@@ -127,10 +135,12 @@ def write_refmac_csh(crystal, pdb, cif, out_dir, refinement_script_dir, extra_pa
 
     refinement_program = "refmac"
     cif = cif_path(cif=cif, pdb=pdb)
-    free_mtz = free_mtz_path_from_refine_pdb(pdb)
-    params = path_from_refine_pdb(pdb, glob_string="*{}*params".format(refinement_program))
+    if free_mtz is None:
+        free_mtz = free_mtz_path_from_refine_pdb(pdb)
+    if params is None:
+        params = path_from_refine_pdb(pdb, glob_string="*{}*params".format(refinement_program))
 
-    crystal_dir = os.path.join(out_dir, crystal)
+    input_dir = os.path.join(out_dir, crystal)
 
     if not os.path.exists(refinement_script_dir):
         os.makedirs(refinement_script_dir)
@@ -162,7 +172,7 @@ def write_refmac_csh(crystal, pdb, cif, out_dir, refinement_script_dir, extra_pa
                            free_mtz=input_mtz,
                            crystal=crystal,
                            refinement_params=input_params,
-                           out_dir=crystal_dir,
+                           out_dir=input_dir,
                            refinement_script_dir=refinement_script_dir,
                            qsub_name="ERN refine",
                            refinement_program='refmac',
