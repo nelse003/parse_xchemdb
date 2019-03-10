@@ -85,7 +85,7 @@ def write_quick_refine_csh(refine_pdb,
             " out_prefix='%s'" % out_prefix  +
             " split_conformations='False'"
             '\n'
-            'cd ' + out_dir + dir_prefix + '0001''\n'
+            'cd ' + os.path.join(out_dir,dir_prefix + '0001') + '\n'
             'giant.split_conformations'
             " input.pdb='%s.pdb'" % out_prefix +
             ' reset_occupancies=False'
@@ -192,50 +192,20 @@ if __name__ == "__main__":
     out_dir = "/dls/science/groups/i04-1/elliot-dev/Work/" \
               "exhaustive_parse_xchem_db/convergence_refinement"
 
-    refinement_program = "refmac"
-    cif = cif_path(cif=cif, pdb=pdb)
-    free_mtz = free_mtz_path_from_refine_pdb(pdb)
-    params = path_from_refine_pdb(pdb, glob_string="*{}*params".format(refinement_program))
-    refinement_script_dir = os.path.join(out_dir,"refinement_scripts")
-    input_dir = os.path.join(out_dir, crystal, "input")
-    crystal_dir = os.path.join(out_dir, crystal)
+    refinement_script_dir = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/tmp"
 
-    if not os.path.exists(refinement_script_dir):
-        os.makedirs(refinement_script_dir)
+    write_refmac_csh(crystal=crystal,
+                     pdb=pdb,
+                     cif=cif,
+                     out_dir=out_dir,
+                     refinement_script_dir=refinement_script_dir,
+                     extra_params="NCYC=3",
+                     free_mtz=None,
+                     params=None)
 
-    if not os.path.exists(input_dir):
-        os.makedirs(input_dir)
 
-    input_cif = os.path.join(input_dir, "input.cif")
-    input_pdb = os.path.join(input_dir, "input.pdb")
-    input_params = os.path.join(input_dir, "input.params")
-    input_mtz = os.path.join(input_dir, "input.mtz")
 
-    if not os.path.exists(input_cif):
-        os.symlink(cif, input_cif)
 
-    if not os.path.exists(input_pdb):
-        os.symlink(pdb, input_pdb)
-
-    if not os.path.exists(input_params):
-        copyfile(params, input_params)
-
-    if not os.path.exists(input_mtz):
-        os.symlink(free_mtz, input_mtz)
-
-    update_refinement_params(params=input_params, extra_params="NCYC=50")
-
-    write_quick_refine_csh(refine_pdb=input_pdb,
-                           cif=input_cif,
-                           free_mtz=input_mtz,
-                           crystal=crystal,
-                           refinement_params=input_params,
-                           out_dir=crystal_dir,
-                           refinement_script_dir=refinement_script_dir,
-                           qsub_name="ERN refine",
-                           refinement_program='refmac',
-                           out_prefix="refine_1",
-                           dir_prefix="refine_")
 
 
 

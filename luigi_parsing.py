@@ -2,6 +2,7 @@ import luigi
 import os
 import pandas as pd
 import glob
+import subprocess
 
 from cluster_submission import submit_job
 from cluster_submission import write_job
@@ -25,7 +26,7 @@ class Path(luigi.Config):
     out_dir = "/dls/science/groups/i04-1/elliot-dev/Work/" \
               "exhaustive_parse_xchem_db/"
     tmp_dir = os.path.join(out_dir, "tmp")
-
+    refinement_dir = os.path.join(out_dir, "convergence_refinement")
 
     # CSVS
     log_pdb_mtz = luigi.Parameter(
@@ -63,6 +64,7 @@ class Path(luigi.Config):
     script_dir = luigi.Parameter(default= script_dir)
     tmp_dir = luigi.Parameter(default= tmp_dir)
     out_dir = luigi.Parameter(default=out_dir)
+    refinement_dir = luigi.Parameter(default=refinement_dir)
 
 ## Tasks ###
 
@@ -155,7 +157,7 @@ class PlottingOccHistogram(luigi.Task):
     def run(self):
         plot_occ()
 
-class BatchCheck(luigi.Task):
+class BatchRefinement(luigi.Task):
 
     """Check whether batch jobs on cluster have been run
 
@@ -164,8 +166,10 @@ class BatchCheck(luigi.Task):
     Notes
     ---------
 
-    From https://github.com/xchem/formulatrix_pipe/blob/master/run_ranker.py
-    as BatchCheckRanker
+    Skeleton code adapted from working version for the formulatrix
+    pipeline at diamond:
+
+    https://github.com/xchem/formulatrix_pipe/blob/master/run_ranker.py
 
     """
 
@@ -174,90 +178,76 @@ class BatchCheck(luigi.Task):
 
     def requires(self):
         # get a list of all refmac jobs
-        files_list = glob.glob(os.path.join(Path().tmp_dir, 'refmac*.sh'))
-        print(Path().tmp_dir)
-        print(files_list)
+        files_list = glob.glob(os.path.join(Path().tmp_dir, '*.csh'))
         # Check whether the output files expected have appeared
-        return [CheckQsub(name=name) for name in files_list]
+        return [QsubRefinemnt(refinement_script=refinement_script) for name in files_list]
 
     def run(self):
         with self.output().open('w') as f:
             f.write('')
 
-class CheckQsub(luigi.Task):
+class QsubRefinemnt(luigi.Task):
 
-    """Initiate batch jobs on cluster
-
-    NOT WORKING
+    """Initiate & check progress of a single job on cluster submitted by qsub
 
     Notes
     ---------
+    Requires the refinemnt script name to the name of the crystal,
+    and that the pdb/mtz are stored hierarchailly in that folder.
+    Uses luigi.Parameter to pass a refinement script name.
 
-    From https://github.com/xchem/formulatrix_pipe/blob/master/run_ranker.py
-    as CheckRanker
+    Skeleton code adapted from working version for the formulatrix
+    pipeline at diamond:
 
+    https://github.com/xchem/formulatrix_pipe/blob/master/run_ranker.py
     """
 
-    name = luigi.Parameter()
-    data_directory = luigi.Parameter(default='Data')
-    extension = luigi.Parameter(default='.mat')
-    # a list of people to email when a plate has been ranked
+    refinement_script = luigi.Parameter()
+    pdb = os.path.join(Path().tmp_dir, crystal, 'refine.pdb')
+    mtz = os.path.join(Path().tmp_dir, crystal, 'refine.mtz')
 
     def requires(self):
         pass
 
     def output(self):
-        # a text version of the email sent is saved
-        return luigi.LocalTarget(os.path.join('messages', str(self.name + '.txt')))
+        pdb = os.path.join(Path().tmp_dir, crystal, 'refine.pdb')
+        mtz = os.path.join(Path().tmp_dir, crystal, 'refine.mtz')
 
     def run(self):
-        # what we expect the output from the ranker job to be
-        expected_file = os.path.join(self.data_directory, str(self.name + self.extension))
-        # if it's not there, throw an error - might just not be finished... maybe change to distinguish(?)
+        crystal = self.refinement_script.split('.')[0]
 
-        if not os.path.isfile(expected_file):
-            time.sleep(5)
-            if not os.path.isfile(expected_file):
-                queue_jobs = []
-                job = 'ranker_jobs/RANK_' + self.name + '.sh'
-                output = glob.glob(str(job + '.o*'))
-                print(output)
+        if not (os.path.isfile(pdb) and os.path.isfile(mtz)):
+            queue_jobs = []
+            job = self.refinement_script
+            output = glob.glob(str(job + '.o*'))
+            print(output)
 
+            #remote_sub_command = 'ssh -tt jot97277@nx.diamond.ac.uk'
+            submission_string = 'qstat -r'
 
-                remote_sub_command = 'ssh -tt jot97277@nx.diamond.ac.uk'
-                submission_string = ' '.join([
-                    remote_sub_command,
-                    '"',
-                    'qstat -r',
-                    '"'
-                ])
+            submission = subprocess.Popen(submission_string, shell=True, stdout=subprocess.PIPE,
+                                          stderr=subprocess.PIPE)
+            out, err = submission.communicate()
 
-                submission = subprocess.Popen(submission_string, shell=True, stdout=subprocess.PIPE,
-                                              stderr=subprocess.PIPE)
-                out, err = submission.communicate()
+            output_queue = (out.decode('ascii').split('\n'))
+            print(output_queue)
 
-                output_queue = (out.decode('ascii').split('\n'))
-                print(output_queue)
-                for line in output_queue:
-                    if 'Full jobname' in line:
-                        jobname = line.split()[-1]
-                        queue_jobs.append(jobname)
-                print(queue_jobs)
-                if job.replace('ranker_jobs/', '') not in queue_jobs:
-                    cluster_submission.submit_job(job_directory=os.path.join(os.getcwd(), 'ranker_jobs'),
-                                                  job_script=job.replace('ranker_jobs/', ''))
-                    print(
-                        'The job had no output, and was not found to be running in the queue. The job has been '
-                        'resubmitted. Will check again later!')
-                if not queue_jobs:
-                    raise Exception('.mat file not found for ' + str(
-                        self.name) + '... something went wrong in ranker or job is still running')
-            # if job not in queue_jobs:
-            #     cluster_submission.submit_job(job_directory=os.path.join(os.getcwd(), 'ranker_jobs'),
-            #                                   job_script=job.replace('ranker_jobs/', ''))
-            #     print(
-            #         'The job had no output, and was not found to be running in the queue. The job has been '
-            #         'resubmitted. Will check again later!')
+            for line in output_queue:
+                if 'Full jobname' in line:
+                    jobname = line.split()[-1]
+                    queue_jobs.append(jobname)
+            print(queue_jobs)
+
+            if job not in queue_jobs:
+                submit_job(job_directory=Path().tmp_dir,
+                           job_script=os.path.join(Path().tmp_dir, job))
+
+                print('The job had no output, and was not found to be running ' 
+                      'in the queue. The job has been resubmitted. ' 
+                      'Will check again later!')
+
+            if not queue_jobs:
+                raise Exception('Something went wrong or job is still running')
 
 
 
@@ -281,10 +271,12 @@ class GenererateRefmacJobs(luigi.Task):
 
 if __name__ == '__main__':
 
+    luigi.build([QsubRefinemnt(refinement_script='DCLRE1AA-x1010.csh')], local_scheduler=True)
+
     # luigi.build([BatchCheck()], local_scheduler=True, workers=4)
 
-    luigi.build([PlottingOccHistogram(),
-                 ResnameToOccLog(),
-                 SummaryRefinementPlot()],
-                local_scheduler=True,
-                workers=10)
+    # luigi.build([PlottingOccHistogram(),
+    #              ResnameToOccLog(),
+    #              SummaryRefinementPlot()],
+    #             local_scheduler=True,
+    #             workers=10)

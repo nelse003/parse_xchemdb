@@ -1,9 +1,31 @@
 import subprocess
 import os
 
-def submit_job(job_directory, job_script,
-               remote_sub_command='ssh -tt jot97277@nx.diamond.ac.uk',
-               max_jobs=100):
+def submit_job(job_directory,
+               job_script,
+               remote_sub_command='ssh -tt jot97277@nx.diamond.ac.uk'):
+    """
+
+    Parameters
+    ----------
+    job_directory
+    job_script
+
+    Returns
+    -------
+
+    Notes
+    ---------
+
+    Skeleton code adapted from working version for the formulatrix
+    pipeline at diamond:
+
+    https://github.com/xchem/formulatrix_pipe/blob/master/cluster_submission.py
+
+
+    Works now but requires a password.
+    # TODO Discuss with rachael the key option
+    """
 
     submission_string = ' '.join([
         remote_sub_command,
@@ -15,9 +37,14 @@ def submit_job(job_directory, job_script,
         '"'
     ])
 
+
     print(submission_string)
 
-    submission = subprocess.Popen(submission_string, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    submission = subprocess.Popen(submission_string,
+                                  shell=True,
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE)
+
     out, err = submission.communicate()
 
     out = out.decode('ascii')
@@ -31,7 +58,30 @@ def submit_job(job_directory, job_script,
         print('\n')
 
 
-def write_job(execute_directory, job_directory, job_filename, job_name, job_command):
+def write_job(execute_directory, job_directory, job_filename, job_command):
+
+    """
+
+    Parameters
+    ----------
+    execute_directory
+    job_directory
+    job_filename
+    job_command
+
+    Returns
+    -------
+
+    Notes
+    ---------
+
+    Skeleton code adapted from working version for the formulatrix
+    pipeline at diamond:
+
+    https://github.com/xchem/formulatrix_pipe/blob/master/cluster_submission.py
+
+    """
+
     directory = os.getcwd()
     os.chdir(job_directory)
     job_script = '''#!/bin/bash
