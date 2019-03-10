@@ -59,6 +59,7 @@ class Path(luigi.Config):
 
     # Batch Management
     refmac_batch = luigi.Parameter(default = os.path.join(out_dir, "refmac_batch.log"))
+    prepare_batch = luigi.Parameter(default=os.path.join(out_dir, "prepare_batch.log"))
 
     # Dirs
     script_dir = luigi.Parameter(default= script_dir)
@@ -157,9 +158,34 @@ class PlottingOccHistogram(luigi.Task):
     def run(self):
         plot_occ()
 
-class BatchRefinement(luigi.Task):
 
-    """Check whether batch jobs on cluster have been run
+class PrepareRefminement(luigi.Task):
+
+    """ Links input files, and generates refinement script
+
+    NOT WORKING
+    """
+
+    def output(self):
+        pass
+
+    def requires(self):
+        pass
+
+    def run(self):
+        write_refmac_csh(crystal=crystal,
+                         pdb=pdb,
+                         cif=cif,
+                         out_dir=out_dir,
+                         refinement_script_dir=refinement_script_dir,
+                         extra_params="NCYC=3",
+                         free_mtz=None,
+                         params=None)
+
+
+class BatchPrepareRefinement(luigi.Task):
+
+    """Check whether preparation refinement jobs have been run
 
     NOT WORKING
 
@@ -174,47 +200,59 @@ class BatchRefinement(luigi.Task):
     """
 
     def output(self):
-        return luigi.LocalTarget(Path().refmac_batch)
+        return luigi.LocalTarget(Path().prepare_batch)
 
     def requires(self):
-        # get a list of all refmac jobs
-        files_list = glob.glob(os.path.join(Path().tmp_dir, '*.csh'))
+        crystal_list = ['DCLRE1AA-x1010']
+
         # Check whether the output files expected have appeared
-        return [QsubRefinemnt(refinement_script=refinement_script) for name in files_list]
+        return [PrepareRefminement() for crystals in crystal_list]
 
     def run(self):
+        # Writes an output file, thus completing it's definition of whether it has run
         with self.output().open('w') as f:
             f.write('')
 
-class QsubRefinemnt(luigi.Task):
+
+
+class QsubRefinement(luigi.Task):
 
     """Initiate & check progress of a single job on cluster submitted by qsub
 
     Notes
     ---------
     Requires the refinemnt script name to the name of the crystal,
-    and that the pdb/mtz are stored hierarchailly in that folder.
+    and that the pdb/mtz are stored hierarchically in that folder.
     Uses luigi.Parameter to pass a refinement script name.
+
+    #TODO Consider ways to check for existence of not just PDB
 
     Skeleton code adapted from working version for the formulatrix
     pipeline at diamond:
 
     https://github.com/xchem/formulatrix_pipe/blob/master/run_ranker.py
+
+    #TODO This job, or it's batch runner should be run multiple times to check
+    that the files being created.
+
+    #TODO This currently needs ssh sign in credentials,
+    it should be able to get them from a key file
     """
 
     refinement_script = luigi.Parameter()
-    pdb = os.path.join(Path().tmp_dir, crystal, 'refine.pdb')
-    mtz = os.path.join(Path().tmp_dir, crystal, 'refine.mtz')
 
     def requires(self):
         pass
 
     def output(self):
+        crystal = self.refinement_script.split('.')[0]
         pdb = os.path.join(Path().tmp_dir, crystal, 'refine.pdb')
-        mtz = os.path.join(Path().tmp_dir, crystal, 'refine.mtz')
+        return luigi.LocalTarget(pdb)
 
     def run(self):
         crystal = self.refinement_script.split('.')[0]
+        pdb = os.path.join(Path().tmp_dir, crystal, 'refine.pdb')
+        mtz = os.path.join(Path().tmp_dir, crystal, 'refine.mtz')
 
         if not (os.path.isfile(pdb) and os.path.isfile(mtz)):
             queue_jobs = []
@@ -222,7 +260,6 @@ class QsubRefinemnt(luigi.Task):
             output = glob.glob(str(job + '.o*'))
             print(output)
 
-            #remote_sub_command = 'ssh -tt jot97277@nx.diamond.ac.uk'
             submission_string = 'qstat -r'
 
             submission = subprocess.Popen(submission_string, shell=True, stdout=subprocess.PIPE,
@@ -246,32 +283,50 @@ class QsubRefinemnt(luigi.Task):
                       'in the queue. The job has been resubmitted. ' 
                       'Will check again later!')
 
-            if not queue_jobs:
+            elif not queue_jobs:
                 raise Exception('Something went wrong or job is still running')
 
 
+class BatchRefinement(luigi.Task):
 
-class GenererateRefmacJobs(luigi.Task):
-
-    """ Produces Refmac Jobs
+    """Check whether batch jobs on cluster have been run
 
     NOT WORKING
+
+    Notes
+    ---------
+
+    Skeleton code adapted from working version for the formulatrix
+    pipeline at diamond:
+
+    https://github.com/xchem/formulatrix_pipe/blob/master/run_ranker.py
+
     """
 
     def output(self):
-        pass
+        return luigi.LocalTarget(Path().refmac_batch)
 
     def requires(self):
-        pass
+
+        # get a list of all refmac jobs
+        files_list = glob.glob(os.path.join(Path().tmp_dir, '*.csh'))
+
+        # Check whether the output files expected have appeared
+        return [QsubRefinement(refinement_script=refinement_script)
+                for refinement_script in files_list]
 
     def run(self):
-        pass
+        # Writes an output file, thus completing it's definition of whether it has run
+        with self.output().open('w') as f:
+            f.write('')
 
 
 
 if __name__ == '__main__':
 
-    luigi.build([QsubRefinemnt(refinement_script='DCLRE1AA-x1010.csh')], local_scheduler=True)
+    luigi.build([BatchRefinement()], local_scheduler=True)
+
+    #luigi.build([QsubRefinement(refinement_script='DCLRE1AA-x1010.csh')], local_scheduler=True)
 
     # luigi.build([BatchCheck()], local_scheduler=True, workers=4)
 
