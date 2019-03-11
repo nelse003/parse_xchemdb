@@ -63,7 +63,7 @@ def write_quick_refine_csh(refine_pdb,
     if os.getcwd().startswith('/dls'):
         module_load = 'module load phenix\n'
 
-    #TODO move to luigi parameter
+    # TODO move to luigi parameter
     source = "source /dls/science/groups/i04-1/software/pandda_0.2.12/ccp4/ccp4-7.0/bin/ccp4.setup-sh"
 
     refmacCmds = (
@@ -125,13 +125,16 @@ def write_refmac_csh(crystal,
     refinement_script_dir: str
         path to refinement script directory
     
-    
+    TODO Move refinement program to parameter
+
+    TODO Separate into multiple short functions checking
+         and updating values for each file type
+
     Notes
     ---------
 
 
     """
-
     refinement_program = "refmac"
 
     # If Cif file is not found at supplied location (due to error in database),
@@ -157,11 +160,9 @@ def write_refmac_csh(crystal,
         free_mtz = free_mtz_path_from_refine_pdb(pdb)
 
     # If parameter file is not provided,
-    # search the relativ_path for the pdb file
+    # search the relative_path for the pdb file
     if params is '':
         params = path_from_refine_pdb(pdb, glob_string="*{}*params".format(refinement_program))
-
-
 
     input_dir = os.path.join(out_dir, crystal)
 
@@ -176,6 +177,17 @@ def write_refmac_csh(crystal,
     input_params = os.path.join(input_dir, "input.params")
     input_mtz = os.path.join(input_dir, "input.mtz")
 
+    # Check that the source files for the symlinks exist
+    if not os.path.isfile(cif):
+        raise FileNotFoundError("{}: cif Not found".format(cif))
+    if not os.path.isfile(pdb):
+        raise FileNotFoundError("{}: pdb Not found".format(pdb))
+    if not os.path.isfile(params):
+        raise FileNotFoundError("{}: parameter file Not found".format(params))
+    if not os.path.isfile(free_mtz):
+        raise FileNotFoundError("{}: mtz Not found".format(free_mtz))
+
+    # Generate symlinks if they do not exist
     if not os.path.exists(input_cif):
         os.symlink(cif, input_cif)
 
@@ -201,30 +213,6 @@ def write_refmac_csh(crystal,
                            refinement_program='refmac',
                            out_prefix="refine_1",
                            dir_prefix="refine_")
-
-
-if __name__ == "__main__":
-
-    crystal = "DCLRE1AA-x1010"
-
-    pdb = "/dls/labxchem/data/2016/lb13385-66/processing/" \
-          "analysis/run3-Apr17/DCLRE1AA-x1010/Refine_9/refine_9.pdb"
-
-    cif = "compound/FMOPL000676a.cif"
-
-    out_dir = "/dls/science/groups/i04-1/elliot-dev/Work/" \
-              "exhaustive_parse_xchem_db/convergence_refinement"
-
-    refinement_script_dir = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/tmp"
-
-    write_refmac_csh(crystal=crystal,
-                     pdb=pdb,
-                     cif=cif,
-                     out_dir=out_dir,
-                     refinement_script_dir=refinement_script_dir,
-                     extra_params="NCYC=3",
-                     free_mtz=None,
-                     params=None)
 
 
 
