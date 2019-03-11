@@ -347,7 +347,7 @@ class BatchRefinement(luigi.Task):
 if __name__ == '__main__':
 
 
-    luigi.build([BatchRefinement()], local_scheduler=False)
+    luigi.build([BatchRefinement()], local_scheduler=False, workers=20)
 
     #luigi.build([QsubRefinement(refinement_script='DCLRE1AA-x1010.csh')], local_scheduler=True)
 

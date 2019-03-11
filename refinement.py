@@ -33,7 +33,7 @@ def cif_path(cif='', pdb=''):
             raise ValueError('Cif path cannot be found, '
                              'try providing pdb path')
     else:
-        path_from_refine_pdb(pdb, glob_string="*.cif")
+        cif_path = path_from_refine_pdb(pdb, glob_string="*.cif")
 
     if cif_path is None:
         raise  ValueError('Cif path cannot be found')
@@ -160,6 +160,8 @@ def write_refmac_csh(crystal,
     # search the relativ_path for the pdb file
     if params is '':
         params = path_from_refine_pdb(pdb, glob_string="*{}*params".format(refinement_program))
+
+
 
     input_dir = os.path.join(out_dir, crystal)
 
