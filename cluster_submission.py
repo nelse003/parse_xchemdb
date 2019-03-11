@@ -2,8 +2,7 @@ import subprocess
 import os
 
 def submit_job(job_directory,
-               job_script,
-               remote_sub_command='ssh -tt jot97277@nx.diamond.ac.uk'):
+               job_script):
     """
 
     Parameters
@@ -22,19 +21,14 @@ def submit_job(job_directory,
 
     https://github.com/xchem/formulatrix_pipe/blob/master/cluster_submission.py
 
-
-    Works now but requires a password.
-    # TODO Discuss with rachael the key option
     """
 
     submission_string = ' '.join([
-        remote_sub_command,
-        '"',
         'cd',
         job_directory,
-        '; module load global/cluster >>/dev/null 2>&1; qsub -q low.q ',
+        ';',
+        'module load global/cluster >>/dev/null 2>&1; qsub -q low.q ',
         job_script,
-        '"'
     ])
 
 

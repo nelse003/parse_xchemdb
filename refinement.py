@@ -18,15 +18,15 @@ def free_mtz_path_from_refine_pdb(pdb):
     return path_from_refine_pdb(pdb, glob_string='*.free.mtz')
 
 
-def cif_path(cif=None, pdb=None):
+def cif_path(cif='', pdb=''):
 
-    if cif is None and pdb is None:
+    if cif is '' and pdb is '':
         raise ValueError('Path and cif cannot both be None')
 
-    if cif is not None:
+    if cif is not '':
         if os.path.exists(cif):
             cif_path = cif
-        elif pdb is not None:
+        elif pdb is not '':
             cif = os.path.basename(cif)
             cif_path = path_from_refine_pdb(pdb=pdb, glob_string=cif)
         else:
@@ -108,11 +108,11 @@ def write_refmac_csh(crystal,
                      out_dir,
                      refinement_script_dir,
                      extra_params="NCYC=50",
-                     free_mtz=None,
-                     params=None):
+                     free_mtz='',
+                     params=''):
 
     """
-    Write a single refmac file
+    Write a csh script to run giant.quick_refine
     
     Parameters
     -----------
@@ -128,16 +128,37 @@ def write_refmac_csh(crystal,
     
     Notes
     ---------
-    
-    refinement_script_dir = os.path.join(out_dir,"refinement_scripts")
-    input_dir = os.path.join(out_dir, crystal, "input")
+
+
     """
 
     refinement_program = "refmac"
+
+    # If Cif file is not found at supplied location (due to error in database),
+    # or it is not supplied, it's implicit location:
+    # (same folder as refine.pdb symlink) is checked
     cif = cif_path(cif=cif, pdb=pdb)
-    if free_mtz is None:
+
+    # Check the pdb is file, raise exception otherwise,
+    # as this is required for implicit location of other files
+    if not os.path.isfile(pdb):
+        raise ValueError("{}: is not a valid file path for a pdb file".format(pdb))
+
+    # Check that free_mtz is provided.
+    # An empty string is used rather than None,
+    # due to luigi.Parameters passing strings around.
+    # If it doesn't exist try to infer location relative
+    # to the provided pdb.
+    if free_mtz == '':
         free_mtz = free_mtz_path_from_refine_pdb(pdb)
-    if params is None:
+
+    # os.path.isfile checks symlinks to see if path leads to a file.
+    elif not os.path.isfile(free_mtz):
+        free_mtz = free_mtz_path_from_refine_pdb(pdb)
+
+    # If parameter file is not provided,
+    # search the relativ_path for the pdb file
+    if params is '':
         params = path_from_refine_pdb(pdb, glob_string="*{}*params".format(refinement_program))
 
     input_dir = os.path.join(out_dir, crystal)
