@@ -21,6 +21,8 @@ def submit_job(job_directory,
 
     https://github.com/xchem/formulatrix_pipe/blob/master/cluster_submission.py
 
+    How to get number of qsub jobs on command line:
+    expr $(qstat -u jot97277 | wc -l) - 2
     """
 
     submission_string = ' '.join([
@@ -50,41 +52,3 @@ def submit_job(job_directory,
         print('\n')
         print(err)
         print('\n')
-
-
-def write_job(execute_directory, job_directory, job_filename, job_command):
-
-    """
-
-    Parameters
-    ----------
-    execute_directory
-    job_directory
-    job_filename
-    job_command
-
-    Returns
-    -------
-
-    Notes
-    ---------
-
-    Skeleton code adapted from working version for the formulatrix
-    pipeline at diamond:
-
-    https://github.com/xchem/formulatrix_pipe/blob/master/cluster_submission.py
-
-    """
-
-    directory = os.getcwd()
-    os.chdir(job_directory)
-    job_script = '''#!/bin/bash
-    cd %s
-    %s
-    ''' % (execute_directory, job_command)
-
-    output = os.path.join(job_directory, job_filename)
-
-    f = open(output, 'w')
-    f.write(job_script)
-    os.chdir(directory)

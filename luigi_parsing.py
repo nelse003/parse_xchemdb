@@ -15,13 +15,13 @@ from convergence import get_occ_from_log
 from convergence import main as convergence
 from plotting import main as plot_occ
 from plotting import refinement_summary_plot
-from refinement import write_refmac_csh
+from refinement import prepare_refinement
 from refinement_summary import refinement_summary
 
 # Config
-
-
 class Path(luigi.Config):
+
+    """Config: all paths to be used in luigi.Tasks as parameters"""
 
     script_dir = "/dls/science/groups/i04-1/elliot-dev/parse_xchemdb"
     out_dir = "/dls/science/groups/i04-1/elliot-dev/Work/" \
@@ -184,13 +184,13 @@ class PrepareRefinement(luigi.Task):
         pass
 
     def run(self):
-        write_refmac_csh(crystal=self.crystal,
-                         pdb=self.pdb,
-                         cif=self.cif,
-                         out_dir=self.out_dir,
-                         refinement_script_dir=self.refinement_script_dir,
-                         extra_params=self.extra_params,
-                         free_mtz=self.free_mtz)
+        prepare_refinement(crystal=self.crystal,
+                           pdb=self.pdb,
+                           cif=self.cif,
+                           out_dir=self.out_dir,
+                           refinement_script_dir=self.refinement_script_dir,
+                           extra_params=self.extra_params,
+                           free_mtz=self.free_mtz)
 
 
 class QsubRefinement(luigi.Task):
@@ -213,8 +213,7 @@ class QsubRefinement(luigi.Task):
     TODO This job, or it's batch runner should be run multiple times to check
          that the files being created.
 
-    TODO This currently needs ssh sign in credentials,
-         it should be able to get them from a key file
+    TODO Check whether removal of ssh is going to cause issues
     """
     refinement_script = luigi.Parameter()
 
@@ -288,7 +287,7 @@ class QsubRefinement(luigi.Task):
 
 class BatchRefinement(luigi.Task):
 
-    """Check whether batch jobs on cluster have been run
+    """Run a Batch of refinement jobs
 
     This work to set the job up, and not run if already started,
     but doesn't retry to check jobs.
@@ -301,6 +300,90 @@ class BatchRefinement(luigi.Task):
     pipeline at diamond:
 
     https://github.com/xchem/formulatrix_pipe/blob/master/run_ranker.py
+
+    (Converegence refinement) Failure modes:
+
+    1) Refinement fails due to external distance restraints not being satisfiable.
+
+    Examples:
+
+    FIH-x0241
+    FIH-x0379
+    VIM2-MB-403
+    NUDT7A_Crude-x0030
+
+    2) Refinement fails due to missing/incomplete cif
+
+    Examples:
+
+    UP1-x0030: Has an input cif file, but won't refine due mismatch in cif file:
+
+            atom: "C01 " is absent in coord_file
+            atom: "N02 " is absent in coord_file
+            atom: "C03 " is absent in coord_file
+            atom: "C04 " is absent in coord_file
+            atom: "N05 " is absent in coord_file
+            atom: "C06 " is absent in coord_file
+            atom: "C07 " is absent in coord_file
+            atom: "C08 " is absent in coord_file
+            atom: "O09 " is absent in coord_file
+            atom: "O11 " is absent in coord_file
+            atom: "C15 " is absent in coord_file
+            atom: "C16 " is absent in coord_file
+            atom: "C17 " is absent in coord_file
+            atom: "C18 " is absent in coord_file
+            atom: "C1  " is absent in lib description.
+            atom: "N1  " is absent in lib description.
+            atom: "C2  " is absent in lib description.
+            atom: "C3  " is absent in lib description.
+            atom: "N2  " is absent in lib description.
+            atom: "C4  " is absent in lib description.
+            atom: "C5  " is absent in lib description.
+            atom: "C6  " is absent in lib description.
+            atom: "O1  " is absent in lib description.
+            atom: "C7  " is absent in lib description.
+            atom: "O2  " is absent in lib description.
+            atom: "C8  " is absent in lib description.
+            atom: "C9  " is absent in lib description.
+            atom: "C11 " is absent in lib description.
+
+    Perhaps this could be solved by re running acedrg on smiles string
+
+    Fixed?
+
+    1) Only cif and PDB found.
+       No csh file is created
+
+        Examples:
+
+        HPrP-x0256
+        STAG-x0167
+
+        Looking at
+
+        STAG1A-x0167
+
+        The search path:
+
+        /dls/labxchem/data/2017/lb18145-52/processing/analysis/initial_model/STAG1A-x0167/Refine_0002
+
+        is not the most recent refinement.
+        In that search path there is a input.params file.
+
+        Solution:
+
+        Search for a parameter file,
+        changed to look for any file matching parameter file in folder.
+        If multiple are present,
+        check that the refinement program matches
+
+        Secondary required solution:
+
+        Also search for .mtz file,
+        if search for .free.mtz fails.
+        Edit to write_refmac_csh()
+
+        No folders have no quick-refine.log
 
     """
 
@@ -319,6 +402,10 @@ class BatchRefinement(luigi.Task):
             pdb = df.at[i, 'pdb_latest']
             mtz = df.at[i, 'mtz_free']
             crystal = df.at[i, 'crystal_name']
+
+            # Cheat to allow run on single folder
+            if crystal != "FIH-x0467":
+                continue
 
             refinement_script = os.path.join(Path().tmp_dir,
                                              "{}.csh".format(crystal))

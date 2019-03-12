@@ -210,12 +210,27 @@ def process_refined_crystals():
 
     pdb_log_mtz_df.to_csv(os.path.join(args.output, 'log_pdb_mtz.csv'))
 
+def smiles_from_crystal(crystal):
 
+    args = parse_args()
+    databases = get_databases(args)
 
-def main():
-    process_refined_crystals()
-    pass
+    compounds = get_table_df(table_name='compounds',
+                 databases=databases,
+                 args=args)
+
+    crystals = get_table_df(table_name='crystals',
+                 databases=databases,
+                 args=args)
+
+    cmpd_id = crystals.query('crystal_name==@crystal')['compound_id'].values[0]
+    smiles = compounds.query('id==@cmpd_id')['smiles'].values[0]
+
+    return smiles
 
 if __name__ == "__main__":
-    main()
+
+
+    print(smiles)
+
 
