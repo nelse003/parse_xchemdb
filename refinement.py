@@ -10,6 +10,10 @@ def find_program_from_parameter_file(file):
 
     May not be sufficient for all files,
     as checks may miss some parts of file
+
+    Returns
+    ----------
+    str or None
     """
 
     file_txt = open(file, 'r').read()
@@ -92,11 +96,7 @@ def cif_path(cif='', pdb='', input_dir=None, crystal=None):
     if cif_p is None:
         input_cif = os.path.join(input_dir, "input.cif")
         smiles = smiles_from_crystal(crystal)
-
-        # TODO change to subprocess:
-        # http://www.dalkescientific.com/writings/diary/archive/2005/04/12/wrapping_command_line_programs.html
-
-        os.system("acedrg -i '{}' -o {}".format(smiles, input_cif))
+        smiles_to_cif_acedrg(smiles=smiles, out_file=input_cif)
         cif_p = input_cif
 
     return cif_p
@@ -109,14 +109,25 @@ def update_refinement_params(params, extra_params):
 
 def check_restraints(input_dir):
     """ Check whether the quick refine is failing due restraint mismatch """
-    quick_refine_log = get_most_recent_quick_refine(input_dir)
+    try:
+        quick_refine_log = get_most_recent_quick_refine(input_dir)
+    except FileNotFoundError:
+        return False
     return check_file_for_string(quick_refine_log,
                                  "Error: At least one of the atoms from"
                                  " the restraints could not be found")
 
-def check_cif_refinement(input_dir):
+def check_refinement_for_cif_error(input_dir):
     """ Check whether the refinement has failed due to a cif error """
-    quick_refine_log = get_most_recent_quick_refine(input_dir)
+
+    # Need to catch file not found error,
+    # as perhaps an existing refinement doesn't exist
+    # in current folder.
+    try:
+        quick_refine_log = get_most_recent_quick_refine(input_dir)
+    except FileNotFoundError:
+        return False
+
     return check_file_for_string(quick_refine_log,
                                  "Refmac:  New ligand has been encountered. Stopping now")
 
@@ -147,7 +158,19 @@ def get_most_recent_quick_refine(input_dir):
 
 
 def check_file_for_string(file, string):
-    """Check if string is in file"""
+    """Check if string is in file
+
+    Parameters
+    ------------
+    file: str
+        path to file
+    string: str
+        string to be checked for existence in file
+
+    Notes
+    -----------
+    Reads entire file into memory, so would work for very large files
+    """
     file_txt = open(file, 'r').read()
     if string in file_txt:
         return True
@@ -161,13 +184,52 @@ def write_quick_refine_csh(refine_pdb,
                            refinement_params,
                            out_dir,
                            refinement_script_dir,
-                           qsub_name="ERN refine",
                            refinement_program='refmac',
                            out_prefix="refine_",
                            dir_prefix="refine_"):
 
-    pbs_line = '#PBS -joe -N {}\n'.format(qsub_name)
+    """
+    Write .csh script to refine using giant.quick_refine
 
+    Writes script to run on cluster with giant.quick_refine
+    and two calls to split, with and without resetting occupancies
+
+    Parameters
+    ----------
+    refine_pdb: str
+        path to pdb file
+    cif:
+        path to cif file
+    free_mtz:
+        path to mtz file
+    crystal: str
+        crystal name
+    refinement_params: str
+        path to parameter file
+    out_dir: str
+        path to output directory for refinement files
+    refinement_script_dir: str
+        path to directory where csh files will be written
+    refinement_program: str
+        refinemnt proggram to be used; phenix or refmac
+    out_prefix: str
+        prefix of the refinement file
+    dir_prefix: str
+        prefix of the refinemtn directory
+
+    Returns
+    -------
+    None
+
+    Notes
+    -------
+    """
+
+    # Qsub specific line
+    pbs_line = '#PBS -joe -N \n'
+
+    # TODO Test whether this module load is needed,
+    #       as there are now no phenix dependent lines
     module_load = ''
     if os.getcwd().startswith('/dls'):
         module_load = 'module load phenix\n'
@@ -175,6 +237,7 @@ def write_quick_refine_csh(refine_pdb,
     # TODO move to luigi parameter
     source = "source /dls/science/groups/i04-1/software/pandda_0.2.12/ccp4/ccp4-7.0/bin/ccp4.setup-sh"
 
+    # Shell suitable string for csh file
     refmacCmds = (
             '#!' + os.getenv('SHELL') + '\n'
             + pbs_line +
@@ -206,13 +269,44 @@ def write_quick_refine_csh(refine_pdb,
             ' suffix_prefix=output '
             '\n'
     )
+
+    # File location and name
     csh_file = os.path.join(refinement_script_dir, "{}.csh".format(crystal))
+
+    # Write file
     cmd = open(csh_file, 'w')
     cmd.write(refmacCmds)
     cmd.close()
 
 def make_symlinks(input_dir, cif, pdb, params, free_mtz):
+    """
+    Make symbolic links to refinement input files
 
+    Parameters
+    ----------
+    input_dir: str
+        path to input directory
+    cif: str
+        path to cif file
+    pdb:
+        path to pdb file
+    params:
+        path to parameter file
+    free_mtz:
+        path to free mtz
+
+    Returns
+    -------
+    input_cif: str
+        path to cif file for refinement
+    input_pdb: str
+        path to pdb file for refinement
+    input_params: str
+        path to parameter file for refinement
+    input_mtz: str
+        path to mtz file for refinement
+
+    """
     input_cif = os.path.join(input_dir, "input.cif")
     input_pdb = os.path.join(input_dir, "input.pdb")
     input_params = os.path.join(input_dir, "input.params")
@@ -240,6 +334,49 @@ def check_inputs(cif,
                  refinement_program,
                  input_dir,
                  crystal):
+    """
+    Check whether refinement input files are valid, replace if not and possible
+
+    If cif file path does not exist search the pdb
+    file path for a cif file. If this fails,
+    check database for a smiles string, then run acedrg.
+    pdb path is just checked for existence.
+    If the mtz file, and parameter file path
+    does not exist, search implicitly at pdb file path.
+
+    Parameters
+    ----------
+    cif: str
+        path to cif file
+    pdb: str
+        path to pdb file
+    params: str
+        path to refinemnt parameter file
+    free_mtz: str
+        path to free mtz file
+    refinement_program: str
+        name of refinement program; refmac or phenix
+    input_dir: str
+        path to directory at which input files are located
+    crystal: str
+        name of crystal
+
+    Returns
+    -------
+    cif: str
+        path to cif file, adjusted if input file did not exist
+    params: str
+        path to parameter file, adjusted if parameter input
+        file did not exist
+    free_mtz: str
+        path to mtz, adjusted if file does nto exist
+
+    Raises
+    -------
+    FileNotFoundError:
+        If cif, pdb, mtz or parameter files do not exist after
+        trying alternative location/ regenerating in the case of cif file
+    """
 
     # If Cif file is not found at supplied location (due to error in database),
     # or it is not supplied, it's implicit location:
@@ -250,21 +387,17 @@ def check_inputs(cif,
                    input_dir=input_dir,
                    crystal=crystal)
 
-    # Check the pdb is file, raise exception otherwise,
-    # as this is required for implicit location of other files
+    # If pdb file does not exist raise error
     if not os.path.isfile(pdb):
-        raise ValueError("{}: is not a valid file path for a pdb file".format(pdb))
+        raise FileNotFoundError("{}: pdb Not found".format(pdb))
 
     # Check that free_mtz is provided.
     # An empty string is used rather than None,
     # due to luigi.Parameters passing strings around.
     # If it doesn't exist try to infer location relative
     # to the provided pdb.
-
     if free_mtz == '':
         free_mtz = free_mtz_path_from_refine_pdb(pdb)
-
-    print(free_mtz)
 
     # Get free mtz recursively if possible,
     # else get refine mtz file recursively,
@@ -287,38 +420,66 @@ def check_inputs(cif,
     # Check that the source files for the symlinks exist
     if not os.path.isfile(cif):
         raise FileNotFoundError("{}: cif Not found".format(cif))
-    if not os.path.isfile(pdb):
-        raise FileNotFoundError("{}: pdb Not found".format(pdb))
     if not os.path.isfile(params):
         raise FileNotFoundError("{}: parameter file Not found".format(params))
     if not os.path.isfile(free_mtz):
         raise FileNotFoundError("{}: mtz Not found".format(free_mtz))
 
-    return cif, pdb, params, free_mtz
+    return cif, params, free_mtz
 
 def smiles_to_cif_acedrg(smiles, out_file):
-    """Run Acedrg with smiles to generate cif"""
+    """
+    Run Acedrg with smiles to generate cif
 
-    # Acedrg adds cif
+    Parameters
+    ----------
+    smiles: str
+        smiles string to be passed to acedrg
+    out_file: str
+        path to output cif file
+
+    Returns
+    -------
+    None
+
+    Notes
+    -------
+    Will generate cif file, and remove intermediary _TMP folder
+
+    Raises
+    --------
+    FileNotFoundError
+        If acedrg fail accorsing to specified error string:
+        "Can not generate a molecule from the input SMILES string!"
+        or if the output file
+    """
+
+    # Acedrg adds .cif extension,
+    # so if it is in the orginbal file name remove it
     if '.cif' in out_file:
         out_file = out_file.split('.cif')[0]
 
+    # Wrapping a basic command line implementation of acedrg
     a = subprocess.run(['acedrg','-i',smiles,'-o',out_file],
                        stdout=subprocess.PIPE,
                        stderr=subprocess.PIPE,
                        encoding='utf-8')
 
+    # Error specific to cif file not being produced
     smiles_error = "Can not generate a molecule from the input SMILES string!"
 
+    # Check the stdout of acedrg for the error
     if smiles_error in a.stdout:
         raise FileNotFoundError("{}.cif cannot be produced from the smiles using acedrg")
 
+    # Check whether there is a output file at all
     if not os.path.isfile(out_file):
         raise FileNotFoundError("{}.cif was not produced from the smiles using acedrg")
 
+    # specify temporary folder name
     tmp_folder = input_cif + "_TMP"
 
-    # remove TMP folder if generated
+    # remove intermediary _TMP folder
     if os.path.isdir(tmp_folder):
         shutil.rmtree(tmp_folder)
 
@@ -334,7 +495,13 @@ def prepare_refinement(crystal,
 
     """
     Prepare files and write csh script to run giant.quick_refine
-    
+
+    Creates directories to hold refinement scripts, and results.
+    Checks and replaces if necessary input files (cif, pdnb, params, mtz),
+    creating symlinks in refinement folder.
+    Check ex
+
+
     Parameters
     -----------
     crystal: str
@@ -345,7 +512,7 @@ def prepare_refinement(crystal,
         path to output directory
     refinement_script_dir: str
         path to refinement script directory
-    
+
     TODO Move refinement program to parameter
 
     TODO Separate into multiple short functions checking
@@ -363,13 +530,13 @@ def prepare_refinement(crystal,
 
     # Check and replace inputs with existing files,
     # or regenerate if necessary
-    cif, pdb, params, free_mtz = check_inputs(cif=cif,
-                                              pdb=pdb,
-                                              params=params,
-                                              free_mtz=free_mtz,
-                                              refinement_program="refmac",
-                                              input_dir=input_dir,
-                                              crystal=crystal)
+    cif, params, free_mtz = check_inputs(cif=cif,
+                                         pdb=pdb,
+                                         params=params,
+                                         free_mtz=free_mtz,
+                                         refinement_program="refmac",
+                                         input_dir=input_dir,
+                                         crystal=crystal)
 
 
     # generate symlinks to refinement files
@@ -383,11 +550,13 @@ def prepare_refinement(crystal,
                               free_mtz=free_mtz)
 
     # Check for failed refinement due to restraint error
-    # Run giant.make_restraitns in this case
-    # TODO Move source to a parameter
+    # Run giant.make_restraints in this case
     if check_restraints(input_dir):
+
+        # TODO Move source to a parameter
         os.system("source /dls/science/groups/i04-1/software/"
                   "pandda_0.2.12/ccp4/ccp4-7.0/bin/ccp4.setup-sh")
+
         os.chdir(input_dir)
         os.system("giant.make_restraints {}".format(input_pdb))
 
@@ -401,7 +570,8 @@ def prepare_refinement(crystal,
         if os.path.isfile(new_refmac_restraints):
             input_params = new_refmac_restraints
 
-    if check_cif_refinement(input_dir):
+    # Check that cif
+    if check_refinement_for_cif_error(input_dir):
         smiles = smiles_from_crystal(crystal)
         cif_backup = os.path.join(input_dir, "backup.cif")
         os.rename(input_cif, cif_backup)
@@ -416,7 +586,6 @@ def prepare_refinement(crystal,
                            refinement_params=input_params,
                            out_dir=input_dir,
                            refinement_script_dir=refinement_script_dir,
-                           qsub_name="ERN refine",
                            refinement_program='refmac',
                            out_prefix="refine_1",
                            dir_prefix="refine_")

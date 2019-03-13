@@ -296,6 +296,18 @@ class QsubRefinement(luigi.Task):
 @PrepareRefinement.event_handler(luigi.Event.FAILURE)
 @QsubRefinement.event_handler(luigi.Event.FAILURE)
 def failure_write_to_csv(task, exception):
+    """
+    If failure of task occurs, summarise in CSV
+
+    Parameters
+    ----------
+    task: luigi.Task
+        task for which this post failure function will be run
+
+    Returns
+    -------
+    None
+    """
 
     with open(Path().convergence_refinement_failures, 'a') as conv_ref_csv:
         conv_ref_writer = csv.writer(conv_ref_csv, delimiter=',')
@@ -304,6 +316,18 @@ def failure_write_to_csv(task, exception):
 @PrepareRefinement.event_handler(luigi.Event.SUCCESS)
 @QsubRefinement.event_handler(luigi.Event.SUCCESS)
 def success_write_to_csv(task):
+    """
+    If success of task occurs, summarise in CSV
+
+    Parameters
+    ----------
+    task: luigi.Task
+        task for which this post sucess function will be run
+
+    Returns
+    -------
+    None
+    """
 
     with open(Path().convergence_refinement_failures, 'a') as conv_ref_csv:
         conv_ref_writer = csv.writer(conv_ref_csv, delimiter=',')
