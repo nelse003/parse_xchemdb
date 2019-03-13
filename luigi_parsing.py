@@ -74,13 +74,24 @@ class Path(luigi.Config):
 
 ## Tasks ###
 
-class ParseXChemDBToDF(luigi.Task):
+class ParseXchemdbToCsv(luigi.Task):
+    """Parse the XChem database and turn """
+
     def requires(self):
         return None
     def output(self):
         return luigi.LocalTarget(Path().log_pdb_mtz)
     def run(self):
         process_refined_crystals()
+
+class OccFromLog(luigi.Task):
+    def requires(self):
+        return ParseXchemdbToCsv()
+    def output(self):
+        return luigi.LocalTarget(Path().log_occ)
+    def run(self):
+        get_occ_from_log(log_pdb_mtz_csv=Path().log_pdb_mtz,
+                         log_occ_csv=Path().log_occ)
 
 class RefineToDF(luigi.Task):
     def requires(self):
@@ -106,7 +117,7 @@ class SuperposedToDF(luigi.Task):
 
 class SummaryRefinement(luigi.Task):
     def requires(self):
-        return OccConvergence(), ParseXChemDBToDF(), SuperposedToDF(), RefineToDF()
+        return OccConvergence(), ParseXchemdbToCsv(), SuperposedToDF(), RefineToDF()
                #OccConvergenceFailureDF()
     def output(self):
         return luigi.LocalTarget(Path().refinement_summary)
@@ -127,14 +138,6 @@ class SummaryRefinementPlot(luigi.Task):
         refinement_summary_plot(refinement_csv=Path().refinement_summary,
                                 out_file_path=Path().refinement_summary_plot)
 
-class OccFromLog(luigi.Task):
-    def requires(self):
-        return ParseXChemDBToDF()
-    def output(self):
-        return luigi.LocalTarget(Path().log_occ)
-    def run(self):
-        get_occ_from_log(log_pdb_mtz_csv=Path().log_pdb_mtz,
-                         log_occ_csv=Path().log_occ)
 
 class ResnameToOccLog(luigi.Task):
     def requires(self):

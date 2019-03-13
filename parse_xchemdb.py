@@ -187,6 +187,20 @@ def get_crystal_target(args, databases):
 
 def process_refined_crystals():
 
+    """Parse XChem postgres table into csv
+
+    All tables in postgres databse are read in.
+
+    Refinement table is the main source of information used.
+
+    Crystal table is merged into refinement table.
+
+    Crystals which do not supply a pdb_latest field are dropped,
+    as are those where the file specified in the pdb latest field
+    is not a file on the filesystem.
+    """
+
+    # get required arguments for loading tables
     args = parse_args()
     databases = get_databases(args)
     refine_df = get_table_df(table_name='refinement',
