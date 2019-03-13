@@ -1,6 +1,8 @@
 import os
 import glob
-from shutil import copyfile
+import subprocess
+import shutil
+
 from parse_xchemdb import smiles_from_crystal
 
 def find_program_from_parameter_file(file):
@@ -70,8 +72,6 @@ def free_mtz_path_from_refine_pdb(pdb):
 
 def cif_path(cif='', pdb='', input_dir=None, crystal=None):
 
-    print("CIF" + cif)
-
     cif_p = None
     if cif is '' and pdb is '':
         raise ValueError('Path and cif cannot both be None')
@@ -127,6 +127,11 @@ def get_most_recent_quick_refine(input_dir):
     max_num = 0
     recent_refinement = None
     for folder in subfolders:
+
+        if 'TMP' in folder:
+            shutil.rmtree(os.path.join(input_dir, folder))
+            continue
+
         num = int(folder.split('_')[1])
         if num > max_num:
             max_num = num
@@ -221,7 +226,7 @@ def make_symlinks(input_dir, cif, pdb, params, free_mtz):
         os.symlink(pdb, input_pdb)
 
     if not os.path.exists(input_params):
-        copyfile(params, input_params)
+        shutil.copyfile(params, input_params)
 
     if not os.path.exists(input_mtz):
         os.symlink(free_mtz, input_mtz)
@@ -290,6 +295,33 @@ def check_inputs(cif,
         raise FileNotFoundError("{}: mtz Not found".format(free_mtz))
 
     return cif, pdb, params, free_mtz
+
+def smiles_to_cif_acedrg(smiles, out_file):
+    """Run Acedrg with smiles to generate cif"""
+
+    # Acedrg adds cif
+    if '.cif' in out_file:
+        out_file = out_file.split('.cif')[0]
+
+    a = subprocess.run(['acedrg','-i',smiles,'-o',out_file],
+                       stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE,
+                       encoding='utf-8')
+
+    smiles_error = "Can not generate a molecule from the input SMILES string!"
+
+    if smiles_error in a.stdout:
+        raise FileNotFoundError("{}.cif cannot be produced from the smiles using acedrg")
+
+    if not os.path.isfile(out_file):
+        raise FileNotFoundError("{}.cif was not produced from the smiles using acedrg")
+
+    tmp_folder = input_cif + "_TMP"
+
+    # remove TMP folder if generated
+    if os.path.isdir(tmp_folder):
+        shutil.rmtree(tmp_folder)
+
 
 def prepare_refinement(crystal,
                        pdb,
@@ -373,10 +405,7 @@ def prepare_refinement(crystal,
         smiles = smiles_from_crystal(crystal)
         cif_backup = os.path.join(input_dir, "backup.cif")
         os.rename(input_cif, cif_backup)
-
-        # TODO change to subprocess & put in function:
-        # http://www.dalkescientific.com/writings/diary/archive/2005/04/12/wrapping_command_line_programs.html
-        os.system("acedrg -i '{}' -o {}".format(smiles, input_cif))
+        smiles_to_cif_acedrg(smiles, input_cif)
 
     update_refinement_params(params=input_params, extra_params=extra_params)
 
@@ -392,9 +421,8 @@ def prepare_refinement(crystal,
                            out_prefix="refine_1",
                            dir_prefix="refine_")
 
-
-
-
+if __name__ == "__main__":
+    pass
 
 
 

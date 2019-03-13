@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import glob
 import subprocess
+import csv
 import time
 
 from cluster_submission import submit_job
@@ -21,7 +22,7 @@ from refinement_summary import refinement_summary
 # Config
 class Path(luigi.Config):
 
-    """Config: all paths to be used in luigi.Tasks as parameters"""
+    """Config: all paths to be used in luigi. Tasks as parameters"""
 
     script_dir = "/dls/science/groups/i04-1/elliot-dev/parse_xchemdb"
     out_dir = "/dls/science/groups/i04-1/elliot-dev/Work/" \
@@ -47,6 +48,9 @@ class Path(luigi.Config):
         default=os.path.join(out_dir, 'superposed.csv'))
     occ_conv_failures = luigi.Parameter(
         default=os.path.join(out_dir, 'occ_conv_failures.csv'))
+
+    convergence_refinement_failures = luigi.Parameter(
+        default=os.path.join(out_dir, 'convergence_refinement.csv'))
 
     # Plots
     refinement_summary_plot = luigi.Parameter(
@@ -285,6 +289,23 @@ class QsubRefinement(luigi.Task):
             elif not queue_jobs:
                 raise Exception('Something went wrong or job is still running')
 
+
+@PrepareRefinement.event_handler(luigi.Event.FAILURE)
+@QsubRefinement.event_handler(luigi.Event.FAILURE)
+def failure_write_to_csv(task, exception):
+
+    with open(Path().convergence_refinement_failures, 'a') as conv_ref_csv:
+        conv_ref_writer = csv.writer(conv_ref_csv, delimiter=',')
+        conv_ref_writer.writerow(["Failure", task.crystal, type(exception), exception])
+
+@PrepareRefinement.event_handler(luigi.Event.SUCCESS)
+@QsubRefinement.event_handler(luigi.Event.SUCCESS)
+def success_write_to_csv(task):
+
+    with open(Path().convergence_refinement_failures, 'a') as conv_ref_csv:
+        conv_ref_writer = csv.writer(conv_ref_csv, delimiter=',')
+        conv_ref_writer.writerow(["Sucesss", task.crystal])
+
 class BatchRefinement(luigi.Task):
 
     """Run a Batch of refinement jobs
@@ -302,52 +323,6 @@ class BatchRefinement(luigi.Task):
     https://github.com/xchem/formulatrix_pipe/blob/master/run_ranker.py
 
     (Converegence refinement) Failure modes:
-
-    1) Refinement fails due to external distance restraints not being satisfiable.
-
-    Examples:
-
-    FIH-x0241
-    FIH-x0379
-    VIM2-MB-403
-    NUDT7A_Crude-x0030
-
-    2) Refinement fails due to missing/incomplete cif
-
-    Examples:
-
-    UP1-x0030: Has an input cif file, but won't refine due mismatch in cif file:
-
-            atom: "C01 " is absent in coord_file
-            atom: "N02 " is absent in coord_file
-            atom: "C03 " is absent in coord_file
-            atom: "C04 " is absent in coord_file
-            atom: "N05 " is absent in coord_file
-            atom: "C06 " is absent in coord_file
-            atom: "C07 " is absent in coord_file
-            atom: "C08 " is absent in coord_file
-            atom: "O09 " is absent in coord_file
-            atom: "O11 " is absent in coord_file
-            atom: "C15 " is absent in coord_file
-            atom: "C16 " is absent in coord_file
-            atom: "C17 " is absent in coord_file
-            atom: "C18 " is absent in coord_file
-            atom: "C1  " is absent in lib description.
-            atom: "N1  " is absent in lib description.
-            atom: "C2  " is absent in lib description.
-            atom: "C3  " is absent in lib description.
-            atom: "N2  " is absent in lib description.
-            atom: "C4  " is absent in lib description.
-            atom: "C5  " is absent in lib description.
-            atom: "C6  " is absent in lib description.
-            atom: "O1  " is absent in lib description.
-            atom: "C7  " is absent in lib description.
-            atom: "O2  " is absent in lib description.
-            atom: "C8  " is absent in lib description.
-            atom: "C9  " is absent in lib description.
-            atom: "C11 " is absent in lib description.
-
-    Perhaps this could be solved by re running acedrg on smiles string
 
     Fixed?
 
@@ -385,10 +360,64 @@ class BatchRefinement(luigi.Task):
 
         No folders have no quick-refine.log
 
+    2) cif missing
+
+        Recursively search
+        If not found get smiles from DB
+        run acedrg
+        If acedrg fails raise FileNotFoundError
+
+        Examples:
+
+        UP1-x0030: Has an input cif file, but won't refine due mismatch in cif file:
+
+            atom: "C01 " is absent in coord_file
+            atom: "N02 " is absent in coord_file
+            atom: "C03 " is absent in coord_file
+            atom: "C04 " is absent in coord_file
+            atom: "N05 " is absent in coord_file
+            atom: "C06 " is absent in coord_file
+            atom: "C07 " is absent in coord_file
+            atom: "C08 " is absent in coord_file
+            atom: "O09 " is absent in coord_file
+            atom: "O11 " is absent in coord_file
+            atom: "C15 " is absent in coord_file
+            atom: "C16 " is absent in coord_file
+            atom: "C17 " is absent in coord_file
+            atom: "C18 " is absent in coord_file
+            atom: "C1  " is absent in lib description.
+            atom: "N1  " is absent in lib description.
+            atom: "C2  " is absent in lib description.
+            atom: "C3  " is absent in lib description.
+            atom: "N2  " is absent in lib description.
+            atom: "C4  " is absent in lib description.
+            atom: "C5  " is absent in lib description.
+            atom: "C6  " is absent in lib description.
+            atom: "O1  " is absent in lib description.
+            atom: "C7  " is absent in lib description.
+            atom: "O2  " is absent in lib description.
+            atom: "C8  " is absent in lib description.
+            atom: "C9  " is absent in lib description.
+            atom: "C11 " is absent in lib description.
+
+    3) Refinement fails due to external distance restraints not being satisfiable.
+
+        Examples:
+
+        FIH-x0241
+        FIH-x0379
+        VIM2-MB-403
+        NUDT7A_Crude-x0030
+
+        Solution
+
+        If identified as issue rerun giant.make_restraints
+
+
     """
 
     def output(self):
-        return luigi.LocalTarget(Path().refmac_batch)
+        return luigi.LocalTarget(Path().convergence_refinement_failures)
 
     def requires(self):
         df = pd.read_csv(Path().log_pdb_mtz)
@@ -404,11 +433,11 @@ class BatchRefinement(luigi.Task):
             crystal = df.at[i, 'crystal_name']
 
             # Cheat to allow run on single folder
-            if crystal != "FIH-x0467":
-                continue
+            # if crystal != "FIH-x0439":
+            #     continue
 
             refinement_script = os.path.join(Path().tmp_dir,
-                                             "{}.csh".format(crystal))
+                                             "{}.csh".format(crystal))qsatt
 
             ref_task = QsubRefinement(
                             refinement_script=refinement_script,
@@ -424,9 +453,7 @@ class BatchRefinement(luigi.Task):
 
         return refinement_tasks
 
-    def run(self):
-        with self.output().open('w') as f:
-            f.write("{}".format())
+
 
 
 
