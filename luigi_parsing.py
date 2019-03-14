@@ -18,6 +18,7 @@ from plotting import main as plot_occ
 from plotting import refinement_summary_plot
 from refinement import prepare_refinement
 from refinement_summary import refinement_summary
+from refinement import get_most_recent_quick_refine
 
 # Config
 class Path(luigi.Config):
@@ -51,6 +52,12 @@ class Path(luigi.Config):
 
     convergence_refinement_failures = luigi.Parameter(
         default=os.path.join(out_dir, 'convergence_refinement.csv'))
+
+    convergence_refinement = luigi.Parameter(
+        default=os.path.join(out_dir, 'convergence_refinement_log_pdb_mtz.csv'))
+
+    convergence_occ = luigi.Parameter(
+        default=os.path.join(out_dir, 'convergence_refinement_occ_conv.csv'))
 
     # Plots
     refinement_summary_plot = luigi.Parameter(
@@ -113,15 +120,79 @@ class OccFromLog(luigi.Task):
         which gets the occupancy information from quick-refine log
 
     """
+    log_occ_csv = luigi.Parameter()
+    log_pdb_mtz_csv = luigi.Parameter()
+
     def requires(self):
         return ParseXchemdbToCsv()
 
     def output(self):
-        return luigi.LocalTarget(Path().log_occ)
+        return luigi.LocalTarget(self.log_occ_csv)
 
     def run(self):
-        get_occ_from_log(log_pdb_mtz_csv=Path().log_pdb_mtz,
-                         log_occ_csv=Path().log_occ)
+        get_occ_from_log(log_pdb_mtz_csv=self.log_pdb_mtz_csv,
+                         log_occ_csv=self.log_occ_csv)
+
+
+class RefinementFolderToCsv(luigi.Task):
+
+    """Convert refinement folders to CSV
+
+    Parse a refinement folder to get a csv with minimally:
+        refine_log: path to quick-refine log
+        crystal_name: crystal name
+        pdb_latest: path to
+        mtz_latest: path to latest mtz
+
+    Methods
+    ----------
+    """
+    out_csv = luigi.Parameter()
+    input_folder = luigi.Parameter()
+
+    def requires(self):
+        BatchRefinement()
+
+    def output(self):
+        return luigi.LocalTarget(self.out_csv)
+
+    def run(self):
+
+        pdb_mtz_log_dict = {}
+
+        for crystal in os.listdir(self.input_folder):
+
+            pdb_latest = None
+            mtz_latest = None
+            refinement_log = None
+
+            crystal_dir = os.path.join(self.input_folder, crystal)
+
+            for f in os.listdir(crystal_dir):
+                if f == "refine.pdb":
+                    pdb_latest = os.path.join(self.input_folder, crystal, f)
+                elif f == "refine.mtz":
+                    mtz_latest = os.path.join(self.input_folder, crystal, f)
+
+            try:
+                refinement_log = get_most_recent_quick_refine(crystal_dir)
+            except FileNotFoundError:
+                continue
+
+            if None not in [pdb_latest, mtz_latest, refinement_log]:
+                pdb_mtz_log_dict[crystal] = (pdb_latest,
+                                             mtz_latest,
+                                             refinement_log)
+
+
+        df = pd.DataFrame.from_dict(data=pdb_mtz_log_dict,
+                                    columns=['pdb_latest',
+                                             'mtz_latest',
+                                             'refine_log'],
+                                    orient='index')
+        df.index.name = 'crystal_name'
+        df.to_csv(self.out_csv)
+
 
 
 class RefineToDF(luigi.Task):
@@ -202,7 +273,8 @@ class ResnameToOccLog(luigi.Task):
     # TODO does this require a source statement
     """
     def requires(self):
-        return OccFromLog()
+        return OccFromLog(log_pdb_occ=Path().log_pdb_mtz,
+                          log_occ_csv=Path().log_occ)
 
 
     def output(self):
@@ -775,7 +847,15 @@ class BatchRefinement(luigi.Task):
 if __name__ == '__main__':
 
 
-    luigi.build([BatchRefinement()], local_scheduler=False, workers=20)
+    luigi.build([BatchRefinement(),
+                 RefinementFolderToCsv(out_csv=Path().convergence_refinement,
+                                       input_folder=Path().refinement_dir),
+                 OccFromLog(log_pdb_mtz_csv=Path().convergence_refinement,
+                            log_occ_csv=Path().convergence_occ)],
+                local_scheduler=False, workers=20)
+
+    log_occ_csv = luigi.Parameter()
+    log_pdb_mtz_csv = luigi.Parameter()
 
     #luigi.build([QsubRefinement(refinement_script='DCLRE1AA-x1010.csh')], local_scheduler=True)
 

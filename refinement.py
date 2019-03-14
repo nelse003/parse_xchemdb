@@ -330,10 +330,12 @@ def get_most_recent_quick_refine(input_dir):
             quick_refine_log = os.path.join(recent_refinement_path, "refine_1.quick-refine.log")
 
     # Return if file exists, otehrwise raise error
-    if os.path.isfile(quick_refine_log):
-        return quick_refine_log
-    else:
+    if quick_refine_log is None:
         raise FileNotFoundError("{} not found".format(quick_refine_log))
+    elif os.path.isfile(quick_refine_log):
+        return quick_refine_log
+
+
 
 
 def check_file_for_string(file, string):

@@ -190,6 +190,9 @@ def read_occ_group_from_refmac_log(log_path):
     complete_groups = []
     group_occupancies = {}
 
+    print(log_path)
+    print(type(log_path))
+
     # Open file and loop over lines
     with open(log_path, 'r') as log:
         for line in log:
