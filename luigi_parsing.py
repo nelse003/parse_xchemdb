@@ -84,7 +84,7 @@ class ParseXchemdbToCsv(luigi.Task):
         output of task is the path to the csv
         file with refinement and crystal details
         from xchemdb
-    run()
+    run(out_csv)
         runs parse_xchemdb.process_refined_crystals()
 
     """
@@ -94,7 +94,7 @@ class ParseXchemdbToCsv(luigi.Task):
     def output(self):
         return luigi.LocalTarget(Path().log_pdb_mtz)
     def run(self):
-        process_refined_crystals()
+        process_refined_crystals(out_csv=Path().log_pdb_mtz)
 
 class OccFromLog(luigi.Task):
     """Task to get occupancy convergence across refinement
