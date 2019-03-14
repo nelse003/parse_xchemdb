@@ -11,9 +11,17 @@ def find_program_from_parameter_file(file):
     May not be sufficient for all files,
     as checks may miss some parts of file
 
+    Parameters
+    ----------
+    file: str
+        file path to checked
+
     Returns
     ----------
-    str or None
+    str
+        refinement program if identifiable from input file
+    None
+        If refinment program cannot be identified
     """
 
     file_txt = open(file, 'r').read()
@@ -25,9 +33,33 @@ def find_program_from_parameter_file(file):
     else:
         return None
 
+
 def parameter_from_refine_pdb(pdb, glob_string, refinement_program):
 
-    """ Search recursively upwards for a parameter file"""
+    """
+    Search recursively for a parameter file
+
+    If a single parameter file is found in path of pdb,
+    then that is used. Else check for correct refinement
+    program from list of multiple files
+
+    Parameters
+    ----------
+    pdb: str
+        path to pdb location to start recursive search
+    glob_string: str
+        string to match, using glob.
+        Include any required glob expressions
+    refinement_program: str
+        refinement program; phenix or refmac
+
+    Returns
+    -------
+    file: str
+        path to parameter file matching string
+    None
+        If the recursive search is unsuccessful
+    """
 
     path = os.path.dirname(pdb)
     files_list = glob.glob(os.path.join(path, glob_string))
@@ -56,9 +88,26 @@ def parameter_from_refine_pdb(pdb, glob_string, refinement_program):
                                      glob_string=glob_string,
                                      refinement_program=refinement_program)
 
-def path_from_refine_pdb(pdb, glob_string):
-    """ Recursively search pdb path for files matching the glob string"""
 
+def path_from_refine_pdb(pdb, glob_string):
+    """
+    Recursively search pdb path for files matching the glob string
+
+    Parameters
+    ----------
+    pdb: str
+        path to pdb
+    glob_string: str
+        string to match, using glob.
+        Include any required glob expressions
+
+    Returns
+    -------
+    str
+        path to file matching glob_string
+    None
+        If the recursive search is unsuccessful
+    """
     path = os.path.dirname(pdb)
     files_list = glob.glob(os.path.join(path, glob_string))
 
@@ -71,44 +120,122 @@ def path_from_refine_pdb(pdb, glob_string):
 
 
 def free_mtz_path_from_refine_pdb(pdb):
+    """
+    Search recursively for free mtz file
+
+    Parameters
+    ----------
+    pdb: str
+        path to pdb file
+
+    Returns
+    -------
+    str
+        path to free mtz
+
+    """
     return path_from_refine_pdb(pdb, glob_string='*.free.mtz')
 
 
 def cif_path(cif='', pdb='', input_dir=None, crystal=None):
+    """
+    Checks cif file existence, recursive search or regenerate from smiles
 
+    First checks whether cif is provided and exists,
+    next search implicitly in the pdb location.
+
+    Parameters
+    ----------
+    cif
+    pdb
+    input_dir
+    crystal
+
+    Returns
+    -------
+    cif_p: str
+        path to cif file
+
+    Raises
+    --------
+    FileNotFoundError
+        If cif file cannot be found or regenerated
+
+    """
     cif_p = None
-    if cif is '' and pdb is '':
-        raise ValueError('Path and cif cannot both be None')
 
     if cif is not '':
+        # Check file existence
         if os.path.exists(cif):
             cif_p = cif
         elif pdb is not '':
             cif = os.path.basename(cif)
+            # Check for named cif file implicit in the pdb location
             cif_p = path_from_refine_pdb(pdb=pdb, glob_string=cif)
         else:
-            raise ValueError('Cif path cannot be found, '
-                             'try providing pdb path')
+            raise FileNotFoundError('Cif path cannot be found, '
+                                    'try providing pdb path')
     else:
+        # check for any cif implicit in the pdb location
         cif_p = path_from_refine_pdb(pdb, glob_string="*.cif")
 
-    # Try finding cif using smiles
+    # Try regenerating cif using smiles
     if cif_p is None:
         input_cif = os.path.join(input_dir, "input.cif")
         smiles = smiles_from_crystal(crystal)
         smiles_to_cif_acedrg(smiles=smiles, out_file=input_cif)
         cif_p = input_cif
 
+    # now run last as may be possible to regenerate cif if pdb path is not present
+    if cif_p is '' and pdb is '':
+        raise FileNotFoundError('Path and cif cannot both be None')
+
+
     return cif_p
 
+
 def update_refinement_params(params, extra_params):
+    """
+    Append new parameters to the parameter file
+
+    Parameters
+    ----------
+    params: str
+        path to parameter file
+    extra_params: str
+        extra parameters to be added
+
+    Returns
+    -------
+    None
+    """
+
     params = open(params,'a')
     params.write('\n' + extra_params)
     params.close()
 
 
 def check_restraints(input_dir):
-    """ Check whether the quick refine is failing due restraint mismatch """
+    """
+    Check if quick-refine fails due restraint mismatch
+
+    Error checked in quick-refine log
+    "Error: At least one of the atoms from the restraints could not be found"
+
+    Parameters
+    ----------
+    input_dir: str
+        path to the refinement directory which should
+        contain subfolders with quick-refine logs
+
+    Returns
+    -------
+    Bool:
+        True if the error is
+        False if error is not in quick-refine file,
+        or refinement has not yet occured in this folder
+
+    """
     try:
         quick_refine_log = get_most_recent_quick_refine(input_dir)
     except FileNotFoundError:
@@ -118,7 +245,24 @@ def check_restraints(input_dir):
                                  " the restraints could not be found")
 
 def check_refinement_for_cif_error(input_dir):
-    """ Check whether the refinement has failed due to a cif error """
+    """
+    Check whether the refinement has failed due to a cif error
+
+    Error checked in quick-refine log
+    "Refmac:  New ligand has been encountered. Stopping now"
+
+    Parameters
+    ----------
+    input_dir: str
+        path to refinement folder
+
+    Returns
+    -------
+        Bool:
+        True if the error is
+        False if error is not in quick-refine file,
+        or refinement has not yet occured in this folder
+    """
 
     # Need to catch file not found error,
     # as perhaps an existing refinement doesn't exist
@@ -133,12 +277,43 @@ def check_refinement_for_cif_error(input_dir):
 
 
 def get_most_recent_quick_refine(input_dir):
+    """
+    Find the most resent quick-refine log in a folder
 
+    Parameters
+    ----------
+    input_dir: str
+        path to directory to search
+
+    Returns
+    -------
+    quick_refine_log: str
+        path to quick refine log
+
+    Raises
+    ------
+    FileNotFoundError
+        If the quick refine log cannot be found then raise error
+    ValueError
+        raised if the input is not a directory
+
+
+    """
+    # Initialise value
+    quick_refine_log = None
+    # Check for existence of supplied input directory
+    if not os.path.isdir(input_dir):
+        ValueError("Input string is not a directory")
+
+    # Find all subfolders
     subfolders = [f.name for f in os.scandir(input_dir) if f.is_dir()]
+
+    # Search for highest number, and thus most recent folder
     max_num = 0
     recent_refinement = None
     for folder in subfolders:
 
+        # TMP fodlers to be ignored
         if 'TMP' in folder:
             shutil.rmtree(os.path.join(input_dir, folder))
             continue
@@ -146,11 +321,15 @@ def get_most_recent_quick_refine(input_dir):
         num = int(folder.split('_')[1])
         if num > max_num:
             max_num = num
+
+    # Get folder path with highest number in
     for folder in subfolders:
         if str(max_num) in folder:
-           recent_refinement = folder
-    recent_refinement_path = os.path.join(input_dir, recent_refinement)
-    quick_refine_log = os.path.join(recent_refinement_path, "refine_1.quick-refine.log")
+            recent_refinement = folder
+            recent_refinement_path = os.path.join(input_dir, recent_refinement)
+            quick_refine_log = os.path.join(recent_refinement_path, "refine_1.quick-refine.log")
+
+    # Return if file exists, otehrwise raise error
     if os.path.isfile(quick_refine_log):
         return quick_refine_log
     else:
@@ -166,6 +345,11 @@ def check_file_for_string(file, string):
         path to file
     string: str
         string to be checked for existence in file
+
+    Returns
+    --------
+    Bool:
+        True if string in file, False otherwise
 
     Notes
     -----------
@@ -499,7 +683,10 @@ def prepare_refinement(crystal,
     Creates directories to hold refinement scripts, and results.
     Checks and replaces if necessary input files (cif, pdnb, params, mtz),
     creating symlinks in refinement folder.
-    Check ex
+    Check whether refinement has failed due to restraints mismatch,
+    regenerate restraints if needed.
+    Add extra parameters to parameter file.
+    Write refinement csh script file.
 
 
     Parameters
@@ -512,12 +699,18 @@ def prepare_refinement(crystal,
         path to output directory
     refinement_script_dir: str
         path to refinement script directory
+    extra_params: str
+        extra parameters to be appended to parameter
+        file before refinement
+    free_mtz: str
+        path to free mtz
+    params: str
+        path to parameter file
 
-    TODO Move refinement program to parameter
+    Returns
+    --------
+    None
 
-    TODO Separate into multiple short functions checking
-         and updating values for each file type
-    ---------
     """
 
     # Generate working directories
@@ -570,12 +763,13 @@ def prepare_refinement(crystal,
         if os.path.isfile(new_refmac_restraints):
             input_params = new_refmac_restraints
 
-    # Check that cif
+    # Check that refinement is failing due to a cif file missins
     if check_refinement_for_cif_error(input_dir):
         smiles = smiles_from_crystal(crystal)
         cif_backup = os.path.join(input_dir, "backup.cif")
         os.rename(input_cif, cif_backup)
         smiles_to_cif_acedrg(smiles, input_cif)
+
 
     update_refinement_params(params=input_params, extra_params=extra_params)
 
