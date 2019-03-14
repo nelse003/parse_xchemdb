@@ -198,6 +198,13 @@ def process_refined_crystals():
     Crystals which do not supply a pdb_latest field are dropped,
     as are those where the file specified in the pdb latest field
     is not a file on the filesystem.
+
+    Parameters
+    -----------
+
+    Returns
+    ---------
+    None
     """
 
     # get required arguments for loading tables
