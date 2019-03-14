@@ -30,16 +30,3 @@ def refinement_summary(occ_conv_csv,
     print(summary)
 
     summary.to_csv(out_csv, header=False)
-
-
-if __name__ == "__main__":
-    refinement_summary(occ_conv_csv="/dls/science/groups/i04-1/elliot-dev/"
-                                      "Work/exhaustive_parse_xchem_db/occ_conv.csv",
-                       refine_csv="/dls/science/groups/i04-1/elliot-dev/"
-                                      "Work/exhaustive_parse_xchem_db/refinement.csv",
-                       superposed_csv="/dls/science/groups/i04-1/elliot-dev/"
-                                  "Work/exhaustive_parse_xchem_db/superposed.csv",
-                       log_pdb_mtz_csv="/dls/science/groups/i04-1/elliot-dev/"
-                                  "Work/exhaustive_parse_xchem_db/log_pdb_mtz.csv",
-                       out_csv="/dls/science/groups/i04-1/elliot-dev/"
-                                  "Work/exhaustive_parse_xchem_db/refinement_summary.csv")

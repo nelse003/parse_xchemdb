@@ -13,7 +13,7 @@ from parse_xchemdb import get_table_df
 from parse_xchemdb import drop_only_dimple_processing
 from parse_xchemdb import drop_pdb_not_in_filesystem
 from convergence import get_occ_from_log
-from convergence import main as convergence
+from convergence import convergence_to_csv
 from plotting import main as plot_occ
 from plotting import refinement_summary_plot
 from refinement import prepare_refinement
@@ -72,10 +72,22 @@ class Path(luigi.Config):
     out_dir = luigi.Parameter(default=out_dir)
     refinement_dir = luigi.Parameter(default=refinement_dir)
 
-## Tasks ###
 
 class ParseXchemdbToCsv(luigi.Task):
-    """Parse the XChem database and turn """
+    """Task to parse Postgres tables into csv
+
+    Methods
+    --------
+    requires()
+        No requirements for this task
+    output()
+        output of task is the path to the csv
+        file with refinement and crystal details
+        from xchemdb
+    run()
+        runs parse_xchemdb.process_refined_crystals()
+
+    """
 
     def requires(self):
         return None
@@ -85,80 +97,226 @@ class ParseXchemdbToCsv(luigi.Task):
         process_refined_crystals()
 
 class OccFromLog(luigi.Task):
+    """Task to get occupancy convergence across refinement
+
+    Methods
+    --------
+    requires()
+        ParseXChemdbToCsv(), csv of crystal and
+        refinement table for all crystal with pdb_latest
+    output()
+        output of task is the path to the csv
+        with occupancies of residues involved in
+        complete groups.
+    run()
+        runs convergence.get_occ_log,
+        which gets the occupancy information from quick-refine log
+
+    """
     def requires(self):
         return ParseXchemdbToCsv()
+
     def output(self):
         return luigi.LocalTarget(Path().log_occ)
+
     def run(self):
         get_occ_from_log(log_pdb_mtz_csv=Path().log_pdb_mtz,
                          log_occ_csv=Path().log_occ)
 
+
 class RefineToDF(luigi.Task):
+    """
+    Task to get refinement postgres table as csv
+
+    Methods
+    --------
+    requires()
+        No requirements for this task
+    output()
+        output of task is the path to the csv
+        of refinement table
+    run()
+        gets table from postgres database
+
+    """
     def requires(self):
         return None
+
+
     def output(self):
         return luigi.LocalTarget(Path().refine)
+
+
     def run(self):
         refine_df = get_table_df('refinement')
         refine_df.to_csv(Path().refine)
 
 class SuperposedToDF(luigi.Task):
+
+    """
+    Task to get refinements with valid pdb files
+
+    Methods
+    --------
+    requires()
+        csv of postgres refinement table
+    output()
+        output of task is the path to the csv
+        of refinement table with only valid pdb files
+    run()
+        gets table from postgres database
+    """
+
     def requires(self):
         return RefineToDF()
+
+
     def output(self):
         return luigi.LocalTarget(Path().superposed)
+
+
     def run(self):
         refine_df =pd.read_csv(Path().refine)
         pdb_df = refine_df[refine_df.pdb_latest.notnull()]
         pdb_df = drop_pdb_not_in_filesystem(pdb_df)
         superposed_df = drop_only_dimple_processing(pdb_df)
         superposed_df.to_csv(Path().superposed)
-        pass
+
+
+class ResnameToOccLog(luigi.Task):
+    """
+    Task to get add residue names to convergence occupancies
+
+    Methods
+    --------
+    requires()
+        csv of occupancy from quick-refine log files
+    output()
+        occupancy convergence csv with resnames
+    run()
+        resnames_using_ccp4 using ccp4-python
+
+    Notes
+    ------
+    Requires ccp4-python
+    # TODO does this require a source statement
+    """
+    def requires(self):
+        return OccFromLog()
+
+
+    def output(self):
+        return luigi.LocalTarget(Path().log_occ_resname)
+
+
+    def run(self):
+        os.system("ccp4-python resnames_using_ccp4.py {} {}".format(
+            Path().log_occ, Path().log_occ_resname))
+
+
+class OccConvergence(luigi.Task):
+    """
+    Task to add state and comment to resname labelled convergence
+
+    Methods
+    --------
+    requires()
+        occupancy convergence csv with resnames
+    output()
+        path to occupancy convergence csv with state and comments
+    run()
+        convergence.convergence_to_csv()
+    """
+
+    def requires(self):
+        return ResnameToOccLog()
+
+
+    def output(self):
+        return luigi.LocalTarget(Path().occ_conv)
+
+
+    def run(self):
+        convergence_to_csv(log_labelled_csv=Path().log_occ_resname,
+                    occ_conv_csv=Path().occ_conv)
+
 
 class SummaryRefinement(luigi.Task):
+
+    """
+    Task to summarise refinement in csv
+
+    Methods
+    --------
+    requires()
+        Occupancy convergence csv,
+        refinement table csv,
+        refinement that have valid pdbs csv,
+        csv file with refinement and crystal details from xchemdb
+    output()
+        path to refinement summary csv
+    run()
+        generate renfiment summary csv
+    """
+
     def requires(self):
         return OccConvergence(), ParseXchemdbToCsv(), SuperposedToDF(), RefineToDF()
-               #OccConvergenceFailureDF()
+
     def output(self):
         return luigi.LocalTarget(Path().refinement_summary)
     def run(self):
         refinement_summary(occ_conv_csv=Path().occ_conv,
                            refine_csv=Path().refine,
                            superposed_csv=Path().superposed,
-                           occ_conv_failures_csv=Path().occ_conv_failures,
                            log_pdb_mtz_csv=Path().log_pdb_mtz,
                            out_csv=Path().refinement_summary)
 
 class SummaryRefinementPlot(luigi.Task):
+    """
+    Task to produce a plot summarising refinement
+
+    Methods
+    --------
+    requires()
+        csv summarising refinement
+    output()
+        plot file path
+    run()
+        plotting from csv
+    """
+
     def requires(self):
         return SummaryRefinement()
+
     def output(self):
         return luigi.LocalTarget(Path().refinement_summary_plot)
+
     def run(self):
         refinement_summary_plot(refinement_csv=Path().refinement_summary,
                                 out_file_path=Path().refinement_summary_plot)
 
 
-class ResnameToOccLog(luigi.Task):
-    def requires(self):
-        return OccFromLog()
-    def output(self):
-        return luigi.LocalTarget(Path().log_occ_resname)
-    def run(self):
-        os.system("ccp4-python resnames_using_ccp4.py {} {}".format(
-            Path().log_occ, Path().log_occ_resname))
-
-class OccConvergence(luigi.Task):
-    def requires(self):
-        return ResnameToOccLog()
-    def output(self):
-        return luigi.LocalTarget(Path().occ_conv)
-    def run(self):
-        convergence(log_labelled_csv=Path().log_occ_resname,
-                    occ_conv_csv=Path().occ_conv)
-
-# TODO plot_occ to atomistic
 class PlottingOccHistogram(luigi.Task):
+
+    """Task to plot histogram of converged occupancies
+
+    Methods
+    --------
+    requires()
+        csv with convergence of occupancies
+    output()
+        plot file path
+    run()
+        plotting from csv
+
+    Notes
+    ------
+    plot_occ() currently is a large number of functions that plot multiple files,
+    this needs splitting to multiple tasks
+
+    # TODO plot_occ to atomistic
+    """
+
     def requires(self):
         return OccConvergence()
     def output(self):
@@ -169,9 +327,51 @@ class PlottingOccHistogram(luigi.Task):
 
 class PrepareRefinement(luigi.Task):
 
-    """ Links input files, and generates refinement script
+    """
+    Task to generate csh file for refinement submission
 
-    NOT WORKING
+    Attributes
+    -----------
+    crystal: luigi.Parameter
+        crystal name
+
+    pdb: luigi.Parameter
+        path to pdb file
+
+    cif: luigi.Parameter
+        path to cif file
+
+    out_dir: luigi.Parameter
+        path to refinement folder
+
+    refinement_script_dir: luigi.Parameter
+        path to refinement script dir to store '<crystal_name>.csh'
+
+    extra_params: luigi.Parameter
+        parameters to add to refinement.
+        i.e. to run longer till convergence
+
+    free_mtz: luigi.Parameter
+        path to free mtz file
+
+    Methods
+    --------
+    requires()
+        reqiures ParseXchemdbToCsv(),
+        existence of csv file with refinement and
+        crystal details from xchemdb
+    output()
+        target of refinement script
+        '<crystal_name>.csh'
+        in refinemnt script dir
+    run()
+        runs refinement.prepare_refinement()
+
+    Notes
+    -----
+    Uses luigi.Parameters do the task can be parameterised and run
+    many times
+
     """
     crystal = luigi.Parameter()
     pdb = luigi.Parameter()
@@ -181,14 +381,15 @@ class PrepareRefinement(luigi.Task):
     extra_params = luigi.Parameter()
     free_mtz = luigi.Parameter()
 
+    def requires(self):
+        return ParseXchemdbToCsv()
+
     def output(self):
 
         ref_script = os.path.join(self.refinement_script_dir,
                      '{}.csh'.format(self.crystal))
         return luigi.LocalTarget(ref_script)
 
-    def requires(self):
-        pass
 
     def run(self):
         prepare_refinement(crystal=self.crystal,
@@ -203,6 +404,52 @@ class PrepareRefinement(luigi.Task):
 class QsubRefinement(luigi.Task):
 
     """Initiate & check progress of a single job on cluster submitted by qsub
+
+
+
+    Attributes
+    -----------
+    crystal: luigi.Parameter
+        crystal name
+
+    pdb: luigi.Parameter
+        path to pdb file
+
+    cif: luigi.Parameter
+        path to cif file
+
+    out_dir: luigi.Parameter
+        path to refinement folder
+
+    refinement_script_dir: luigi.Parameter
+        path to refinement script dir to store '<crystal_name>.csh'
+
+    extra_params: luigi.Parameter
+        parameters to add to refinement.
+        i.e. to run longer till convergence
+
+    free_mtz: luigi.Parameter
+        path to free mtz file
+
+    refinement_script: luigi.Parameter
+        path to luigi parameter
+
+    Methods
+    ---------
+    requires()
+        Task requires the associated PrepareRefienement Task
+        with the same parameters
+
+    output()
+        Task should output refined pdb and mtz files
+
+    run_qstat()
+        wrapper for running qstat -r
+
+    run()
+        Check for presence of PDB and MTZ,
+        if they do not exist, check for running jobs on cluster.
+        If no running jobs, submit <crystal_name>.csh as job.
 
     Notes
     ---------
@@ -222,8 +469,8 @@ class QsubRefinement(luigi.Task):
 
     TODO Check whether removal of ssh is going to cause issues
     """
-    refinement_script = luigi.Parameter()
 
+    refinement_script = luigi.Parameter()
     crystal = luigi.Parameter()
     pdb = luigi.Parameter()
     cif = luigi.Parameter()
@@ -244,7 +491,8 @@ class QsubRefinement(luigi.Task):
     def output(self):
         crystal = os.path.basename(self.refinement_script.split('.')[0])
         pdb = os.path.join(Path().refinement_dir, crystal, 'refine.pdb')
-        return luigi.LocalTarget(pdb)
+        mtz = os.path.join(Path().refinement_dir, crystal, 'refine.mtz')
+        return luigi.LocalTarget(pdb), luigi.LocalTarget(mtz)
 
     def run_qstat(self):
 
@@ -261,26 +509,49 @@ class QsubRefinement(luigi.Task):
         return output_queue
 
     def run(self):
+        """
+        Run Qsub Refienement
+
+        Check for presence of PDB and MTZ,
+        if they do not exist, check for running jobs on cluster.
+        If no running jobs, submit job.
+
+        Returns
+        -------
+        None
+
+        Raises
+        -------
+        RuntimeError
+            If the job has not been newly submitted and is not running
+        """
+
+        # get crystal name
         crystal = os.path.basename(self.refinement_script.split('.')[0])
 
+        # output files
         pdb = os.path.join(Path().refinement_dir, crystal, 'refine.pdb')
         mtz = os.path.join(Path().refinement_dir, crystal, 'refine.mtz')
 
+        # Only run if the pdb and mtz are not present
         if not (os.path.isfile(pdb) and os.path.isfile(mtz)):
             queue_jobs = []
-            job = self.refinement_script
-            output = glob.glob(str(job + '.o*'))
+
+            # run 'qstat -r'
             output_queue = self.run_qstat()
 
+            # Turn qstat output into list of jobs
             for line in output_queue:
                 if 'Full jobname' in line:
                     jobname = line.split()[-1]
                     queue_jobs.append(jobname)
 
+            # Get <crystal_name>.csh
+            job = self.refinement_script
             job_file = os.path.basename(str(job))
 
-            print(job_file)
-
+            # Check whether <crystal_name>.csh is running in queue,
+            # If not submit job to queue
             if job_file not in queue_jobs:
                 submit_job(job_directory=Path().tmp_dir,
                            job_script=job_file)
@@ -290,7 +561,7 @@ class QsubRefinement(luigi.Task):
                       'Will check again later!')
 
             elif not queue_jobs:
-                raise Exception('Something went wrong or job is still running')
+                raise RuntimeError('Something went wrong or job is still running')
 
 
 @PrepareRefinement.event_handler(luigi.Event.FAILURE)
@@ -337,12 +608,20 @@ class BatchRefinement(luigi.Task):
 
     """Run a Batch of refinement jobs
 
-    This work to set the job up, and not run if already started,
+    This works to set the job up, and not run if already started,
     but doesn't retry to check jobs.
 
+    Methods
+    -------
+    requires()
+        batch of QSubRefienment Tasks
+    output()
+        csv path to a csv summarising
 
     Notes
     ---------
+    Output is only localc to the current run,
+    does not include complete jobs
 
     Skeleton code adapted from working version for the formulatrix
     pipeline at diamond:
@@ -351,7 +630,7 @@ class BatchRefinement(luigi.Task):
 
     (Converegence refinement) Failure modes:
 
-    Fixed?
+    Issues that have been fixed
 
     1) Only cif and PDB found.
        No csh file is created
@@ -447,12 +726,23 @@ class BatchRefinement(luigi.Task):
         return luigi.LocalTarget(Path().convergence_refinement_failures)
 
     def requires(self):
+        """
+        Batch of QsubRefinement tasks
+
+        Returns
+        -------
+        refinement_tasks: list of Luigi.Tasks
+            list of QSubRefienemtn tasks
+        """
+        # Read crystal/refienemnt table csv
         df = pd.read_csv(Path().log_pdb_mtz)
 
+        # Replace Nans with empty strings,
+        # used to allow luigi.Parameters
         df = df.replace(np.nan, '', regex=True)
 
+        # Loop over crystal/refienemnt table csv
         refinement_tasks = []
-
         for i in df.index:
             cif = df.at[i, 'cif']
             pdb = df.at[i, 'pdb_latest']
@@ -464,8 +754,8 @@ class BatchRefinement(luigi.Task):
             #     continue
 
             refinement_script = os.path.join(Path().tmp_dir,
-                                             "{}.csh".format(crystal))qsatt
-
+                                             "{}.csh".format(crystal))
+            # produce refinement task
             ref_task = QsubRefinement(
                             refinement_script=refinement_script,
                             crystal=crystal,
@@ -476,13 +766,10 @@ class BatchRefinement(luigi.Task):
                             extra_params="NCYC=50",
                             out_dir=Path().refinement_dir)
 
+            # add to list of refienement tasks
             refinement_tasks.append(ref_task)
 
         return refinement_tasks
-
-
-
-
 
 
 if __name__ == '__main__':

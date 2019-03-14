@@ -9,6 +9,14 @@ import re
 pd.options.display.max_columns = 35
 pd.options.display.max_colwidth = 50
 
+"""
+Process log files from refmac runs to get occupancy convergence
+
+Requires ccp4-python
+
+"""
+# TODO Sort utils/plotting into ccp4 dependent and ccp4 non dependent sections
+
 #############################################################
 # Functions designed to be used in pandas.DataFrame.apply
 #############################################################
@@ -241,7 +249,7 @@ def get_occ_from_log(log_pdb_mtz_csv, log_occ_csv):
     occ_log_df.to_csv(log_occ_csv)
 
 
-def main(log_labelled_csv, occ_conv_csv):
+def convergence_to_csv(log_labelled_csv, occ_conv_csv):
 
     log_df = pd.read_csv(log_labelled_csv)
 
@@ -255,17 +263,3 @@ def main(log_labelled_csv, occ_conv_csv):
 
     occ_conv_summary_df = pd.concat(occ_conv_df_list)
     occ_conv_summary_df.to_csv(occ_conv_csv)
-
-if __name__ == "__main__":
-    """
-    Process log files from refmac runs to get occupancy convergence
-
-    Requires ccp4-python
-
-    """
-    main()
-    # TODO Sort utils/plotting into ccp4 dependent and ccp4 non dependent sections
-
-
-
-
