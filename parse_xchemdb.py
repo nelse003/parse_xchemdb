@@ -4,8 +4,6 @@ from shutil import rmtree
 import pandas as pd
 import sqlalchemy
 
-# TODO pathlib import
-
 pd.options.display.max_columns = 30
 pd.options.display.max_colwidth = 50
 
