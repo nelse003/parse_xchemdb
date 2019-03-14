@@ -50,6 +50,7 @@ class Path(luigi.Config):
     occ_conv_failures = luigi.Parameter(
         default=os.path.join(out_dir, 'occ_conv_failures.csv'))
 
+    # CSV from convergence occupancy
     convergence_refinement_failures = luigi.Parameter(
         default=os.path.join(out_dir, 'convergence_refinement.csv'))
 
@@ -58,6 +59,9 @@ class Path(luigi.Config):
 
     convergence_occ = luigi.Parameter(
         default=os.path.join(out_dir, 'convergence_refinement_occ_conv.csv'))
+
+    convergence_occ_resname = luigi.Parameter(
+        default=os.path.join(out_dir, 'convergence_refinement_occ_resname.csv'))
 
     # Plots
     refinement_summary_plot = luigi.Parameter(
@@ -272,18 +276,22 @@ class ResnameToOccLog(luigi.Task):
     Requires ccp4-python
     # TODO does this require a source statement
     """
+    log_occ = luigi.Parameter()
+    log_occ_resname = luigi.Parameter()
+
     def requires(self):
-        return OccFromLog(log_pdb_occ=Path().log_pdb_mtz,
+        return OccFromLog(log_pdb_mtz_csv=Path().log_pdb_mtz,
                           log_occ_csv=Path().log_occ)
 
 
     def output(self):
-        return luigi.LocalTarget(Path().log_occ_resname)
+        return luigi.LocalTarget(self.log_occ_resname)
 
 
     def run(self):
         os.system("ccp4-python resnames_using_ccp4.py {} {}".format(
-            Path().log_occ, Path().log_occ_resname))
+                    self.log_occ,
+                    self.log_occ_resname))
 
 
 class OccConvergence(luigi.Task):
@@ -299,18 +307,20 @@ class OccConvergence(luigi.Task):
     run()
         convergence.convergence_to_csv()
     """
+    log_labelled_csv = luigi.Parameter()
+    occ_conv_csv = luigi.Parameter()
 
     def requires(self):
-        return ResnameToOccLog()
-
+        return ResnameToOccLog(log_occ=Path().log_occ,
+                               log_occ_resname=Path().log_occ_resname)
 
     def output(self):
         return luigi.LocalTarget(Path().occ_conv)
 
 
     def run(self):
-        convergence_to_csv(log_labelled_csv=Path().log_occ_resname,
-                    occ_conv_csv=Path().occ_conv)
+        convergence_to_csv(self.log_labelled_csv,
+                           self.occ_conv_csv)
 
 
 class SummaryRefinement(luigi.Task):
@@ -332,7 +342,11 @@ class SummaryRefinement(luigi.Task):
     """
 
     def requires(self):
-        return OccConvergence(), ParseXchemdbToCsv(), SuperposedToDF(), RefineToDF()
+        return OccConvergence(log_labelled_csv=Path().log_occ_resname,
+                              occ_conv_csv=Path().occ_conv),\
+               ParseXchemdbToCsv(), \
+               SuperposedToDF(),\
+               RefineToDF()
 
     def output(self):
         return luigi.LocalTarget(Path().refinement_summary)
@@ -390,9 +404,13 @@ class PlottingOccHistogram(luigi.Task):
     """
 
     def requires(self):
-        return OccConvergence()
+        return OccConvergence(log_labelled_csv=Path().log_occ_resname,
+                              occ_conv_csv=Path().occ_conv)
+
     def output(self):
         return luigi.LocalTarget(Path().bound_occ_hist)
+
+
     def run(self):
         plot_occ()
 
@@ -851,7 +869,9 @@ if __name__ == '__main__':
                  RefinementFolderToCsv(out_csv=Path().convergence_refinement,
                                        input_folder=Path().refinement_dir),
                  OccFromLog(log_pdb_mtz_csv=Path().convergence_refinement,
-                            log_occ_csv=Path().convergence_occ)],
+                            log_occ_csv=Path().convergence_occ),
+                 ResnameToOccLog(log_occ=Path().convergence_occ,
+                                 log_occ_resname=Path().convergence_occ_resname)],
                 local_scheduler=False, workers=20)
 
     log_occ_csv = luigi.Parameter()

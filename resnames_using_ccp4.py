@@ -38,6 +38,8 @@ def update_from_pdb(pdb_df):
     pdb_in = hierarchy.input(file_name=pdb)
     sel_cache = pdb_in.hierarchy.atom_selection_cache()
 
+    print(pdb)
+
     res_df = pdb_df[['resid','chain','alte']]
     rows = []
     for index, row in pdb_df.iterrows():
