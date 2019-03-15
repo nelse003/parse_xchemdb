@@ -14,16 +14,21 @@ from parse_xchemdb import drop_only_dimple_processing
 from parse_xchemdb import drop_pdb_not_in_filesystem
 from convergence import get_occ_from_log
 from convergence import convergence_to_csv
-from plotting import main as plot_occ
+
 from plotting import refinement_summary_plot
 from refinement import prepare_refinement
 from refinement_summary import refinement_summary
 from refinement import get_most_recent_quick_refine
 
+from plotting import ground_state_occupancy_histogram
+from plotting import bound_state_occ_histogram
+from plotting import occupancy_vs_convergence
+from plotting import convergence_ratio_histogram
+
 # Config
 class Path(luigi.Config):
 
-    """Config: all paths to be used in luigi. Tasks as parameters"""
+    """Config: Paths to be used """
 
     script_dir = "/dls/science/groups/i04-1/elliot-dev/parse_xchemdb"
     out_dir = "/dls/science/groups/i04-1/elliot-dev/Work/" \
@@ -58,16 +63,29 @@ class Path(luigi.Config):
         default=os.path.join(out_dir, 'convergence_refinement_log_pdb_mtz.csv'))
 
     convergence_occ = luigi.Parameter(
-        default=os.path.join(out_dir, 'convergence_refinement_occ_conv.csv'))
+        default=os.path.join(out_dir, 'convergence_refinement_occ.csv'))
 
     convergence_occ_resname = luigi.Parameter(
         default=os.path.join(out_dir, 'convergence_refinement_occ_resname.csv'))
+
+    convergence_occ_conv = luigi.Parameter(
+        default=os.path.join(out_dir, 'convergence_refinement_occ_conv.csv'))
 
     # Plots
     refinement_summary_plot = luigi.Parameter(
         default=os.path.join(out_dir, 'refinement_summary.png'))
     bound_occ_hist = luigi.Parameter(
         default=os.path.join(out_dir, 'bound_occ_hist.png'))
+
+    # Plots convergence
+    convergence_bound_hist = luigi.Parameter(
+        default=os.path.join(out_dir, 'convergence_bound_occ_hist.png'))
+    convergence_ground_hist = luigi.Parameter(
+        default=os.path.join(out_dir, 'convergence_ground_occ_hist.png'))
+    convergence_occ_conv_scatter = luigi.Parameter(
+        default=os.path.join(out_dir, 'convergence_occ_conv_scatter.png'))
+    convergence_conv_hist = luigi.Parameter(
+        default=os.path.join(out_dir, 'convergence_conv_hist.png'))
 
     # Scripts
     convergence_py = luigi.Parameter(
@@ -276,12 +294,13 @@ class ResnameToOccLog(luigi.Task):
     Requires ccp4-python
     # TODO does this require a source statement
     """
+    log_pdb_mtz = luigi.Parameter()
     log_occ = luigi.Parameter()
     log_occ_resname = luigi.Parameter()
 
     def requires(self):
-        return OccFromLog(log_pdb_mtz_csv=Path().log_pdb_mtz,
-                          log_occ_csv=Path().log_occ)
+        return OccFromLog(log_pdb_mtz_csv=self.log_pdb_mtz,
+                          log_occ_csv=self.log_occ)
 
 
     def output(self):
@@ -306,16 +325,20 @@ class OccConvergence(luigi.Task):
         path to occupancy convergence csv with state and comments
     run()
         convergence.convergence_to_csv()
+
+    TODO Add a progress bar and/or parallelise task
     """
+    log_pdb_mtz =  luigi.Parameter()
     log_labelled_csv = luigi.Parameter()
     occ_conv_csv = luigi.Parameter()
 
     def requires(self):
-        return ResnameToOccLog(log_occ=Path().log_occ,
-                               log_occ_resname=Path().log_occ_resname)
+        return ResnameToOccLog(log_occ=self.occ_conv_csv,
+                               log_occ_resname=self.log_labelled_csv,
+                               log_pdb_mtz=self.log_pdb_mtz)
 
     def output(self):
-        return luigi.LocalTarget(Path().occ_conv)
+        return luigi.LocalTarget(self.occ_conv_csv)
 
 
     def run(self):
@@ -343,7 +366,8 @@ class SummaryRefinement(luigi.Task):
 
     def requires(self):
         return OccConvergence(log_labelled_csv=Path().log_occ_resname,
-                              occ_conv_csv=Path().occ_conv),\
+                              occ_conv_csv=Path().occ_conv,
+                              log_pdb_mtz=Path().log_pdb_mtz),\
                ParseXchemdbToCsv(), \
                SuperposedToDF(),\
                RefineToDF()
@@ -382,9 +406,9 @@ class SummaryRefinementPlot(luigi.Task):
                                 out_file_path=Path().refinement_summary_plot)
 
 
-class PlottingOccHistogram(luigi.Task):
+class PlotGroundOccHistogram(luigi.Task):
 
-    """Task to plot histogram of converged occupancies
+    """Task to plot histogram of ground occupancies
 
     Methods
     --------
@@ -394,26 +418,113 @@ class PlottingOccHistogram(luigi.Task):
         plot file path
     run()
         plotting from csv
-
-    Notes
-    ------
-    plot_occ() currently is a large number of functions that plot multiple files,
-    this needs splitting to multiple tasks
-
-    # TODO plot_occ to atomistic
     """
+    plot_path = luigi.Parameter()
+    log_labelled_csv = luigi.Parameter()
+    occ_conv_csv = luigi.Parameter()
+    log_pdb_mtz = luigi.Parameter()
 
     def requires(self):
-        return OccConvergence(log_labelled_csv=Path().log_occ_resname,
-                              occ_conv_csv=Path().occ_conv)
+        return OccConvergence(log_labelled_csv=self.log_labelled_csv,
+                              occ_conv_csv=self.occ_conv_csv,
+                              log_pdb_mtz=self.log_pdb_mtz)
 
     def output(self):
-        return luigi.LocalTarget(Path().bound_occ_hist)
-
+        return luigi.LocalTarget(self.plot_path)
 
     def run(self):
-        plot_occ()
+        ground_state_occupancy_histogram(occ_conv_csv=self.occ_conv_csv ,
+                                         plot_path=self.plot_path)
 
+
+class PlotBoundOccHistogram(luigi.Task):
+    """Task to plot histogram of bound occupancies
+
+    Methods
+    --------
+    requires()
+        csv with convergence of occupancies
+    output()
+        plot file path
+    run()
+        plotting from csv
+    """
+    plot_path = luigi.Parameter()
+    log_labelled_csv = luigi.Parameter()
+    occ_conv_csv = luigi.Parameter()
+    log_pdb_mtz = luigi.Parameter()
+
+    def requires(self):
+        return OccConvergence(log_labelled_csv=self.log_labelled_csv,
+                              occ_conv_csv=self.occ_conv_csv,
+                              log_pdb_mtz=self.log_pdb_mtz)
+
+    def output(self):
+        return luigi.LocalTarget(self.plot_path)
+
+    def run(self):
+        bound_state_occ_histogram(occ_conv_csv=self.occ_conv_csv ,
+                                  plot_path=self.plot_path)
+
+
+class PlotOccConvScatter(luigi.Task):
+    """Task to plot scatter of occupancy vs convergence
+
+    Methods
+    --------
+    requires()
+        csv with convergence of occupancies
+    output()
+        plot file path
+    run()
+        plotting from csv
+    """
+    plot_path = luigi.Parameter()
+    log_labelled_csv = luigi.Parameter()
+    occ_conv_csv = luigi.Parameter()
+    log_pdb_mtz = luigi.Parameter()
+
+    def requires(self):
+        return OccConvergence(log_labelled_csv=self.log_labelled_csv,
+                              occ_conv_csv=self.occ_conv_csv,
+                              log_pdb_mtz=self.log_pdb_mtz)
+
+    def output(self):
+        return luigi.LocalTarget(self.plot_path)
+
+    def run(self):
+        occupancy_vs_convergence(occ_conv_csv=self.occ_conv_csv ,
+                                         plot_path=self.plot_path)
+
+
+class PlotConvergenceHistogram(luigi.Task):
+    """Task to plot histogram of convergence ratios
+
+    Methods
+    --------
+    requires()
+        csv with convergence of occupancies
+    output()
+        plot file path
+    run()
+        plotting from csv
+    """
+    plot_path = luigi.Parameter()
+    log_labelled_csv = luigi.Parameter()
+    occ_conv_csv = luigi.Parameter()
+    log_pdb_mtz = luigi.Parameter()
+
+    def requires(self):
+        return OccConvergence(log_labelled_csv=self.log_labelled_csv,
+                              occ_conv_csv=self.occ_conv_csv,
+                              log_pdb_mtz=self.log_pdb_mtz)
+
+    def output(self):
+        return luigi.LocalTarget(self.plot_path)
+
+    def run(self):
+        convergence_ratio_histogram(occ_conv_csv=self.occ_conv_csv,
+                                         plot_path=self.plot_path)
 
 class PrepareRefinement(luigi.Task):
 
@@ -864,22 +975,47 @@ class BatchRefinement(luigi.Task):
 
 if __name__ == '__main__':
 
+    # This build is for the convergence refinement case,
+    # TODO A parameterised version of original task towards batch refinement
 
     luigi.build([BatchRefinement(),
+
                  RefinementFolderToCsv(out_csv=Path().convergence_refinement,
                                        input_folder=Path().refinement_dir),
+
                  OccFromLog(log_pdb_mtz_csv=Path().convergence_refinement,
                             log_occ_csv=Path().convergence_occ),
+
                  ResnameToOccLog(log_occ=Path().convergence_occ,
-                                 log_occ_resname=Path().convergence_occ_resname)],
+                                 log_occ_resname=Path().convergence_occ_resname,
+                                 log_pdb_mtz=Path().convergence_refinement),
+
+                 OccConvergence(log_labelled_csv=Path().convergence_occ_resname,
+                                occ_conv_csv=Path().convergence_occ_conv,
+                                log_pdb_mtz=Path().convergence_refinement),
+
+                 PlotBoundOccHistogram(log_labelled_csv=Path().convergence_occ_resname,
+                                       occ_conv_csv=Path().convergence_occ_conv,
+                                       log_pdb_mtz=Path().convergence_refinement,
+                                       plot_path=Path().convergence_bound_hist),
+
+                 # PlotGroundOccHistogram(log_labelled_csv=Path().convergence_occ_resname,
+                 #                       occ_conv_csv=Path().convergence_occ_conv,
+                 #                       log_pdb_mtz=Path().convergence_refinement,
+                 #                       plot_path=Path().convergence_ground_hist),
+                 #
+                 # PlotOccConvScatter(log_labelled_csv=Path().convergence_occ_resname,
+                 #                    occ_conv_csv=Path().convergence_occ_conv,
+                 #                    log_pdb_mtz=Path().convergence_refinement,
+                 #                    plot_path=Path().convergence_occ_conv_scatter),
+                 #
+                 # PlotConvergenceHistogram(log_labelled_csv=Path().convergence_occ_resname,
+                 #                          occ_conv_csv=Path().convergence_occ_conv,
+                 #                          log_pdb_mtz=Path().convergence_refinement,
+                 #                          plot_path=Path().convergence_conv_hist)
+
+                 ],
                 local_scheduler=False, workers=20)
-
-    log_occ_csv = luigi.Parameter()
-    log_pdb_mtz_csv = luigi.Parameter()
-
-    #luigi.build([QsubRefinement(refinement_script='DCLRE1AA-x1010.csh')], local_scheduler=True)
-
-    # luigi.build([BatchCheck()], local_scheduler=True, workers=4)
 
     # luigi.build([PlottingOccHistogram(),
     #              ResnameToOccLog(),
