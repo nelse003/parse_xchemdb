@@ -86,6 +86,7 @@ class Path(luigi.Config):
         default=os.path.join(out_dir, 'convergence_occ_conv_scatter.png'))
     convergence_conv_hist = luigi.Parameter(
         default=os.path.join(out_dir, 'convergence_conv_hist.png'))
+    convergence_occ_correct = luigi.Parameter(default=os.path.join(out_dir,"occ_correct.csv"))
 
     # Scripts
     convergence_py = luigi.Parameter(
@@ -332,6 +333,7 @@ class OccConvergence(luigi.Task):
     log_labelled_csv = luigi.Parameter()
     occ_conv_csv = luigi.Parameter()
 
+
     def requires(self):
         return ResnameToOccLog(log_occ=self.occ_conv_csv,
                                log_occ_resname=self.log_labelled_csv,
@@ -422,18 +424,20 @@ class PlotGroundOccHistogram(luigi.Task):
     plot_path = luigi.Parameter()
     log_labelled_csv = luigi.Parameter()
     occ_conv_csv = luigi.Parameter()
+    occ_correct_csv = luigi.Parameter()
     log_pdb_mtz = luigi.Parameter()
 
     def requires(self):
-        return OccConvergence(log_labelled_csv=self.log_labelled_csv,
-                              occ_conv_csv=self.occ_conv_csv,
-                              log_pdb_mtz=self.log_pdb_mtz)
+        StateOccupancyToCsv(log_labelled_csv=Path().convergence_occ_resname,
+                            occ_conv_csv=Path().convergence_occ_conv,
+                            log_pdb_mtz=Path().convergence_refinement,
+                            occ_correct_csv=Path().convergence_occ_correct)
 
     def output(self):
         return luigi.LocalTarget(self.plot_path)
 
     def run(self):
-        ground_state_occupancy_histogram(occ_conv_csv=self.occ_conv_csv ,
+        ground_state_occupancy_histogram(occ_correct_csv=self.occ_correct_csv,
                                          plot_path=self.plot_path)
 
 
@@ -452,18 +456,20 @@ class PlotBoundOccHistogram(luigi.Task):
     plot_path = luigi.Parameter()
     log_labelled_csv = luigi.Parameter()
     occ_conv_csv = luigi.Parameter()
+    occ_correct_csv = luigi.Parameter()
     log_pdb_mtz = luigi.Parameter()
 
     def requires(self):
-        return OccConvergence(log_labelled_csv=self.log_labelled_csv,
-                              occ_conv_csv=self.occ_conv_csv,
-                              log_pdb_mtz=self.log_pdb_mtz)
+        StateOccupancyToCsv(log_labelled_csv=Path().convergence_occ_resname,
+                            occ_conv_csv=Path().convergence_occ_conv,
+                            log_pdb_mtz=Path().convergence_refinement,
+                            occ_correct_csv=Path().convergence_occ_correct)
 
     def output(self):
         return luigi.LocalTarget(self.plot_path)
 
     def run(self):
-        bound_state_occ_histogram(occ_conv_csv=self.occ_conv_csv ,
+        bound_state_occ_histogram(occ_correct_csv=self.occ_correct_csv ,
                                   plot_path=self.plot_path)
 
 
@@ -482,18 +488,20 @@ class PlotOccConvScatter(luigi.Task):
     plot_path = luigi.Parameter()
     log_labelled_csv = luigi.Parameter()
     occ_conv_csv = luigi.Parameter()
+    occ_correct_csv = luigi.Parameter()
     log_pdb_mtz = luigi.Parameter()
 
     def requires(self):
-        return OccConvergence(log_labelled_csv=self.log_labelled_csv,
-                              occ_conv_csv=self.occ_conv_csv,
-                              log_pdb_mtz=self.log_pdb_mtz)
+        StateOccupancyToCsv(log_labelled_csv=Path().convergence_occ_resname,
+                            occ_conv_csv=Path().convergence_occ_conv,
+                            log_pdb_mtz=Path().convergence_refinement,
+                            occ_correct_csv=Path().convergence_occ_correct)
 
     def output(self):
         return luigi.LocalTarget(self.plot_path)
 
     def run(self):
-        occupancy_vs_convergence(occ_conv_csv=self.occ_conv_csv ,
+        occupancy_vs_convergence(occ_correct_csv=self.occ_correct_csv,
                                          plot_path=self.plot_path)
 
 
@@ -512,18 +520,20 @@ class PlotConvergenceHistogram(luigi.Task):
     plot_path = luigi.Parameter()
     log_labelled_csv = luigi.Parameter()
     occ_conv_csv = luigi.Parameter()
+    occ_correct_csv = luigi.Parameter()
     log_pdb_mtz = luigi.Parameter()
 
     def requires(self):
-        return OccConvergence(log_labelled_csv=self.log_labelled_csv,
-                              occ_conv_csv=self.occ_conv_csv,
-                              log_pdb_mtz=self.log_pdb_mtz)
+        StateOccupancyToCsv(log_labelled_csv=Path().convergence_occ_resname,
+                            occ_conv_csv=Path().convergence_occ_conv,
+                            log_pdb_mtz=Path().convergence_refinement,
+                            occ_correct_csv=Path().convergence_occ_correct)
 
     def output(self):
         return luigi.LocalTarget(self.plot_path)
 
     def run(self):
-        convergence_ratio_histogram(occ_conv_csv=self.occ_conv_csv,
+        convergence_ratio_histogram(occ_correct_csv=self.occ_correct_csv,
                                          plot_path=self.plot_path)
 
 class PrepareRefinement(luigi.Task):
@@ -972,6 +982,45 @@ class BatchRefinement(luigi.Task):
 
         return refinement_tasks
 
+class StateOccupancyToCsv(luigi.Task):
+
+    """
+    Add convergence summary and sum ground and bound state occupancies to csv
+
+    Adds convergence ratio
+    x(n)/(x(n-1) -1)
+    to csv.
+
+    Adds up occupancy for ground and bound states respectively
+    across each complete group
+
+    Methods
+    -------
+    run()
+        refinement.state_occupancies()
+    requires()
+        OccConvergence() to get lead in csv
+    output()
+        csv file path
+    """
+
+    occ_correct_csv = luigi.Parameter()
+    occ_conv_csv = luigi.Parameter()
+    log_labelled_csv = luigi.Parameter()
+    log_pdb_mtz = luigi.Parameter()
+
+    def output(self):
+        return luigi.LocalTarget(self.occ_correct_csv)
+
+    def requires(self):
+        OccConvergence(log_labelled_csv=self.log_labelled_csv,
+                       occ_conv_csv=self.occ_conv_csv,
+                       log_pdb_mtz=self.log_pdb_mtz)
+
+    def run(self):
+        state_occupancies(occ_conv_csv=self.occ_conv_csv,
+                          occ_correct_csv=self.occ_correct_csv)
+
 
 if __name__ == '__main__':
 
@@ -994,25 +1043,34 @@ if __name__ == '__main__':
                                 occ_conv_csv=Path().convergence_occ_conv,
                                 log_pdb_mtz=Path().convergence_refinement),
 
+                 StateOccupancyToCsv(log_labelled_csv=Path().convergence_occ_resname,
+                                     occ_conv_csv=Path().convergence_occ_conv,
+                                     log_pdb_mtz=Path().convergence_refinement,
+                                     occ_correct_csv=Path().convergence_occ_correct),
+
                  PlotBoundOccHistogram(log_labelled_csv=Path().convergence_occ_resname,
                                        occ_conv_csv=Path().convergence_occ_conv,
+                                       occ_correct_csv=Path().convergence_occ_correct,
                                        log_pdb_mtz=Path().convergence_refinement,
                                        plot_path=Path().convergence_bound_hist),
 
-                 # PlotGroundOccHistogram(log_labelled_csv=Path().convergence_occ_resname,
-                 #                       occ_conv_csv=Path().convergence_occ_conv,
-                 #                       log_pdb_mtz=Path().convergence_refinement,
-                 #                       plot_path=Path().convergence_ground_hist),
-                 #
-                 # PlotOccConvScatter(log_labelled_csv=Path().convergence_occ_resname,
-                 #                    occ_conv_csv=Path().convergence_occ_conv,
-                 #                    log_pdb_mtz=Path().convergence_refinement,
-                 #                    plot_path=Path().convergence_occ_conv_scatter),
-                 #
-                 # PlotConvergenceHistogram(log_labelled_csv=Path().convergence_occ_resname,
-                 #                          occ_conv_csv=Path().convergence_occ_conv,
-                 #                          log_pdb_mtz=Path().convergence_refinement,
-                 #                          plot_path=Path().convergence_conv_hist)
+                 PlotGroundOccHistogram(log_labelled_csv=Path().convergence_occ_resname,
+                                        occ_conv_csv=Path().convergence_occ_conv,
+                                        occ_correct_csv=Path().convergence_occ_correct,
+                                        log_pdb_mtz=Path().convergence_refinement,
+                                        plot_path=Path().convergence_ground_hist),
+
+                 PlotOccConvScatter(log_labelled_csv=Path().convergence_occ_resname,
+                                    occ_conv_csv=Path().convergence_occ_conv,
+                                    occ_correct_csv=Path().convergence_occ_correct,
+                                    log_pdb_mtz=Path().convergence_refinement,
+                                    plot_path=Path().convergence_occ_conv_scatter),
+
+                 PlotConvergenceHistogram(log_labelled_csv=Path().convergence_occ_resname,
+                                          occ_conv_csv=Path().convergence_occ_conv,
+                                          occ_correct_csv=Path().convergence_occ_correct,
+                                          log_pdb_mtz=Path().convergence_refinement,
+                                          plot_path=Path().convergence_conv_hist)
 
                  ],
                 local_scheduler=False, workers=20)

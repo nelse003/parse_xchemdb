@@ -336,8 +336,6 @@ def get_most_recent_quick_refine(input_dir):
         return quick_refine_log
 
 
-
-
 def check_file_for_string(file, string):
     """Check if string is in file
 
@@ -362,6 +360,108 @@ def check_file_for_string(file, string):
         return True
     else:
         return False
+
+
+def write_refmac_csh(pdb,
+                     crystal,
+                     cif,
+                     mtz,
+                     ncyc,
+                     out_dir,
+                     refinement_script_dir):
+    """
+    Write .csh script to use refmac
+
+    Parameters
+    -----------
+    pdb: str
+        path to pdb file. Either split.bound.pdb
+        or split.ground.pdb
+    crystal: str
+        crystal name
+    cif: str
+        path to cif file
+    mtz: str
+        path to mtz file
+    ncyc: int
+        number of cycles
+    out_dir: str
+        path to output directory
+    refinement_script_dir: str
+        path to directory where csh files will be written
+
+    Returns
+    -------
+    None
+
+
+    Notes
+    -------
+
+    """
+    # Qsub specific line
+    pbs_line = '#PBS -joe -N \n'
+
+    source = "source /dls/science/groups/i04-1/software/pandda_0.2.12/ccp4/ccp4-7.0/bin/ccp4.setup-sh"
+
+    Cmds = (
+            '#!' + os.getenv('SHELL') + '\n'
+            + pbs_line +
+            '\n'
+            + source +
+
+            "refmac5 HKLIN {}".format(pdb) + '\n' +
+            "HKLOUT {}" + '\n' +
+            "XYZIN {}" + '\n' +
+            "XYZOUT {}" + '\n' +
+            "LIBIN {}" + '\n' +
+            "LIBOUT {}" + '\n' +
+
+             """<< EOF > refmac.log
+            make -
+                hydrogen ALL -
+                hout NO -
+                peptide NO -
+                cispeptide YES -
+                ssbridge YES -
+                symmetry YES -
+                sugar YES -
+                connectivity NO -
+                link NO
+            refi -
+                type REST -
+                resi MLKF -
+                meth CGMAT -
+                bref ISOT"""
+            
+                "ncyc {}" +
+
+                """scal -
+                    type SIMP -
+                    LSSC -
+                    ANISO -
+                    EXPE
+                weight matrix 0.25
+                solvent YES
+                monitor MEDIUM -
+                    torsion 10.0 -
+                    distance 10.0 -
+                    angle 10.0 -
+                    plane 10.0 -
+                    chiral 10.0 -
+                    bfactor 10.0 -
+                    bsphere 10.0 -
+                    rbond 10.0 -
+                    ncsr 10.0
+                labin  FP=F SIGFP=SIGF FREE=FreeR_flag
+                labout  FC=FC FWT=FWT PHIC=PHIC PHWT=PHWT DELFWT=DELFWT PHDELWT=PHDELWT FOM=FOM""" +
+
+                "DNAME {}" + "\n" +
+                "END\nEOF"
+
+            )
+
+
 
 def write_quick_refine_csh(refine_pdb,
                            cif,
@@ -424,7 +524,7 @@ def write_quick_refine_csh(refine_pdb,
     source = "source /dls/science/groups/i04-1/software/pandda_0.2.12/ccp4/ccp4-7.0/bin/ccp4.setup-sh"
 
     # Shell suitable string for csh file
-    refmacCmds = (
+    Cmds = (
             '#!' + os.getenv('SHELL') + '\n'
             + pbs_line +
             '\n'
@@ -461,7 +561,7 @@ def write_quick_refine_csh(refine_pdb,
 
     # Write file
     cmd = open(csh_file, 'w')
-    cmd.write(refmacCmds)
+    cmd.write(Cmds)
     cmd.close()
 
 def make_symlinks(input_dir, cif, pdb, params, free_mtz):
@@ -785,6 +885,101 @@ def prepare_refinement(crystal,
                            refinement_program='refmac',
                            out_prefix="refine_1",
                            dir_prefix="refine_")
+
+
+def state_occ(row, bound, ground, pdb):
+    if row.pdb_latest == pdb:
+        if row.state == "bound":
+            return bound
+        if row.state == "ground":
+            return ground
+
+
+def state_occupancies(occ_conv_csv, occ_correct_csv):
+    """
+    Sum occupancies in occupancies for full states
+
+    Adds convergence ratio
+    x(n)/(x(n-1) -1)
+    to csv.
+
+    Adds up occupancy for ground and bound states respectively
+    across each complete group
+
+    Parameters
+    ----------
+    occ_conv_csv: str
+        path to csv with occupancy convergence information
+        for each residue involved in complete groups
+
+    Returns
+    -------
+    None
+    """
+
+    # Read CSV
+    occ_df = pd.read_csv(occ_conv_csv, index_col=[0, 1])
+
+    # Select only residues that are correctly occupied
+    occ_correct_df = occ_df[occ_df['comment'] == 'Correctly Occupied']
+
+    # print(occ_correct_df.head())
+    # print(occ_correct_df.columns.values)
+
+    # TODO Fix to run where rows are different lengths
+
+    int_cols = []
+    for col in occ_correct_df.columns.values:
+        try:
+            int_cols.append(int(col))
+        except ValueError:
+            continue
+    str_cols = list(map(str, int_cols))
+    df = occ_correct_df[str_cols]
+
+    occ_correct_df['converge'] = abs(df[str_cols[-1]] / df[str_cols[-2]] - 1)
+
+    # Select the final occupancy value
+    occ_correct_df['occupancy'] = df[str_cols[-1]]
+
+    pdb_df_list = []
+    for pdb in occ_correct_df.pdb_latest.unique():
+
+        bound = 0
+        ground = 0
+
+        pdb_df = occ_correct_df.loc[
+            (occ_correct_df['pdb_latest'] == pdb)]
+
+        grouped = pdb_df.groupby(['complete group', 'occupancy', 'alte', 'state'])
+
+        for name, group in grouped:
+
+            group_occ = group.occupancy.unique()[0]
+
+            if "ground" in group.state.unique()[0]:
+                ground += group_occ
+
+            if "bound" in group.state.unique()[0]:
+                bound += group_occ
+
+        print(ground + bound)
+        try:
+            np.testing.assert_allclose(ground + bound, 1.0, atol=0.01)
+        except AssertionError:
+            continue
+
+        pdb_df['state occupancy'] = pdb_df.apply(
+            func=state_occ,
+            bound=bound,
+            ground=ground,
+            pdb=pdb,
+            axis=1)
+
+        pdb_df_list.append(pdb_df)
+
+    occ_correct_df = pd.concat(pdb_df_list)
+    occ_correct_df.to_csv(occ_correct_csv)
 
 if __name__ == "__main__":
     pass
