@@ -366,9 +366,13 @@ def write_refmac_csh(pdb,
                      crystal,
                      cif,
                      mtz,
-                     ncyc,
                      out_dir,
-                     refinement_script_dir):
+                     refinement_script_dir,
+                     ncyc=50,
+                     ccp4_path="/dls/science/groups/i04-1/" \
+                               "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/"\
+                               "ccp4.setup-sh"):
+
     """
     Write .csh script to use refmac
 
@@ -402,64 +406,84 @@ def write_refmac_csh(pdb,
     # Qsub specific line
     pbs_line = '#PBS -joe -N \n'
 
-    source = "source /dls/science/groups/i04-1/software/pandda_0.2.12/ccp4/ccp4-7.0/bin/ccp4.setup-sh"
+    if "bound" in pdb:
+        type = "bound"
+    elif "ground" in pdb:
+        type = "ground"
+    else:
+        type = ""
+
+    out_mtz = os.path.join(out_dir, "refine_{}.mtz".format(type))
+    out_pdb = os.path.join(out_dir, "refine_{}.pdb".format(type))
+    out_cif = os.path.join(out_dir, "refine_{}.cif".format(type))
+
+    source = "source {}".format(ccp4_path)
 
     Cmds = (
             '#!' + os.getenv('SHELL') + '\n'
             + pbs_line +
             '\n'
             + source +
-
-            "refmac5 HKLIN {}".format(pdb) + '\n' +
-            "HKLOUT {}" + '\n' +
-            "XYZIN {}" + '\n' +
-            "XYZOUT {}" + '\n' +
-            "LIBIN {}" + '\n' +
-            "LIBOUT {}" + '\n' +
+            '\n'
+            +
+            "refmac5 HKLIN {}".format(mtz) + '\n' +
+            "HKLOUT {}".format(out_mtz) + '\n' +
+            "XYZIN {}".format(pdb) + '\n' +
+            "XYZOUT {}".format(out_pdb) + '\n' +
+            "LIBIN {}".format(cif) + '\n' +
+            "LIBOUT {}".format(out_cif) + '\n' +
 
              """<< EOF > refmac.log
-            make -
-                hydrogen ALL -
-                hout NO -
-                peptide NO -
-                cispeptide YES -
-                ssbridge YES -
-                symmetry YES -
-                sugar YES -
-                connectivity NO -
-                link NO
-            refi -
-                type REST -
-                resi MLKF -
-                meth CGMAT -
-                bref ISOT"""
-            
-                "ncyc {}" +
+make -
+    hydrogen ALL -
+    hout NO -
+    peptide NO -
+    cispeptide YES -
+    ssbridge YES -
+    symmetry YES -
+    sugar YES -
+    connectivity NO -
+    link NO
+refi -
+    type REST -
+    resi MLKF -
+    meth CGMAT -
+    bref ISOT""" + "\n"
 
-                """scal -
-                    type SIMP -
-                    LSSC -
-                    ANISO -
-                    EXPE
-                weight matrix 0.25
-                solvent YES
-                monitor MEDIUM -
-                    torsion 10.0 -
-                    distance 10.0 -
-                    angle 10.0 -
-                    plane 10.0 -
-                    chiral 10.0 -
-                    bfactor 10.0 -
-                    bsphere 10.0 -
-                    rbond 10.0 -
-                    ncsr 10.0
-                labin  FP=F SIGFP=SIGF FREE=FreeR_flag
-                labout  FC=FC FWT=FWT PHIC=PHIC PHWT=PHWT DELFWT=DELFWT PHDELWT=PHDELWT FOM=FOM""" +
+    "ncyc {}".format(ncyc) + "\n" +
 
-                "DNAME {}" + "\n" +
-                "END\nEOF"
+    """scal -
+    type SIMP -
+    LSSC -
+    ANISO -
+    EXPE
+weight matrix 0.25
+solvent YES
+monitor MEDIUM -
+    torsion 10.0 -
+    distance 10.0 -
+    angle 10.0 -
+    plane 10.0 -
+    chiral 10.0 -
+    bfactor 10.0 -
+    bsphere 10.0 -
+    rbond 10.0 -
+    ncsr 10.0
+labin  FP=F SIGFP=SIGF FREE=FreeR_flag
+labout  FC=FC FWT=FWT PHIC=PHIC PHWT=PHWT DELFWT=DELFWT PHDELWT=PHDELWT FOM=FOM""" + "\n" +
+
+            "DNAME {}".format(crystal) + "\n" +
+            "END\nEOF"
 
             )
+
+    # File location and name
+    csh_file = os.path.join(refinement_script_dir, "{}_{}.csh".format(crystal, type))
+
+    # Write file
+    cmd = open(csh_file, 'w')
+    cmd.write(Cmds)
+    cmd.close()
 
 
 
@@ -472,7 +496,9 @@ def write_quick_refine_csh(refine_pdb,
                            refinement_script_dir,
                            refinement_program='refmac',
                            out_prefix="refine_",
-                           dir_prefix="refine_"):
+                           dir_prefix="refine_",
+                           ccp4_path="/dls/science/groups/i04-1/"\
+        "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/ccp4.setup-sh"):
 
     """
     Write .csh script to refine using giant.quick_refine
@@ -482,6 +508,7 @@ def write_quick_refine_csh(refine_pdb,
 
     Parameters
     ----------
+    ccp4_path
     refine_pdb: str
         path to pdb file
     cif:
@@ -520,8 +547,7 @@ def write_quick_refine_csh(refine_pdb,
     if os.getcwd().startswith('/dls'):
         module_load = 'module load phenix\n'
 
-    # TODO move to luigi parameter
-    source = "source /dls/science/groups/i04-1/software/pandda_0.2.12/ccp4/ccp4-7.0/bin/ccp4.setup-sh"
+    source = "source {}".foramt(ccp4_path)
 
     # Shell suitable string for csh file
     Cmds = (
@@ -865,7 +891,7 @@ def prepare_refinement(crystal,
         if os.path.isfile(new_refmac_restraints):
             input_params = new_refmac_restraints
 
-    # Check that refinement is failing due to a cif file missins
+    # Check that refinement is failing due to a cif file missing
     if check_refinement_for_cif_error(input_dir):
         smiles = smiles_from_crystal(crystal)
         cif_backup = os.path.join(input_dir, "backup.cif")
@@ -875,16 +901,10 @@ def prepare_refinement(crystal,
 
     update_refinement_params(params=input_params, extra_params=extra_params)
 
-    write_quick_refine_csh(refine_pdb=input_pdb,
-                           cif=input_cif,
-                           free_mtz=input_mtz,
-                           crystal=crystal,
-                           refinement_params=input_params,
-                           out_dir=input_dir,
-                           refinement_script_dir=refinement_script_dir,
-                           refinement_program='refmac',
-                           out_prefix="refine_1",
-                           dir_prefix="refine_")
+    write_quick_refine_csh(refine_pdb=input_pdb, cif=input_cif, free_mtz=input_mtz, crystal=crystal,
+                           refinement_params=input_params, out_dir=input_dir,
+                           refinement_script_dir=refinement_script_dir, refinement_program='refmac',
+                           out_prefix="refine_1", dir_prefix="refine_")
 
 
 def state_occ(row, bound, ground, pdb):
@@ -982,8 +1002,26 @@ def state_occupancies(occ_conv_csv, occ_correct_csv):
     occ_correct_df.to_csv(occ_correct_csv)
 
 if __name__ == "__main__":
-    pass
+
+    # Testing
+    mtz = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/" \
+            "convergence_refinement/SERC-x0124/input.mtz"
+
+    pdb =  "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/" \
+            "convergence_refinement/SERC-x0124/refine_0001/refine_1.split.bound-state.pdb"
+
+    cif = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/" \
+          "convergence_refinement/SERC-x0124/input.cif"
 
 
-
+    write_refmac_csh(pdb=pdb,
+                     crystal="SERC-x0124",
+                     cif=cif,
+                     mtz=mtz,
+                     out_dir="/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/bound_refinement",
+                     refinement_script_dir="/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/tmp",
+                     ncyc=50,
+                     ccp4_path="/dls/science/groups/i04-1/" \
+                               "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/ccp4.setup-sh"
+                     )
 
