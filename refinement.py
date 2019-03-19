@@ -444,6 +444,7 @@ def write_refmac_csh(pdb,
     out_mtz = os.path.join(out_dir, "refine_{}.mtz".format(type))
     out_pdb = os.path.join(out_dir, "refine_{}.pdb".format(type))
     out_cif = os.path.join(out_dir, "refine_{}.cif".format(type))
+    log = os.path.join(out_dir, "refmac.log".format(type))
 
     source = "source {}".format(ccp4_path)
 
@@ -461,7 +462,8 @@ def write_refmac_csh(pdb,
             "LIBIN {} \\".format(cif) + '\n' +
             "LIBOUT {} \\".format(out_cif) + '\n' +
 
-             """<< EOF > refmac.log
+             "<< EOF > {}".format(log) + '\n' +
+"""
 make -
     hydrogen ALL -
     hout NO -
@@ -970,13 +972,13 @@ def prepare_refinement(pdb,
 
     # Check and replace inputs with existing files,
     # or regenerate if necessary
-    # cif, params, mtz = check_inputs(cif=cif,
-    #                                 pdb=pdb,
-    #                                 params=params,
-    #                                 free_mtz=mtz,
-    #                                 refinement_program="refmac",
-    #                                 input_dir=input_dir,
-    #                                 crystal=crystal)
+    cif, params, mtz = check_inputs(cif=cif,
+                                    pdb=pdb,
+                                    params='',
+                                    free_mtz=mtz,
+                                    refinement_program="refmac",
+                                    input_dir=input_dir,
+                                    crystal=crystal)
 
     # Parse PDB to get ligand as occupancy groups as string
     occ_group = get_occ_groups(tmp_dir=refinement_script_dir,
@@ -1165,6 +1167,8 @@ def state_occupancies(occ_conv_csv, occ_correct_csv):
             continue
     str_cols = list(map(str, int_cols))
     df = occ_correct_df[str_cols]
+
+    # TODO Find a more robust convergence metric
 
     occ_correct_df['converge'] = abs(df[str_cols[-1]] / df[str_cols[-2]] - 1)
 
