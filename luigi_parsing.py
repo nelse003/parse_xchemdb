@@ -8,18 +8,22 @@ import csv
 import time
 
 from cluster_submission import submit_job
+
 from parse_xchemdb import process_refined_crystals
 from parse_xchemdb import get_table_df
 from parse_xchemdb import drop_only_dimple_processing
 from parse_xchemdb import drop_pdb_not_in_filesystem
+
 from convergence import get_occ_from_log
 from convergence import convergence_to_csv
 
-from plotting import refinement_summary_plot
-from refinement import prepare_refinement
+from refinement import prepare_superposed_refinement
 from refinement_summary import refinement_summary
 from refinement import get_most_recent_quick_refine
+from refinement import split_conformations
+from refinement import prepare_refinement
 
+from plotting import refinement_summary_plot
 from plotting import ground_state_occupancy_histogram
 from plotting import bound_state_occ_histogram
 from plotting import occupancy_vs_convergence
@@ -536,7 +540,106 @@ class PlotConvergenceHistogram(luigi.Task):
         convergence_ratio_histogram(occ_correct_csv=self.occ_correct_csv,
                                          plot_path=self.plot_path)
 
+
+class SplitConformations(luigi.Task):
+    """
+    Task to run giant.split conformations
+
+    Attributes
+    -----------
+    input_pdb: luigi.Parameter()
+        path to sup[eposed db to be used as input
+    working_dir: luigi.Parameter()
+        path to directory to carry out split conformations
+
+    Methods
+    -------
+    requires()
+        reqiures ParseXchemdbToCsv(),
+        existence of csv file with refinement and
+        crystal details from xchemdb
+    output()
+        split.ground-state.pdb and split.bound-state.pdb files
+        in the working directory
+    run()
+        wrapped version of giant.split_conformations
+    """
+    pdb = luigi.Parameter()
+    working_dir = luigi.Parameter()
+
+    def requires(self):
+        return ParseXchemdbToCsv()
+
+    def output(self):
+
+        pdb = self.pdb
+        base_pdb = pdb.split('.')[0]
+        out_ground_pdb = os.path.join(self.working_dir,
+                                      "{}.split.bound-state.pdb".format(base_pdb))
+
+        out_bound_pdb = os.path.join(self.working_dir,
+                                     "{}.split.ground-state.pdb".format(base_pdb))
+
+        return luigi.LocalTarget(out_bound_pdb), luigi.LocalTarget(out_ground_pdb)
+
+    def run(self):
+        split_conformations(pdb=self.pdb, working_dir=self.working_dir)
+
+
 class PrepareRefinement(luigi.Task):
+    """
+    Task to generate csh for non-superposed refinement
+
+    Attributes
+    -----------
+
+
+    Methods
+    -------
+    requires()
+
+    output()
+        target of refinement script
+        '<crystal_name>_<type>.csh'
+        in refinemnt script dir. where type is either "ground" or "bound"
+    run()
+
+    """
+
+    crystal = luigi.Parameter()
+    pdb = luigi.Parameter()
+    cif = luigi.Parameter()
+    out_dir = luigi.Parameter()
+    refinement_script_dir = luigi.Parameter()
+    free_mtz = luigi.Parameter()
+    type= luigi.Parameter()
+
+    def requires(self):
+        working_dir = os.path.join(self.out_dir, self.crystal)
+
+        return SplitConformations(pdb=self.pdb, working_dir=working_dir)
+
+    def output(self):
+
+
+        ref_script = os.path.join(self.refinement_script_dir,
+                     '{}_{}.csh'.format(self.crystal, self.type))
+
+        return luigi.LocalTarget(ref_script)
+
+    def run(self):
+        prepare_refinement(pdb=self.pdb,
+                           crystal=self.crystal,
+                           cif=self.cif,
+                           mtz=self.free_mtz,
+                           ncyc=50,
+                           out_dir=self.out_dir,
+                           refinement_script_dir=self.refinement_script_dir,
+                           ccp4_path="/dls/science/groups/i04-1/" \
+                             "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/" \
+                             "ccp4.setup-sh")
+
+class PrepareSuperposedRefinement(luigi.Task):
 
     """
     Task to generate csh file for refinement submission
@@ -603,16 +706,180 @@ class PrepareRefinement(luigi.Task):
 
 
     def run(self):
-        prepare_refinement(crystal=self.crystal,
-                           pdb=self.pdb,
-                           cif=self.cif,
-                           out_dir=self.out_dir,
-                           refinement_script_dir=self.refinement_script_dir,
-                           extra_params=self.extra_params,
-                           free_mtz=self.free_mtz)
-
+        prepare_superposed_refinement(crystal=self.crystal,
+                                      pdb=self.pdb,
+                                      cif=self.cif,
+                                      out_dir=self.out_dir,
+                                      refinement_script_dir=self.refinement_script_dir,
+                                      extra_params=self.extra_params,
+                                      free_mtz=self.free_mtz)
 
 class QsubRefinement(luigi.Task):
+
+    """Initiate & check progress of a single job on cluster submitted by qsub
+
+
+    Attributes
+    -----------
+    crystal: luigi.Parameter
+        crystal name
+
+    pdb: luigi.Parameter
+        path to pdb file
+
+    cif: luigi.Parameter
+        path to cif file
+
+    out_dir: luigi.Parameter
+        path to refinement folder
+
+    refinement_script_dir: luigi.Parameter
+        path to refinement script dir with '<crystal_name>_<type>.csh' file
+
+    free_mtz: luigi.Parameter
+        path to free mtz file
+
+    refinement_script: luigi.Parameter
+        path to luigi parameter
+
+    Methods
+    ---------
+    requires()
+        Task requires the associated PrepareRefienement Task
+        with the same parameters
+
+    output()
+        Task should output refined pdb and mtz files
+
+    run_qstat()
+        wrapper for running qstat -r
+
+    run()
+        Check for presence of PDB and MTZ,
+        if they do not exist, check for running jobs on cluster.
+        If no running jobs, submit <crystal_name>.csh as job.
+
+    Notes
+    ---------
+    Requires the refinement script name to the name of the crystal,
+    and that the pdb/mtz are stored hierarchically in that folder.
+    Uses luigi.Parameter to pass a refinement script name.
+
+    TODO Consider ways to check for existence of not just PDB
+
+    Skeleton code adapted from working version for the formulatrix
+    pipeline at diamond:
+
+    https://github.com/xchem/formulatrix_pipe/blob/master/run_ranker.py
+
+    TODO This job, or it's batch runner should be run multiple times to check
+         that the files being created.
+
+    TODO Check whether removal of ssh from submit job is going to cause issues
+
+    TODO This should share an abstract class with QsubSuperposedRefinement
+    """
+
+    refinement_script = luigi.Parameter()
+    crystal = luigi.Parameter()
+    pdb = luigi.Parameter()
+    cif = luigi.Parameter()
+    out_dir = luigi.Parameter()
+    refinement_script_dir = luigi.Parameter()
+    free_mtz = luigi.Parameter()
+    type = luigi.Parameter()
+
+    def requires(self):
+        return PrepareRefinement(crystal=self.crystal,
+                                 pdb=self.pdb,
+                                 cif=self.cif,
+                                 out_dir=self.out_dir,
+                                 refinement_script_dir=self.refinement_script_dir,
+                                 free_mtz=self.free_mtz,
+                                 type=self.type)
+
+    def output(self):
+
+        out_mtz = os.path.join(self.out_dir, "refine_{}.mtz".format(self.type))
+        out_pdb = os.path.join(self.out_dir, "refine_{}.pdb".format(self.type))
+
+        return luigi.LocalTarget(out_pdb), luigi.LocalTarget(out_mtz)
+
+    def run_qstat(self):
+        """
+        Qstat wrapped to return output queue
+        Returns
+        -------
+
+        """
+
+        submission_string = 'qstat -r'
+
+        submission = subprocess.Popen(submission_string,
+                                      shell=True,
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE)
+        out, err = submission.communicate()
+
+        output_queue = (out.decode('ascii').split('\n'))
+
+        return output_queue
+
+    def run(self):
+        """
+        Run Qsub Refienement
+
+        Check for presence of PDB and MTZ,
+        if they do not exist, check for running jobs on cluster.
+        If no running jobs, submit job.
+
+        Returns
+        -------
+        None
+
+        Raises
+        -------
+        RuntimeError
+            If the job has not been newly submitted and is not running
+        """
+
+        out_mtz = os.path.join(self.out_dir, "refine_{}.mtz".format(self.type))
+        out_pdb = os.path.join(self.out_dir, "refine_{}.pdb".format(self.type))
+
+        # Only run if the pdb and mtz are not present
+        if not (os.path.isfile(out_pdb) and os.path.isfile(out_mtz)):
+            queue_jobs = []
+
+            # run 'qstat -r'
+            output_queue = self.run_qstat()
+
+            # Turn qstat output into list of jobs
+            for line in output_queue:
+                if 'Full jobname' in line:
+                    jobname = line.split()[-1]
+                    queue_jobs.append(jobname)
+
+            # Get <crystal_name>.csh
+            job = self.refinement_script
+            job_file = os.path.basename(str(job))
+
+            # Check whether <crystal_name>.csh is running in queue,
+            # If not submit job to queue
+            if job_file not in queue_jobs:
+                submit_job(job_directory=Path().tmp_dir,
+                           job_script=job_file)
+
+                print('The job had no output, and was not found to be running ' 
+                      'in the queue. The job has been resubmitted. ' 
+                      'Will check again later!')
+
+            elif not queue_jobs:
+                raise RuntimeError('Something went wrong or job is still running')
+
+
+
+
+class QsubSuperposedRefinement(luigi.Task):
 
     """Initiate & check progress of a single job on cluster submitted by qsub
 
@@ -691,13 +958,13 @@ class QsubRefinement(luigi.Task):
     free_mtz = luigi.Parameter()
 
     def requires(self):
-        return PrepareRefinement(crystal=self.crystal,
-                                 pdb=self.pdb,
-                                 cif=self.cif,
-                                 free_mtz=self.free_mtz,
-                                 refinement_script_dir=Path().tmp_dir,
-                                 extra_params="NCYC=50",
-                                 out_dir=Path().refinement_dir)
+        return PrepareSuperposedRefinement(crystal=self.crystal,
+                                           pdb=self.pdb,
+                                           cif=self.cif,
+                                           free_mtz=self.free_mtz,
+                                           refinement_script_dir=Path().tmp_dir,
+                                           extra_params="NCYC=50",
+                                           out_dir=Path().refinement_dir)
 
     def output(self):
         crystal = os.path.basename(self.refinement_script.split('.')[0])
@@ -775,8 +1042,8 @@ class QsubRefinement(luigi.Task):
                 raise RuntimeError('Something went wrong or job is still running')
 
 
-@PrepareRefinement.event_handler(luigi.Event.FAILURE)
-@QsubRefinement.event_handler(luigi.Event.FAILURE)
+@PrepareSuperposedRefinement.event_handler(luigi.Event.FAILURE)
+@QsubSuperposedRefinement.event_handler(luigi.Event.FAILURE)
 def failure_write_to_csv(task, exception):
     """
     If failure of task occurs, summarise in CSV
@@ -795,8 +1062,8 @@ def failure_write_to_csv(task, exception):
         conv_ref_writer = csv.writer(conv_ref_csv, delimiter=',')
         conv_ref_writer.writerow(["Failure", task.crystal, type(exception), exception])
 
-@PrepareRefinement.event_handler(luigi.Event.SUCCESS)
-@QsubRefinement.event_handler(luigi.Event.SUCCESS)
+@PrepareSuperposedRefinement.event_handler(luigi.Event.SUCCESS)
+@QsubSuperposedRefinement.event_handler(luigi.Event.SUCCESS)
 def success_write_to_csv(task):
     """
     If success of task occurs, summarise in CSV
@@ -943,9 +1210,9 @@ class BatchRefinement(luigi.Task):
         Returns
         -------
         refinement_tasks: list of Luigi.Tasks
-            list of QSubRefienemtn tasks
+            list of QSubRefinement tasks
         """
-        # Read crystal/refienemnt table csv
+        # Read crystal/refinement table csv
         df = pd.read_csv(Path().log_pdb_mtz)
 
         # Replace Nans with empty strings,
@@ -967,7 +1234,7 @@ class BatchRefinement(luigi.Task):
             refinement_script = os.path.join(Path().tmp_dir,
                                              "{}.csh".format(crystal))
             # produce refinement task
-            ref_task = QsubRefinement(
+            ref_task = QsubSuperposedRefinement(
                             refinement_script=refinement_script,
                             crystal=crystal,
                             pdb=pdb,
@@ -1027,52 +1294,83 @@ if __name__ == '__main__':
     # This build is for the convergence refinement case,
     # TODO A parameterised version of original task towards batch refinement
 
-    luigi.build([BatchRefinement(),
+    # luigi.build([BatchRefinement(),
+    #
+    #              RefinementFolderToCsv(out_csv=Path().convergence_refinement,
+    #                                    input_folder=Path().refinement_dir),
+    #
+    #              OccFromLog(log_pdb_mtz_csv=Path().convergence_refinement,
+    #                         log_occ_csv=Path().convergence_occ),
+    #
+    #              ResnameToOccLog(log_occ=Path().convergence_occ,
+    #                              log_occ_resname=Path().convergence_occ_resname,
+    #                              log_pdb_mtz=Path().convergence_refinement),
+    #
+    #              OccConvergence(log_labelled_csv=Path().convergence_occ_resname,
+    #                             occ_conv_csv=Path().convergence_occ_conv,
+    #                             log_pdb_mtz=Path().convergence_refinement),
+    #
+    #              StateOccupancyToCsv(log_labelled_csv=Path().convergence_occ_resname,
+    #                                  occ_conv_csv=Path().convergence_occ_conv,
+    #                                  log_pdb_mtz=Path().convergence_refinement,
+    #                                  occ_correct_csv=Path().convergence_occ_correct),
+    #
+    #              PlotBoundOccHistogram(log_labelled_csv=Path().convergence_occ_resname,
+    #                                    occ_conv_csv=Path().convergence_occ_conv,
+    #                                    occ_correct_csv=Path().convergence_occ_correct,
+    #                                    log_pdb_mtz=Path().convergence_refinement,
+    #                                    plot_path=Path().convergence_bound_hist),
+    #
+    #              PlotGroundOccHistogram(log_labelled_csv=Path().convergence_occ_resname,
+    #                                     occ_conv_csv=Path().convergence_occ_conv,
+    #                                     occ_correct_csv=Path().convergence_occ_correct,
+    #                                     log_pdb_mtz=Path().convergence_refinement,
+    #                                     plot_path=Path().convergence_ground_hist),
+    #
+    #              PlotOccConvScatter(log_labelled_csv=Path().convergence_occ_resname,
+    #                                 occ_conv_csv=Path().convergence_occ_conv,
+    #                                 occ_correct_csv=Path().convergence_occ_correct,
+    #                                 log_pdb_mtz=Path().convergence_refinement,
+    #                                 plot_path=Path().convergence_occ_conv_scatter),
+    #
+    #              PlotConvergenceHistogram(log_labelled_csv=Path().convergence_occ_resname,
+    #                                       occ_conv_csv=Path().convergence_occ_conv,
+    #                                       occ_correct_csv=Path().convergence_occ_correct,
+    #                                       log_pdb_mtz=Path().convergence_refinement,
+    #                                       plot_path=Path().convergence_conv_hist)
+    #
+    #              ],
+    #             local_scheduler=False, workers=20)
 
-                 RefinementFolderToCsv(out_csv=Path().convergence_refinement,
-                                       input_folder=Path().refinement_dir),
+    # This is a builf dfor the single bound and ground refinments in refmac
 
-                 OccFromLog(log_pdb_mtz_csv=Path().convergence_refinement,
-                            log_occ_csv=Path().convergence_occ),
+    luigi.build([PrepareRefinement(crystal = "SERC-x0124",
+                     pdb="/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/" \
+                                   "convergence_refinement/SERC-x0124/input.pdb",
+                      cif="/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/" \
+                            "convergence_refinement/SERC-x0124/input.cif",
+                      out_dir="/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/"\
+                              "ground_refinement",
+                      refinement_script_dir = "/dls/science/groups/i04-1/"\
+                                            "elliot-dev/Work/exhaustive_parse_xchem_db/tmp",
+                      free_mtz = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/" \
+                                 "convergence_refinement/SERC-x0124/input.mtz",
+                      type="ground"),
 
-                 ResnameToOccLog(log_occ=Path().convergence_occ,
-                                 log_occ_resname=Path().convergence_occ_resname,
-                                 log_pdb_mtz=Path().convergence_refinement),
-
-                 OccConvergence(log_labelled_csv=Path().convergence_occ_resname,
-                                occ_conv_csv=Path().convergence_occ_conv,
-                                log_pdb_mtz=Path().convergence_refinement),
-
-                 StateOccupancyToCsv(log_labelled_csv=Path().convergence_occ_resname,
-                                     occ_conv_csv=Path().convergence_occ_conv,
-                                     log_pdb_mtz=Path().convergence_refinement,
-                                     occ_correct_csv=Path().convergence_occ_correct),
-
-                 PlotBoundOccHistogram(log_labelled_csv=Path().convergence_occ_resname,
-                                       occ_conv_csv=Path().convergence_occ_conv,
-                                       occ_correct_csv=Path().convergence_occ_correct,
-                                       log_pdb_mtz=Path().convergence_refinement,
-                                       plot_path=Path().convergence_bound_hist),
-
-                 PlotGroundOccHistogram(log_labelled_csv=Path().convergence_occ_resname,
-                                        occ_conv_csv=Path().convergence_occ_conv,
-                                        occ_correct_csv=Path().convergence_occ_correct,
-                                        log_pdb_mtz=Path().convergence_refinement,
-                                        plot_path=Path().convergence_ground_hist),
-
-                 PlotOccConvScatter(log_labelled_csv=Path().convergence_occ_resname,
-                                    occ_conv_csv=Path().convergence_occ_conv,
-                                    occ_correct_csv=Path().convergence_occ_correct,
-                                    log_pdb_mtz=Path().convergence_refinement,
-                                    plot_path=Path().convergence_occ_conv_scatter),
-
-                 PlotConvergenceHistogram(log_labelled_csv=Path().convergence_occ_resname,
-                                          occ_conv_csv=Path().convergence_occ_conv,
-                                          occ_correct_csv=Path().convergence_occ_correct,
-                                          log_pdb_mtz=Path().convergence_refinement,
-                                          plot_path=Path().convergence_conv_hist)
-
-                 ],
+                QsubRefinement(refinement_script="SERC-x0124_bound.csh",
+                               crystal="SERC-x0124",
+                               pdb="/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/" \
+                                   "convergence_refinement/SERC-x0124/input.pdb",
+                               cif="/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/" \
+                                   "convergence_refinement/SERC-x0124/input.cif",
+                               out_dir = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/" \
+                                             "ground_refinement",
+                               refinement_script_dir = "/dls/science/groups/i04-1/" \
+                                   "elliot-dev/Work/exhaustive_parse_xchem_db/tmp",
+                               free_mtz = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/" \
+                               "convergence_refinement/SERC-x0124/input.mtz",
+                               type="ground")
+                ],
                 local_scheduler=False, workers=20)
 
     # luigi.build([PlottingOccHistogram(),

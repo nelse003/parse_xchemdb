@@ -2,6 +2,7 @@ import os
 import glob
 import subprocess
 import shutil
+import ast
 
 from parse_xchemdb import smiles_from_crystal
 
@@ -361,6 +362,30 @@ def check_file_for_string(file, string):
     else:
         return False
 
+def split_conformations(pdb, working_dir=None):
+    """Run giant.split conformations preserving occupancies
+
+    Parameters
+    ----------
+    pdb: str
+        path to input pdb with merged conformations
+
+    """
+
+    if not os.path.isdir(working_dir):
+        os.makedirs(working_dir)
+
+    if working_dir is not None:
+        os.chdir(working_dir)
+
+    cmd =(
+    'giant.split_conformations' +
+    " input.pdb='{}'".format(pdb) +
+    ' reset_occupancies=False' +
+    ' suffix_prefix=split'
+    )
+    os.system(cmd)
+
 
 def write_refmac_csh(pdb,
                      crystal,
@@ -368,6 +393,7 @@ def write_refmac_csh(pdb,
                      mtz,
                      out_dir,
                      refinement_script_dir,
+                     occ_group='\n',
                      ncyc=50,
                      ccp4_path="/dls/science/groups/i04-1/" \
                                "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/"\
@@ -389,6 +415,8 @@ def write_refmac_csh(pdb,
         path to mtz file
     ncyc: int
         number of cycles
+    occ_group: str
+        occupancy group string describe ligand to be refined
     out_dir: str
         path to output directory
     refinement_script_dir: str
@@ -426,12 +454,12 @@ def write_refmac_csh(pdb,
             + source +
             '\n'
             +
-            "refmac5 HKLIN {}".format(mtz) + '\n' +
-            "HKLOUT {}".format(out_mtz) + '\n' +
-            "XYZIN {}".format(pdb) + '\n' +
-            "XYZOUT {}".format(out_pdb) + '\n' +
-            "LIBIN {}".format(cif) + '\n' +
-            "LIBOUT {}".format(out_cif) + '\n' +
+            "refmac5 HKLIN {} \\".format(mtz) + '\n' +
+            "HKLOUT {} \\".format(out_mtz) + '\n' +
+            "XYZIN {} \\".format(pdb) + '\n' +
+            "XYZOUT {} \\".format(out_pdb) + '\n' +
+            "LIBIN {} \\".format(cif) + '\n' +
+            "LIBOUT {} \\".format(out_cif) + '\n' +
 
              """<< EOF > refmac.log
 make -
@@ -470,9 +498,10 @@ monitor MEDIUM -
     rbond 10.0 -
     ncsr 10.0
 labin  FP=F SIGFP=SIGF FREE=FreeR_flag
-labout  FC=FC FWT=FWT PHIC=PHIC PHWT=PHWT DELFWT=DELFWT PHDELWT=PHDELWT FOM=FOM""" + "\n" +
-
-            "DNAME {}".format(crystal) + "\n" +
+labout  FC=FC FWT=FWT PHIC=PHIC PHWT=PHWT DELFWT=DELFWT PHDELWT=PHDELWT FOM=FOM"""
+            + "\n" +
+            occ_group +
+            "DNAME {}".format(crystal) + '\n' +
             "END\nEOF"
 
             )
@@ -619,23 +648,35 @@ def make_symlinks(input_dir, cif, pdb, params, free_mtz):
         path to mtz file for refinement
 
     """
-    input_cif = os.path.join(input_dir, "input.cif")
-    input_pdb = os.path.join(input_dir, "input.pdb")
-    input_params = os.path.join(input_dir, "input.params")
-    input_mtz = os.path.join(input_dir, "input.mtz")
 
     # Generate symlinks if they do not exist
-    if not os.path.exists(input_cif):
-        os.symlink(cif, input_cif)
+    if cif is not None:
+        input_cif = os.path.join(input_dir, "input.cif")
+        if not os.path.exists(input_cif):
+            os.symlink(cif, input_cif)
+    else:
+        input_cif = None
 
-    if not os.path.exists(input_pdb):
-        os.symlink(pdb, input_pdb)
+    if pdb is not None:
+        input_pdb = os.path.join(input_dir, "input.pdb")
+        if not os.path.exists(input_pdb):
+            os.symlink(pdb, input_pdb)
+    else:
+        input_pdb = None
 
-    if not os.path.exists(input_params):
-        shutil.copyfile(params, input_params)
+    if params is not None:
+        input_params = os.path.join(input_dir, "input.params")
+        if not os.path.exists(input_params):
+            shutil.copyfile(params, input_params)
+    else:
+        input_params = None
 
-    if not os.path.exists(input_mtz):
-        os.symlink(free_mtz, input_mtz)
+    if free_mtz is not None:
+        input_mtz = os.path.join(input_dir, "input.mtz")
+        if not os.path.exists(input_mtz):
+            os.symlink(free_mtz, input_mtz)
+    else:
+        input_mtz = None
 
     return input_cif, input_pdb, input_params, input_mtz
 
@@ -795,15 +836,183 @@ def smiles_to_cif_acedrg(smiles, out_file):
     if os.path.isdir(tmp_folder):
         shutil.rmtree(tmp_folder)
 
+def lig_pos_to_occupancy_refinement_string(lig_pos):
+    """
+    Write occupancy refinement parameters for refmac single model
 
-def prepare_refinement(crystal,
-                       pdb,
+    Parameters
+    ----------
+    lig_pos
+
+    Returns
+    -------
+
+    """
+    group_lines = []
+    incomplete_lines = []
+
+    # Loop over ligand information
+    for occ_group, pos in enumerate(lig_pos):
+
+        # Get chain and residue number
+        chain = pos[0]
+        resid = pos[2]
+
+        # Format lines
+        # Occupancy group is seperate for each residue,
+        # and comes from the iterable
+        group_line = "occupancy group id {} chain {} resi {}".format(occ_group+1, chain, resid)
+        incomplete_line = "occupancy group alts incomplete {}".format(occ_group+1)
+
+        # Append lines to lists
+        group_lines.append(group_line)
+        incomplete_lines.append(incomplete_line)
+
+    # Write saved lines as single string
+    refinement_str = '\n'.join(group_lines) +'\n' + \
+                     '\n'.join(incomplete_lines) + '\n' + \
+                     'occupancy refine' + '\n'
+
+    return refinement_str
+
+def get_occ_groups(tmp_dir,
+                   crystal,
+                   pdb,
+                   ccp4_path):
+    """
+    Get occupancy groups from pdb by calling lig_ccp4.py
+
+    Parameters
+    ----------
+    tmp_dir: str
+        path to directory where tmp files will be written
+    crystal: str
+        crystal name
+    pdb: str
+        path to pdb file to be parsed
+    ccp4_path: str
+        path to source ccp4 distribution from
+
+    Returns
+    -------
+    occ_group: str
+        A string to be appended to the refinment csh,
+        containing occupancy groups incomplete for each residue
+        which is thought to be a ligand of interest
+
+    """
+
+    # Read pdb and determine ligand occupancy groups
+    tmp_file = os.path.join(tmp_dir, "lig_pos_tmp_{}.txt".format(crystal))
+    source = "source {}".format(ccp4_path)
+    os.system(source)
+    os.system("ccp4-python lig_ccp4.py {} {}".format(pdb, tmp_file))
+    with open(tmp_file) as f:
+        lig_pos = f.read()
+    os.remove(tmp_file)
+
+    # Convert string in file to list
+    lig_pos = ast.literal_eval(lig_pos)
+    occ_group = lig_pos_to_occupancy_refinement_string(list(lig_pos))
+
+    return occ_group
+
+def prepare_refinement(pdb,
+                       crystal,
                        cif,
+                       mtz,
+                       ncyc,
                        out_dir,
                        refinement_script_dir,
-                       extra_params="NCYC=50",
-                       free_mtz='',
-                       params=''):
+                       ccp4_path="/dls/science/groups/i04-1/" \
+                               "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/" \
+                               "ccp4.setup-sh"):
+
+    """
+    Prepare refinement csh for refmac without superposed state
+
+    Parameters
+    -----------
+    pdb: str
+        path to pdb file. Either split.bound.pdb
+        or split.ground.pdb
+    crystal: str
+        crystal name
+    cif: str
+        path to cif file
+    mtz: str
+        path to mtz file
+    ncyc: int
+        number of cycles
+    out_dir: str
+        path to output directory
+    refinement_script_dir: str
+        path to directory where csh files will be written
+    ccp4_path: str
+        path to ccp4 to be used for ccp4 python/ giant scripts
+
+
+    Notes
+    -----
+
+    NOT WORKING
+    """
+
+    # Generate working directories
+    input_dir = os.path.join(out_dir, crystal)
+    if not os.path.exists(refinement_script_dir):
+        os.makedirs(refinement_script_dir)
+
+    if not os.path.exists(input_dir):
+        os.makedirs(input_dir)
+
+    # TODO Replace check inputs without params check
+
+    # Check and replace inputs with existing files,
+    # or regenerate if necessary
+    # cif, params, mtz = check_inputs(cif=cif,
+    #                                 pdb=pdb,
+    #                                 params=params,
+    #                                 free_mtz=mtz,
+    #                                 refinement_program="refmac",
+    #                                 input_dir=input_dir,
+    #                                 crystal=crystal)
+
+    # Parse PDB to get ligand as occupancy groups as string
+    occ_group = get_occ_groups(tmp_dir=refinement_script_dir,
+                               crystal=crystal,
+                               pdb=pdb,
+                               ccp4_path=ccp4_path)
+
+    # generate symlinks to refinement files
+    input_cif, \
+    input_pdb, \
+    input_params, \
+    input_mtz = make_symlinks(input_dir=input_dir,
+                              cif=cif,
+                              pdb=pdb,
+                              params=None,
+                              free_mtz=mtz)
+
+    write_refmac_csh(pdb=input_pdb,
+                     crystal=crystal,
+                     cif=input_cif,
+                     mtz=input_mtz,
+                     out_dir=input_dir,
+                     refinement_script_dir=refinement_script_dir,
+                     ncyc=ncyc,
+                     occ_group=occ_group,
+                     ccp4_path=ccp4_path)
+
+
+def prepare_superposed_refinement(crystal,
+                              pdb,
+                              cif,
+                              out_dir,
+                              refinement_script_dir,
+                              extra_params="NCYC=50",
+                              free_mtz='',
+                              params=''):
 
     """
     Prepare files and write csh script to run giant.quick_refine
@@ -1013,15 +1222,19 @@ if __name__ == "__main__":
     cif = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/" \
           "convergence_refinement/SERC-x0124/input.cif"
 
+    tmp_file = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/tmp_lig_pos_SERC-x0124.txt"
 
-    write_refmac_csh(pdb=pdb,
-                     crystal="SERC-x0124",
-                     cif=cif,
-                     mtz=mtz,
-                     out_dir="/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/bound_refinement",
-                     refinement_script_dir="/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/tmp",
-                     ncyc=50,
-                     ccp4_path="/dls/science/groups/i04-1/" \
-                               "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/ccp4.setup-sh"
-                     )
+
+
+
+    # write_refmac_csh(pdb=pdb,
+    #                  crystal="SERC-x0124",
+    #                  cif=cif,
+    #                  mtz=mtz,
+    #                  out_dir="/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/bound_refinement",
+    #                  refinement_script_dir="/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/tmp",
+    #                  ncyc=5,
+    #                  ccp4_path="/dls/science/groups/i04-1/" \
+    #                            "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/ccp4.setup-sh"
+    #                  )
 
