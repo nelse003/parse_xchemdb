@@ -1309,8 +1309,8 @@ class BatchRefinement(luigi.Task):
             crystal = df.at[i, 'crystal_name']
 
             #Cheat to allow run on single folder
-            # if crystal != "SERC-x0124":
-            #     continue
+            if crystal != "SERC-x0124":
+                continue
 
             refinement_script = os.path.join(Path().tmp_dir,
                                              "{}_{}.csh".format(crystal, self.refinement_type))
@@ -1457,10 +1457,10 @@ if __name__ == '__main__':
 
     luigi.build([BatchRefinement(
         out_dir="/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/"\
-                 "ground_refinement",
+                 "bound_refinement",
         output_csv="/dls/science/groups/i04-1/elliot-dev/Work/"\
-                    "exhaustive_parse_xchem_db/ground_refmac.csv",
-        refinement_type="ground")],
+                    "exhaustive_parse_xchem_db/bound_refmac.csv",
+        refinement_type="bound")],
     local_scheduler=True, workers=20)
 
 

@@ -441,6 +441,13 @@ def write_refmac_csh(pdb,
     else:
         type = ""
 
+    if type == "bound":
+        pdb_dir = os.path.dirname(pdb)
+        pdb = os.path.join(pdb_dir, "input.split.bound-state.pdb")
+    elif type == "ground":
+        pdb_dir = os.path.dirname(pdb)
+        pdb = os.path.join(pdb_dir, "input.split.ground-state.pdb")
+
     out_mtz = os.path.join(out_dir, "refine_{}.mtz".format(type))
     out_pdb = os.path.join(out_dir, "refine_{}.pdb".format(type))
     out_cif = os.path.join(out_dir, "refine_{}.cif".format(type))
