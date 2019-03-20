@@ -125,10 +125,15 @@ class ParseXchemdbToCsv(luigi.Task):
 
     def requires(self):
         return None
+
+
     def output(self):
         return luigi.LocalTarget(Path().log_pdb_mtz)
+
+
     def run(self):
         process_refined_crystals(out_csv=Path().log_pdb_mtz)
+
 
 @requires(ParseXchemdbToCsv)
 class OccFromLog(luigi.Task):
@@ -270,7 +275,7 @@ class SuperposedToDF(luigi.Task):
         superposed_df = drop_only_dimple_processing(pdb_df)
         superposed_df.to_csv(Path().superposed)
 
-
+@requires(OccFromLog)
 class ResnameToOccLog(luigi.Task):
     """
     Task to get add residue names to convergence occupancies
@@ -287,16 +292,9 @@ class ResnameToOccLog(luigi.Task):
     Notes
     ------
     Requires ccp4-python
-    # TODO does this require a source statement
+    # TODO Add a source statement
     """
-    log_pdb_mtz = luigi.Parameter()
-    log_occ = luigi.Parameter()
     log_occ_resname = luigi.Parameter()
-
-    def requires(self):
-        return OccFromLog(log_pdb_mtz_csv=self.log_pdb_mtz,
-                          log_occ_csv=self.log_occ)
-
 
     def output(self):
         return luigi.LocalTarget(self.log_occ_resname)
@@ -611,6 +609,7 @@ class PrepareRefinement(luigi.Task):
         # Needed to get expected working location for split conformations
 
         working_dir = os.path.join(self.out_dir, self.crystal)
+        input_pdb = None
         if self.pdb is not None:
             if not os.path.exists(working_dir):
                 os.makedirs(working_dir)
@@ -618,8 +617,6 @@ class PrepareRefinement(luigi.Task):
             input_pdb = os.path.join(working_dir, "input.pdb")
             if not os.path.exists(input_pdb):
                 os.symlink(self.pdb, input_pdb)
-        else:
-            input_pdb = None
 
         return SplitConformations(pdb=input_pdb, working_dir=working_dir)
 
