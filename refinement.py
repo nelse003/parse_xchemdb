@@ -448,6 +448,12 @@ def write_refmac_csh(pdb,
         pdb_dir = os.path.dirname(pdb)
         pdb = os.path.join(pdb_dir, "input.split.ground-state.pdb")
 
+    # Parse PDB to get ligand as occupancy groups as string
+    occ_group = get_occ_groups(tmp_dir=refinement_script_dir,
+                               crystal=crystal,
+                               pdb=pdb,
+                               ccp4_path=ccp4_path)
+
     out_mtz = os.path.join(out_dir, "refine_{}.mtz".format(type))
     out_pdb = os.path.join(out_dir, "refine_{}.pdb".format(type))
     out_cif = os.path.join(out_dir, "refine_{}.cif".format(type))
@@ -987,11 +993,6 @@ def prepare_refinement(pdb,
                                     input_dir=input_dir,
                                     crystal=crystal)
 
-    # Parse PDB to get ligand as occupancy groups as string
-    occ_group = get_occ_groups(tmp_dir=refinement_script_dir,
-                               crystal=crystal,
-                               pdb=pdb,
-                               ccp4_path=ccp4_path)
 
     # generate symlinks to refinement files
     input_cif, \
@@ -1010,7 +1011,6 @@ def prepare_refinement(pdb,
                      out_dir=input_dir,
                      refinement_script_dir=refinement_script_dir,
                      ncyc=ncyc,
-                     occ_group=occ_group,
                      ccp4_path=ccp4_path)
 
 
@@ -1221,31 +1221,4 @@ def state_occupancies(occ_conv_csv, occ_correct_csv):
     occ_correct_df = pd.concat(pdb_df_list)
     occ_correct_df.to_csv(occ_correct_csv)
 
-if __name__ == "__main__":
-
-    # Testing
-    mtz = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/" \
-            "convergence_refinement/SERC-x0124/input.mtz"
-
-    pdb =  "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/" \
-            "convergence_refinement/SERC-x0124/refine_0001/refine_1.split.bound-state.pdb"
-
-    cif = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/" \
-          "convergence_refinement/SERC-x0124/input.cif"
-
-    tmp_file = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/tmp_lig_pos_SERC-x0124.txt"
-
-
-
-
-    # write_refmac_csh(pdb=pdb,
-    #                  crystal="SERC-x0124",
-    #                  cif=cif,
-    #                  mtz=mtz,
-    #                  out_dir="/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/bound_refinement",
-    #                  refinement_script_dir="/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/tmp",
-    #                  ncyc=5,
-    #                  ccp4_path="/dls/science/groups/i04-1/" \
-    #                            "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/ccp4.setup-sh"
-    #                  )
 

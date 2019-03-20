@@ -234,36 +234,6 @@ def convergence_ratio_histogram(occ_corect_csv, plot_path):
                                          'last two point |x(n)/x(n-1)-1|')
 
 
-def example_convergence():
-    """ NOT WORKING"""
-
-    for index, row in occ_correct_no_comment_df.iterrows():
-        if index[0] == "PDK2-x0856":
-            plt.plot(row, marker='o', linestyle='dashed')
-    plt.title("PDK2-x0856")
-    plt.xlabel("Occupancy refinement cycles")
-    plt.ylabel("Occupancy")
-    plt.savefig(os.path.join(out_dir, "example_convergence"))
-    plt.close()
-
-    for index, row in occ_correct_no_comment_df.iterrows():
-        if index[0] == "NUDT7A_Crude-x1435":
-            plt.plot(row, marker='o', linestyle='dashed')
-    plt.title("NUDT7A_Crude-x1435")
-    plt.xlabel("Occupancy refinement cycles")
-    plt.ylabel("Occupancy")
-    plt.savefig(os.path.join(out_dir, "example_convergence_1"))
-    plt.close()
-
-    for index, row in occ_correct_no_comment_df.iterrows():
-        if index[0] == "ACVR1A-x1279":
-            plt.plot(row, marker='o', linestyle='dashed')
-    plt.title("ACVR1A-x1279")
-    plt.xlabel("Occupancy refinement cycles")
-    plt.ylabel("Occupancy")
-    plt.savefig(os.path.join(out_dir, "example_convergence_2"))
-    plt.close()
-
 
 
 

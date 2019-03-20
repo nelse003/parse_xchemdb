@@ -130,14 +130,12 @@ class ParseXchemdbToCsv(luigi.Task):
     def run(self):
         process_refined_crystals(out_csv=Path().log_pdb_mtz)
 
+@requires(ParseXchemdbToCsv)
 class OccFromLog(luigi.Task):
     """Task to get occupancy convergence across refinement
 
     Methods
     --------
-    requires()
-        ParseXChemdbToCsv(), csv of crystal and
-        refinement table for all crystal with pdb_latest
     output()
         output of task is the path to the csv
         with occupancies of residues involved in
@@ -146,12 +144,16 @@ class OccFromLog(luigi.Task):
         runs convergence.get_occ_log,
         which gets the occupancy information from quick-refine log
 
+    Notes
+    -----
+    Requires via decorator:
+
+    ParseXChemdbToCsv(), csv of crystal and
+    refinement table for all crystal with pdb_latest
+
     """
     log_occ_csv = luigi.Parameter()
     log_pdb_mtz_csv = luigi.Parameter()
-
-    def requires(self):
-        return ParseXchemdbToCsv()
 
     def output(self):
         return luigi.LocalTarget(self.log_occ_csv)
@@ -160,7 +162,7 @@ class OccFromLog(luigi.Task):
         get_occ_from_log(log_pdb_mtz_csv=self.log_pdb_mtz_csv,
                          log_occ_csv=self.log_occ_csv)
 
-
+@requires(BatchSuperposedRefinement)
 class RefinementFolderToCsv(luigi.Task):
 
     """Convert refinement folders to CSV
@@ -176,9 +178,6 @@ class RefinementFolderToCsv(luigi.Task):
     """
     out_csv = luigi.Parameter()
     input_folder = luigi.Parameter()
-
-    def requires(self):
-        BatchSuperposedRefinement()
 
     def output(self):
         return luigi.LocalTarget(self.out_csv)
@@ -228,8 +227,6 @@ class RefineToDF(luigi.Task):
 
     Methods
     --------
-    requires()
-        No requirements for this task
     output()
         output of task is the path to the csv
         of refinement table
@@ -240,15 +237,15 @@ class RefineToDF(luigi.Task):
     def requires(self):
         return None
 
-
     def output(self):
         return luigi.LocalTarget(Path().refine)
-
 
     def run(self):
         refine_df = get_table_df('refinement')
         refine_df.to_csv(Path().refine)
 
+
+@requires(RefineToDF)
 class SuperposedToDF(luigi.Task):
 
     """
@@ -256,19 +253,12 @@ class SuperposedToDF(luigi.Task):
 
     Methods
     --------
-    requires()
-        csv of postgres refinement table
     output()
         output of task is the path to the csv
         of refinement table with only valid pdb files
     run()
         gets table from postgres database
     """
-
-    def requires(self):
-        return RefineToDF()
-
-
     def output(self):
         return luigi.LocalTarget(Path().superposed)
 
@@ -473,7 +463,7 @@ class PlotBoundOccHistogram(luigi.Task):
         return luigi.LocalTarget(self.plot_path)
 
     def run(self):
-        bound_state_occ_histogram(occ_correct_csv=self.occ_correct_csv ,
+        bound_state_occ_histogram(occ_correct_csv=self.occ_correct_csv,
                                   plot_path=self.plot_path)
 
 
@@ -619,6 +609,7 @@ class PrepareRefinement(luigi.Task):
 
         # Set symlink to pdb location.
         # Needed to get expected working location for split conformations
+
         working_dir = os.path.join(self.out_dir, self.crystal)
         if self.pdb is not None:
             if not os.path.exists(working_dir):
@@ -949,8 +940,6 @@ class QsubSuperposedRefinement(luigi.Task):
     Requires the refinement script name to the name of the crystal,
     and that the pdb/mtz are stored hierarchically in that folder.
     Uses luigi.Parameter to pass a refinement script name.
-
-    TODO Consider ways to check for existence of not just PDB
 
     Skeleton code adapted from working version for the formulatrix
     pipeline at diamond:
@@ -1309,8 +1298,8 @@ class BatchRefinement(luigi.Task):
             crystal = df.at[i, 'crystal_name']
 
             #Cheat to allow run on single folder
-            if crystal != "SERC-x0124":
-                continue
+            # if crystal != "SERC-x0124":
+            #     continue
 
             refinement_script = os.path.join(Path().tmp_dir,
                                              "{}_{}.csh".format(crystal, self.refinement_type))
