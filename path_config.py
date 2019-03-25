@@ -125,3 +125,7 @@ class Path(luigi.Config):
 
     # Directory to contain ground refinements (refmac)
     ground_refinement_dir = luigi.Parameter(default=ground_refinement_dir)
+
+    ccp4 = luigi.Parameter(default="/dls/science/groups/i04-1/" \
+                             "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/" \
+                             "ccp4.setup-sh")

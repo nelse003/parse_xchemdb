@@ -1,5 +1,7 @@
 import luigi
 import pandas as pd
+import os
+
 from luigi.util import requires
 
 from parse_xchemdb import process_refined_crystals, get_table_df, drop_pdb_not_in_filesystem, \
@@ -21,9 +23,17 @@ class ParseXchemdbToCsv(luigi.Task):
     run()
         runs parse_xchemdb.process_refined_crystals()
 
+    Attributes
+    -----------
+    log_pdb_mtz_csv: luigi.Parameter()
+        path to summary csv contianing at least path to pdb, mtz
+        and refinement log file
+    test: luigi.Parameter(), optional
+        integer representing number of rows to extract when
+        used as test
     """
     log_pdb_mtz_csv = luigi.Parameter()
-    test = luigi.Parameter(default=None)
+    test = luigi.Parameter(default=None, significant=False)
 
     def requires(self):
         return None
@@ -37,9 +47,15 @@ class ParseXchemdbToCsv(luigi.Task):
         process_refined_crystals(self.log_pdb_mtz_csv, self.test)
 
 
-class RefineToDF(luigi.Task):
+class RefineToCsv(luigi.Task):
     """
     Task to get refinement postgres table as csv
+
+    Attributes
+    ----------
+    refine_csv: luigi.Parameter()
+        path to csv file showing refinement table, input
+
 
     Methods
     --------
@@ -60,11 +76,16 @@ class RefineToDF(luigi.Task):
 
     def run(self):
         refine_df = get_table_df('refinement')
+
+        folder = os.path.dirname(self.refine_csv)
+        if not os.path.isdir(folder):
+            os.makedirs(folder)
+
         refine_df.to_csv(self.refine_csv)
 
 
-@requires(RefineToDF)
-class SuperposedToDF(luigi.Task):
+@requires(RefineToCsv)
+class SuperposedToCsv(luigi.Task):
 
     """
     Task to get refinements with valid pdb files
@@ -72,7 +93,9 @@ class SuperposedToDF(luigi.Task):
     Attributes
     ----------
     superposed_csv: luigi.Parameter()
-        path to csv file detailing files that have a superposed pdb file, output
+        path to csv file detailing files that have a superposed pdb file,
+         output
+
     refine_csv: luigi.Parameter()
         path to csv file showing refinemnet table, input
 

@@ -12,6 +12,8 @@ from cluster_submission import run_qstat
 from parse_refmac_logs import get_occ_from_log
 
 from annotate_ligand_state import annotate_csv_with_state_comment
+from tasks.qsub import QsubSuperposedRefinement
+from tasks.qsub import QsubRefinement
 
 from refinement import prepare_superposed_refinement
 from refinement_summary import refinement_summary
@@ -23,7 +25,9 @@ from refinement import convergence_state_by_refinement_type
 
 # Configuration
 from path_config import Path
-from xchemdb_tasks import ParseXchemdbToCsv, RefineToDF, SuperposedToDF
+from tasks.filesystem import RefinementFolderToCsv
+from tasks.database import ParseXchemdbToCsv, RefineToCsv, SuperposedToCsv
+from tasks.update_csv import OccStateComment
 
 
 class BatchRefinement(luigi.Task):
@@ -33,19 +37,37 @@ class BatchRefinement(luigi.Task):
     This works to set the job up, and not run if already started,
     but doesn't retry to check jobs.
 
+    #TODO Parametrise at qsub task level so if statement aren't needed
+
     Methods
     -------
     requires()
-        batch of QSubRefienment Tasks
+        batch of QSubRefinement or QsubSuperposedRefinement Tasks
     output()
-        csv path to a csv summarising
+        csv path to a csv summarising failures and
+        sucesses of jobs submitted to qsub
 
     Attributes
     -----------
-    output_csv
-        path to csv output summarise sucess and failure
-    refinement type:
-        "ground", "bound" or "superposed" to seperate out different refienemnt types
+    output_csv: luigi.Parameter()
+        path to csv output summarise success and failure
+
+    refinement type: luigi.Parameter()
+        "ground", "bound" or "superposed" to separate out different
+        refinement types
+
+    log_pdb_mtz_csv: luigi.Parameter()
+        summary csv contianing at least path to pdb, mtz
+        and refinement log file
+
+    out_dir: luigi.Parameter()
+        output directory
+
+    tmp_dir: luigi.Parameter()
+        temporary directory to hold scripts
+
+    extra_params: luigi.Parameter()
+        extra parameters to provide to superposed refinement
 
     Notes
     ---------
@@ -57,8 +79,11 @@ class BatchRefinement(luigi.Task):
     https://github.com/xchem/formulatrix_pipe/blob/master/run_ranker.py
     """
     output_csv = luigi.Parameter()
+    log_pdb_mtz_csv = luig.Paramter(default=Path().log_pdb_mtz)
     refinement_type = luigi.Parameter()
     out_dir = luigi.Parameter()
+    tmp_dir = luigi.Parameter(default=Path().tmp_dir)
+    extra_params = luigi.Parameter(default="NCYC=50", significant=False)
 
     def output(self):
         return luigi.LocalTarget(self.output_csv)
@@ -73,7 +98,7 @@ class BatchRefinement(luigi.Task):
         """
 
         # Read crystal/refinement table csv
-        df = pd.read_csv(Path().log_pdb_mtz)
+        df = pd.read_csv(self.log_pdb_mtz_csv)
 
         # Replace Nans with empty strings,
         # used to allow luigi.Parameters
@@ -91,7 +116,7 @@ class BatchRefinement(luigi.Task):
             # if crystal != "FIH-x0439":
             #     continue
 
-            refinement_script = os.path.join(Path().tmp_dir,
+            refinement_script = os.path.join(self.tmp_dir,
                                              "{}_{}.csh".format(crystal, self.refinement_type))
             # produce refinement task
             if self.refinement_type in ["bound","ground"]:
@@ -102,7 +127,7 @@ class BatchRefinement(luigi.Task):
                                 pdb=pdb,
                                 cif=cif,
                                 free_mtz=mtz,
-                                refinement_script_dir=Path().tmp_dir,
+                                refinement_script_dir=self.tmp_dir,
                                 out_dir=self.out_dir,
                                 refinement_type=self.refinement_type,
                                 output_csv=self.output_csv)
@@ -115,8 +140,8 @@ class BatchRefinement(luigi.Task):
                             pdb=pdb,
                             cif=cif,
                             free_mtz=mtz,
-                            refinement_script_dir=Path().tmp_dir,
-                            extra_params="NCYC=50",
+                            refinement_script_dir=self.tmp_dir,
+                            extra_params=self.extra_params,
                             out_dir=Path().refinement_dir,
                             output_csv=self.output_csv)
 
@@ -124,176 +149,6 @@ class BatchRefinement(luigi.Task):
             refinement_tasks.append(ref_task)
 
         return refinement_tasks
-
-
-# TODO This requriement is incorrect/ indirect: it can depend on RefinementFolderToCsv instead
-
-@requires(ParseXchemdbToCsv)
-class OccFromLog(luigi.Task):
-    """Task to get occupancy convergence across refinement
-
-    Methods
-    --------
-    output()
-        output of task is the path to the csv
-        with occupancies of residues involved in
-        complete groups.
-    run()
-        runs convergence.get_occ_log,
-        which gets the occupancy information from quick-refine log
-
-    Notes
-    -----
-    Requires via decorator:
-
-    ParseXChemdbToCsv(), csv of crystal and
-    refinement table for all crystal with pdb_latest
-
-    """
-    log_occ_csv = luigi.Parameter()
-    log_pdb_mtz_csv = luigi.Parameter()
-
-    def output(self):
-        return luigi.LocalTarget(self.log_occ_csv)
-
-    def run(self):
-        get_occ_from_log(log_pdb_mtz_csv=self.log_pdb_mtz_csv,
-                         log_occ_csv=self.log_occ_csv)
-
-
-
-class RefinementFolderToCsv(luigi.Task):
-
-    """Convert refinement folders to CSV
-
-    Parse a refinement folder to get a csv with minimally:
-        refine_log: path to refmac log
-        crystal_name: crystal name
-        pdb_latest: path to
-        mtz_latest: path to latest mtz
-
-    Methods
-    ----------
-
-
-    Attributes
-    -----------
-
-    """
-    output_csv = luigi.Parameter()
-    input_folder = luigi.Parameter()
-    refinement_type = luigi.Parameter()
-
-    def requires(self):
-        return BatchRefinement(out_dir=Path().bound_refinement_dir,
-                               output_csv=Path().bound_refinement_batch_csv,
-                               refinement_type=self.refinement_type)
-
-    def output(self):
-        return luigi.LocalTarget(self.output_csv)
-
-    def run(self):
-
-        pdb_mtz_log_dict = {}
-
-        for crystal in os.listdir(self.input_folder):
-
-            pdb_latest = None
-            mtz_latest = None
-            refinement_log = None
-
-            crystal_dir = os.path.join(self.input_folder, crystal)
-
-            for f in os.listdir(crystal_dir):
-                if f == "refine.pdb":
-                    pdb_latest = os.path.join(self.input_folder, crystal, f)
-                elif f == "refine.mtz":
-                    mtz_latest = os.path.join(self.input_folder, crystal, f)
-
-
-            if self.refinement_type == "superposed":
-                try:
-                    refinement_log = get_most_recent_quick_refine(crystal_dir)
-                except FileNotFoundError:
-                    continue
-            elif self.refinement_type == "bound":
-                for f in os.listdir(crystal_dir):
-                    if f == "refmac.log":
-                        refinement_log = os.path.join(self.input_folder, crystal, f)
-
-
-            if None not in [pdb_latest, mtz_latest, refinement_log]:
-                pdb_mtz_log_dict[crystal] = (pdb_latest,
-                                             mtz_latest,
-                                             refinement_log)
-
-        df = pd.DataFrame.from_dict(data=pdb_mtz_log_dict,
-                                    columns=['pdb_latest',
-                                             'mtz_latest',
-                                             'refine_log'],
-                                    orient='index')
-        df.index.name = 'crystal_name'
-        df.to_csv(self.output_csv)
-
-
-@requires(OccFromLog)
-class ResnameToOccLog(luigi.Task):
-    """
-    Task to get add residue names to convergence occupancies
-
-    Methods
-    --------
-    requires()
-        csv of occupancy from quick-refine log files
-    output()
-        occupancy convergence csv with resnames
-    run()
-        resnames_using_ccp4 using ccp4-python
-
-    Notes
-    ------
-    Requires ccp4-python
-    # TODO Add a source statement
-    """
-    log_occ_resname = luigi.Parameter()
-
-    def output(self):
-        return luigi.LocalTarget(self.log_occ_resname)
-
-
-    def run(self):
-        os.system("ccp4-python resnames_using_ccp4.py {} {}".format(
-                    self.log_occ_csv,
-                    self.log_occ_resname))
-
-@requires(ResnameToOccLog)
-class OccConvergence(luigi.Task):
-    """
-    Task to add state and comment to resname labelled convergence
-
-    Methods
-    --------
-    requires()
-        occupancy convergence csv with resnames
-    output()
-        path to occupancy convergence csv with state and comments
-    run()
-        convergence.convergence_to_csv()
-
-    Notes
-    ------
-
-    TODO Add a progress bar and/or parallelise task
-    """
-
-    occ_conv_csv = luigi.Parameter()
-    def output(self):
-        return luigi.LocalTarget(self.occ_conv_csv)
-
-
-    def run(self):
-        annotate_csv_with_state_comment(self.log_occ_resname,
-                                        self.occ_conv_csv)
 
 
 class SummaryRefinement(luigi.Task):
@@ -315,12 +170,12 @@ class SummaryRefinement(luigi.Task):
     """
 
     def requires(self):
-        return OccConvergence(log_labelled_csv=Path().log_occ_resname,
-                              occ_conv_csv=Path().occ_conv,
-                              log_pdb_mtz=Path().log_pdb_mtz), \
+        return OccStateComment(log_labelled_csv=Path().log_occ_resname,
+                               occ_conv_csv=Path().occ_conv,
+                               log_pdb_mtz=Path().log_pdb_mtz), \
                ParseXchemdbToCsv(log_pdb_mtz_csv=Path().log_pdb_mtz), \
-               SuperposedToDF(), \
-               RefineToDF()
+               SuperposedToCsv(), \
+               RefineToCsv()
 
     def output(self):
         return luigi.LocalTarget(Path().refinement_summary)
@@ -331,7 +186,7 @@ class SummaryRefinement(luigi.Task):
                            log_pdb_mtz_csv=Path().log_pdb_mtz,
                            out_csv=Path().refinement_summary)
 
-@requires(ParseXchemdbToCsv)
+
 class SplitConformations(luigi.Task):
     """
     Task to run giant.split conformations
@@ -339,7 +194,7 @@ class SplitConformations(luigi.Task):
     Attributes
     -----------
     input_pdb: luigi.Parameter()
-        path to sup[eposed db to be used as input
+        path to superposed pdb to be used as input
     working_dir: luigi.Parameter()
         path to directory to carry out split conformations
 
@@ -515,104 +370,6 @@ class PrepareSuperposedRefinement(luigi.Task):
                                       extra_params=self.extra_params,
                                       free_mtz=self.free_mtz)
 
-class QsubTask(luigi.Task):
-
-    """ Base class for single job on cluster submitted by qsub
-
-
-    Attributes
-    -----------
-
-    Methods
-    ---------
-    output()
-        Task should output refined pdb and mtz files
-
-    run()
-        Check for presence of PDB and MTZ,
-        if they do not exist, check for running jobs on cluster.
-        If no running jobs, submit <crystal_name>.csh as job.
-
-    Notes
-    ---------
-    Requires the refinement script name to the name of the crystal,
-    and that the pdb/mtz are stored hierarchically in that folder.
-    Uses luigi.Parameter to pass a refinement script name.
-
-    Skeleton code adapted from working version for the formulatrix
-    pipeline at diamond:
-
-    https://github.com/xchem/formulatrix_pipe/blob/master/run_ranker.py
-
-    """
-    def output(self):
-
-        out_mtz = os.path.join(self.out_dir, "refine.mtz")
-        out_pdb = os.path.join(self.out_dir, "refine.pdb")
-
-        return luigi.LocalTarget(out_pdb), luigi.LocalTarget(out_mtz)
-
-
-    def run(self):
-        """
-        Run Qsub Refienement
-
-        Check for presence of PDB and MTZ,
-        if they do not exist, check for running jobs on cluster.
-        If no running jobs, submit job.
-
-        Returns
-        -------
-        None
-
-        Raises
-        -------
-        RuntimeError
-            If the job has not been newly submitted and is not running
-        """
-
-        out_mtz = os.path.join(self.out_dir, "refine.mtz")
-        out_pdb = os.path.join(self.out_dir, "refine.pdb")
-
-        # Only run if the pdb and mtz are not present
-        if not (os.path.isfile(out_pdb) and os.path.isfile(out_mtz)):
-            queue_jobs = []
-
-            # run 'qstat -r'
-            output_queue = run_qstat()
-
-            # Turn qstat output into list of jobs
-            for line in output_queue:
-                if 'Full jobname' in line:
-                    jobname = line.split()[-1]
-                    queue_jobs.append(jobname)
-
-            # Get <crystal_name>.csh
-            job = self.refinement_script
-            job_file = os.path.basename(str(job))
-
-            # Check whether <crystal_name>.csh is running in queue,
-            # If not submit job to queue
-            if job_file not in queue_jobs:
-                submit_job(job_directory=Path().tmp_dir,
-                           job_script=job_file)
-
-                print('The job had no output, and was not found to be running ' 
-                      'in the queue. The job has been resubmitted. ' 
-                      'Will check again later!')
-
-            elif not queue_jobs:
-                raise RuntimeError('Something went wrong or job is still running')
-
-
-@requires(PrepareRefinement)
-class QsubRefienement(QsubTask):
-    pass
-
-@requires(PrepareSuperposedRefinement)
-class QsubSuperposedRefinement(luigi.Task):
-    pass
-
 
 @PrepareSuperposedRefinement.event_handler(luigi.Event.FAILURE)
 @QsubSuperposedRefinement.event_handler(luigi.Event.FAILURE)
@@ -690,9 +447,9 @@ class StateOccupancyToCsv(luigi.Task):
         return luigi.LocalTarget(self.occ_correct_csv)
 
     def requires(self):
-        OccConvergence(log_occ_resname=self.log_labelled_csv,
-                       occ_conv_csv=self.occ_conv_csv,
-                       log_pdb_mtz=self.log_pdb_mtz)
+        OccStateComment(log_occ_resname=self.log_labelled_csv,
+                        occ_conv_csv=self.occ_conv_csv,
+                        log_pdb_mtz=self.log_pdb_mtz)
 
     def run(self):
         state_occupancies(occ_conv_csv=self.occ_conv_csv,

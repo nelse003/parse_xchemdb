@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import re
 
 def match_occ(occ_group, complete_groups):
     """

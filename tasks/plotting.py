@@ -11,8 +11,6 @@ from plotting import convergence_ratio_histogram
 @requires(StateOccupancyToCsv)
 class PlotOccCorrect(luigi.Task):
 
-    # TODO Consider using decorator @requires(StateOccupancyToCsv)
-
     # TODO Consder making requires more broad,
     #      allowing any task with sufficient columns
     #      in output table?
