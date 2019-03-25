@@ -8,11 +8,15 @@ from tasks import OccFromLog
 from tasks import ResnameToOccLog
 from tasks import OccConvergence
 from tasks import StateOccupancyToCsv
+from tasks import BatchRefinement
+from tasks import OccFromLog
+from tasks import ConvergenceStateByRefinementType
 
 from plotting_tasks import PlotConvergenceHistogram
-from plotting_tasks import PlotBoundOccHistogram
-from plotting_tasks import PlotGroundOccHistogram
 from plotting_tasks import PlotOccConvScatter
+from plotting_tasks import SummaryRefinementPlot
+from plotting_tasks import PlotGroundOccHistogram
+from plotting_tasks import PlotBoundOccHistogram
 
 if __name__ == '__main__':
 

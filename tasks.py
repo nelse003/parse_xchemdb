@@ -4,10 +4,8 @@ from luigi.util import requires
 import os
 import pandas as pd
 import numpy as np
-import glob
 import subprocess
 import csv
-import time
 
 from cluster_submission import submit_job
 
@@ -28,13 +26,7 @@ from refinement import prepare_refinement
 from refinement import state_occupancies
 from refinement import convergence_state_by_refinement_type
 
-from plotting_tasks import PlotConvergenceHistogram
-from plotting_tasks import PlotOccConvScatter
-from plotting_tasks import SummaryRefinementPlot
-from plotting_tasks import PlotGroundOccHistogram
-from plotting_tasks import PlotBoundOccHistogram
-
-# Config
+# Configuration
 from path_config import Path
 
 
@@ -49,7 +41,6 @@ class BatchRefinement(luigi.Task):
     out_dir = luigi.Parameter()
 
     def output(self):
-        #return None
         return luigi.LocalTarget(self.output_csv)
 
     def requires(self):
@@ -98,6 +89,7 @@ class BatchRefinement(luigi.Task):
             refinement_tasks.append(ref_task)
 
         return refinement_tasks
+
 
 class BatchSuperposedRefinement(luigi.Task):
 
