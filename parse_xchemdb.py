@@ -307,7 +307,7 @@ def get_crystal_target(args, databases):
     return crystal_target_df
 
 
-def process_refined_crystals(out_csv):
+def process_refined_crystals(out_csv, test=None):
 
     """Parse XChem postgres table into csv
 
@@ -325,6 +325,9 @@ def process_refined_crystals(out_csv):
     -----------
     out_csv: str
         path to output csv
+    test: int
+        If supplied this number of datsets will
+        be retained for running pipeline in test mode
 
     Returns
     ---------
@@ -366,6 +369,15 @@ def process_refined_crystals(out_csv):
 
     # Drop rows where log is missing
     pdb_log_mtz_df = drop_pdb_with_missing_logs(pdb_no_dimple_mtz_df)
+
+    # Use a test flag to create a short table for testing purposes
+    if test is not None:
+        pdb_log_mtz_df = pdb_log_mtz_df.head(n=test)
+
+    # If the ouptut csv folder does not exist make it
+    folder = os.path.dirname(out_csv)
+    if not os.path.isdir(folder):
+        os.makedirs(folder)
 
     # Write to csv
     pdb_log_mtz_df.to_csv(out_csv)

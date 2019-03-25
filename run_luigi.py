@@ -2,15 +2,14 @@ import luigi
 
 from path_config import Path
 
-from tasks import BatchSuperposedRefinement
 from tasks import SuperposedRefinementFolderToCsv
-from tasks import OccFromLog
 from tasks import ResnameToOccLog
 from tasks import OccConvergence
 from tasks import StateOccupancyToCsv
 from tasks import BatchRefinement
 from tasks import OccFromLog
 from tasks import ConvergenceStateByRefinementType
+from tasks import RefinementFolderToCsv
 
 from plotting_tasks import PlotConvergenceHistogram
 from plotting_tasks import PlotOccConvScatter
@@ -23,7 +22,9 @@ if __name__ == '__main__':
     # This build is for the convergence refinement case,
     # TODO A parameterised version of original task towards batch refinement
 
-    luigi.build([BatchSuperposedRefinement(),
+    luigi.build([BatchRefinement(output_csv=Path().convergence_refinement_failures),
+                                 refinement_type="superposed",
+                                 out_dir=Path().refinement_dir),
 
                  SuperposedRefinementFolderToCsv(out_csv=Path().convergence_refinement,
                                        input_folder=Path().refinement_dir),

@@ -394,7 +394,6 @@ def write_refmac_csh(pdb,
                      mtz,
                      out_dir,
                      refinement_script_dir,
-                     occ_group='\n',
                      ncyc=50,
                      ccp4_path="/dls/science/groups/i04-1/" \
                                "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/"\
@@ -416,8 +415,6 @@ def write_refmac_csh(pdb,
         path to mtz file
     ncyc: int
         number of cycles
-    occ_group: str
-        occupancy group string describe ligand to be refined
     out_dir: str
         path to output directory
     refinement_script_dir: str
@@ -442,6 +439,7 @@ def write_refmac_csh(pdb,
     else:
         type = ""
 
+    # get name of pdb after giant.split_conformations
     if type == "bound":
         pdb_dir = os.path.dirname(pdb)
         pdb = os.path.join(pdb_dir, "input.split.bound-state.pdb")
@@ -970,8 +968,6 @@ def prepare_refinement(pdb,
 
     Notes
     -----
-
-    NOT WORKING
     """
 
     # Generate working directories
@@ -1058,6 +1054,97 @@ def prepare_superposed_refinement(crystal,
     --------
     None
 
+    (Converegence refinement) Failure modes:
+
+    Issues that have been fixed
+
+    1) Only cif and PDB found.
+       No csh file is created
+
+        Examples:
+
+        HPrP-x0256
+        STAG-x0167
+
+        Looking at
+
+        STAG1A-x0167
+
+        The search path:
+
+        /dls/labxchem/data/2017/lb18145-52/processing/analysis/initial_model/STAG1A-x0167/Refine_0002
+
+        is not the most recent refinement.
+        In that search path there is a input.params file.
+
+        Solution:
+
+        Search for a parameter file,
+        changed to look for any file matching parameter file in folder.
+        If multiple are present,
+        check that the refinement program matches
+
+        Secondary required solution:
+
+        Also search for .mtz file,
+        if search for .free.mtz fails.
+        Edit to write_refmac_csh()
+
+        No folders have no quick-refine.log
+
+    2) cif missing
+
+        Recursively search
+        If not found get smiles from DB
+        run acedrg
+        If acedrg fails raise FileNotFoundError
+
+        Examples:
+
+        UP1-x0030: Has an input cif file, but won't refine due mismatch in cif file:
+
+            atom: "C01 " is absent in coord_file
+            atom: "N02 " is absent in coord_file
+            atom: "C03 " is absent in coord_file
+            atom: "C04 " is absent in coord_file
+            atom: "N05 " is absent in coord_file
+            atom: "C06 " is absent in coord_file
+            atom: "C07 " is absent in coord_file
+            atom: "C08 " is absent in coord_file
+            atom: "O09 " is absent in coord_file
+            atom: "O11 " is absent in coord_file
+            atom: "C15 " is absent in coord_file
+            atom: "C16 " is absent in coord_file
+            atom: "C17 " is absent in coord_file
+            atom: "C18 " is absent in coord_file
+            atom: "C1  " is absent in lib description.
+            atom: "N1  " is absent in lib description.
+            atom: "C2  " is absent in lib description.
+            atom: "C3  " is absent in lib description.
+            atom: "N2  " is absent in lib description.
+            atom: "C4  " is absent in lib description.
+            atom: "C5  " is absent in lib description.
+            atom: "C6  " is absent in lib description.
+            atom: "O1  " is absent in lib description.
+            atom: "C7  " is absent in lib description.
+            atom: "O2  " is absent in lib description.
+            atom: "C8  " is absent in lib description.
+            atom: "C9  " is absent in lib description.
+            atom: "C11 " is absent in lib description.
+
+    3) Refinement fails due to external distance restraints not being satisfiable.
+
+        Examples:
+
+        FIH-x0241
+        FIH-x0379
+        VIM2-MB-403
+        NUDT7A_Crude-x0030
+
+        Solution
+
+        If identified as issue rerun giant.make_restraints
+
     """
 
     # Generate working directories
@@ -1120,10 +1207,16 @@ def prepare_superposed_refinement(crystal,
 
     update_refinement_params(params=input_params, extra_params=extra_params)
 
-    write_quick_refine_csh(refine_pdb=input_pdb, cif=input_cif, free_mtz=input_mtz, crystal=crystal,
-                           refinement_params=input_params, out_dir=input_dir,
-                           refinement_script_dir=refinement_script_dir, refinement_program='refmac',
-                           out_prefix="refine_1", dir_prefix="refine_")
+    write_quick_refine_csh(refine_pdb=input_pdb,
+                           cif=input_cif,
+                           free_mtz=input_mtz,
+                           crystal=crystal,
+                           refinement_params=input_params,
+                           out_dir=input_dir,
+                           refinement_script_dir=refinement_script_dir,
+                           refinement_program='refmac',
+                           out_prefix="refine_1",
+                           dir_prefix="refine_")
 
 
 def state_occ(row, bound, ground, pdb):

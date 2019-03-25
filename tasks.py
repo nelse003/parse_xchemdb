@@ -4,15 +4,10 @@ from luigi.util import requires
 import os
 import pandas as pd
 import numpy as np
-import subprocess
 import csv
 
 from cluster_submission import submit_job
-
-from parse_xchemdb import process_refined_crystals
-from parse_xchemdb import get_table_df
-from parse_xchemdb import drop_only_dimple_processing
-from parse_xchemdb import drop_pdb_not_in_filesystem
+from cluster_submission import run_qstat
 
 from parse_refmac_logs import get_occ_from_log
 
@@ -28,14 +23,39 @@ from refinement import convergence_state_by_refinement_type
 
 # Configuration
 from path_config import Path
+from xchemdb_tasks import ParseXchemdbToCsv, RefineToDF, SuperposedToDF
 
 
 class BatchRefinement(luigi.Task):
 
-    """
-    Batch Refinement for non-superposed refmac refinement
-    """
+    """Run a Batch of refinement jobs
 
+    This works to set the job up, and not run if already started,
+    but doesn't retry to check jobs.
+
+    Methods
+    -------
+    requires()
+        batch of QSubRefienment Tasks
+    output()
+        csv path to a csv summarising
+
+    Attributes
+    -----------
+    output_csv
+        path to csv output summarise sucess and failure
+    refinement type:
+        "ground", "bound" or "superposed" to seperate out different refienemnt types
+
+    Notes
+    ---------
+    Output is only local to the current run,
+    does not include previously completed jobs
+
+    Skeleton code adapted from:
+
+    https://github.com/xchem/formulatrix_pipe/blob/master/run_ranker.py
+    """
     output_csv = luigi.Parameter()
     refinement_type = luigi.Parameter()
     out_dir = luigi.Parameter()
@@ -50,176 +70,8 @@ class BatchRefinement(luigi.Task):
         Returns
         -------
         refinement_tasks: list of Luigi.Tasks
-            list of QSubRefinement tasks
         """
-        # Read crystal/refinement table csv
-        df = pd.read_csv(Path().log_pdb_mtz)
 
-        # Replace Nans with empty strings,
-        # used to allow luigi.Parameters
-        df = df.replace(np.nan, '', regex=True)
-
-        # Loop over crystal/refienemnt table csv
-        refinement_tasks = []
-        for i in df.index:
-            cif = df.at[i, 'cif']
-            pdb = df.at[i, 'pdb_latest']
-            mtz = df.at[i, 'mtz_free']
-            crystal = df.at[i, 'crystal_name']
-
-            #Cheat to allow run on single folder
-            # if crystal != "SERC-x0124":
-            #     continue
-
-            refinement_script = os.path.join(Path().tmp_dir,
-                                             "{}_{}.csh".format(crystal, self.refinement_type))
-            # produce refinement task
-            ref_task = QsubRefinement(
-                            refinement_script=refinement_script,
-                            crystal=crystal,
-                            pdb=pdb,
-                            cif=cif,
-                            free_mtz=mtz,
-                            refinement_script_dir=Path().tmp_dir,
-                            out_dir=self.out_dir,
-                            refinement_type=self.refinement_type,
-                            output_csv=self.output_csv)
-
-            # add to list of refienement tasks
-            refinement_tasks.append(ref_task)
-
-        return refinement_tasks
-
-
-class BatchSuperposedRefinement(luigi.Task):
-
-    """Run a Batch of refinement jobs
-
-    This works to set the job up, and not run if already started,
-    but doesn't retry to check jobs.
-
-    Methods
-    -------
-    requires()
-        batch of QSubRefienment Tasks
-    output()
-        csv path to a csv summarising
-
-    Notes
-    ---------
-    Output is only localc to the current run,
-    does not include complete jobs
-
-    Skeleton code adapted from working version for the formulatrix
-    pipeline at diamond:
-
-    https://github.com/xchem/formulatrix_pipe/blob/master/run_ranker.py
-
-    (Converegence refinement) Failure modes:
-
-    Issues that have been fixed
-
-    1) Only cif and PDB found.
-       No csh file is created
-
-        Examples:
-
-        HPrP-x0256
-        STAG-x0167
-
-        Looking at
-
-        STAG1A-x0167
-
-        The search path:
-
-        /dls/labxchem/data/2017/lb18145-52/processing/analysis/initial_model/STAG1A-x0167/Refine_0002
-
-        is not the most recent refinement.
-        In that search path there is a input.params file.
-
-        Solution:
-
-        Search for a parameter file,
-        changed to look for any file matching parameter file in folder.
-        If multiple are present,
-        check that the refinement program matches
-
-        Secondary required solution:
-
-        Also search for .mtz file,
-        if search for .free.mtz fails.
-        Edit to write_refmac_csh()
-
-        No folders have no quick-refine.log
-
-    2) cif missing
-
-        Recursively search
-        If not found get smiles from DB
-        run acedrg
-        If acedrg fails raise FileNotFoundError
-
-        Examples:
-
-        UP1-x0030: Has an input cif file, but won't refine due mismatch in cif file:
-
-            atom: "C01 " is absent in coord_file
-            atom: "N02 " is absent in coord_file
-            atom: "C03 " is absent in coord_file
-            atom: "C04 " is absent in coord_file
-            atom: "N05 " is absent in coord_file
-            atom: "C06 " is absent in coord_file
-            atom: "C07 " is absent in coord_file
-            atom: "C08 " is absent in coord_file
-            atom: "O09 " is absent in coord_file
-            atom: "O11 " is absent in coord_file
-            atom: "C15 " is absent in coord_file
-            atom: "C16 " is absent in coord_file
-            atom: "C17 " is absent in coord_file
-            atom: "C18 " is absent in coord_file
-            atom: "C1  " is absent in lib description.
-            atom: "N1  " is absent in lib description.
-            atom: "C2  " is absent in lib description.
-            atom: "C3  " is absent in lib description.
-            atom: "N2  " is absent in lib description.
-            atom: "C4  " is absent in lib description.
-            atom: "C5  " is absent in lib description.
-            atom: "C6  " is absent in lib description.
-            atom: "O1  " is absent in lib description.
-            atom: "C7  " is absent in lib description.
-            atom: "O2  " is absent in lib description.
-            atom: "C8  " is absent in lib description.
-            atom: "C9  " is absent in lib description.
-            atom: "C11 " is absent in lib description.
-
-    3) Refinement fails due to external distance restraints not being satisfiable.
-
-        Examples:
-
-        FIH-x0241
-        FIH-x0379
-        VIM2-MB-403
-        NUDT7A_Crude-x0030
-
-        Solution
-
-        If identified as issue rerun giant.make_restraints
-
-
-    """
-    def output(self):
-        return luigi.LocalTarget(Path().convergence_refinement_failures)
-
-    def requires(self):
-        """
-        Batch of QsubRefinement tasks
-
-        Returns
-        -------
-        refinement_tasks: list of Luigi.Tasks
-            list of QSubRefinement tasks
-        """
         # Read crystal/refinement table csv
         df = pd.read_csv(Path().log_pdb_mtz)
 
@@ -240,9 +92,24 @@ class BatchSuperposedRefinement(luigi.Task):
             #     continue
 
             refinement_script = os.path.join(Path().tmp_dir,
-                                             "{}.csh".format(crystal))
+                                             "{}_{}.csh".format(crystal, self.refinement_type))
             # produce refinement task
-            ref_task = QsubSuperposedRefinement(
+            if self.refinement_type in ["bound","ground"]:
+
+                ref_task = QsubRefinement(
+                                refinement_script=refinement_script,
+                                crystal=crystal,
+                                pdb=pdb,
+                                cif=cif,
+                                free_mtz=mtz,
+                                refinement_script_dir=Path().tmp_dir,
+                                out_dir=self.out_dir,
+                                refinement_type=self.refinement_type,
+                                output_csv=self.output_csv)
+
+            elif self.refinement_type == "superposed":
+
+                ref_task = QsubSuperposedRefinement(
                             refinement_script=refinement_script,
                             crystal=crystal,
                             pdb=pdb,
@@ -251,39 +118,12 @@ class BatchSuperposedRefinement(luigi.Task):
                             refinement_script_dir=Path().tmp_dir,
                             extra_params="NCYC=50",
                             out_dir=Path().refinement_dir,
-                            output_csv=Path().convergence_refinement_failures)
+                            output_csv=self.output_csv)
 
             # add to list of refienement tasks
             refinement_tasks.append(ref_task)
 
         return refinement_tasks
-
-class ParseXchemdbToCsv(luigi.Task):
-    """Task to parse Postgres tables into csv
-
-    Methods
-    --------
-    requires()
-        No requirements for this task
-    output()
-        output of task is the path to the csv
-        file with refinement and crystal details
-        from xchemdb
-    run(out_csv)
-        runs parse_xchemdb.process_refined_crystals()
-
-    """
-
-    def requires(self):
-        return None
-
-
-    def output(self):
-        return luigi.LocalTarget(Path().log_pdb_mtz)
-
-
-    def run(self):
-        process_refined_crystals(out_csv=Path().log_pdb_mtz)
 
 
 # TODO This requriement is incorrect/ indirect: it can depend on RefinementFolderToCsv instead
@@ -321,27 +161,36 @@ class OccFromLog(luigi.Task):
                          log_occ_csv=self.log_occ_csv)
 
 
-class SuperposedRefinementFolderToCsv(luigi.Task):
+
+class RefinementFolderToCsv(luigi.Task):
 
     """Convert refinement folders to CSV
 
     Parse a refinement folder to get a csv with minimally:
-        refine_log: path to quick-refine log
+        refine_log: path to refmac log
         crystal_name: crystal name
         pdb_latest: path to
         mtz_latest: path to latest mtz
 
     Methods
     ----------
+
+
+    Attributes
+    -----------
+
     """
-    out_csv = luigi.Parameter()
+    output_csv = luigi.Parameter()
     input_folder = luigi.Parameter()
+    refinement_type = luigi.Parameter()
 
     def requires(self):
-        return BatchSuperposedRefinement()
+        return BatchRefinement(out_dir=Path().bound_refinement_dir,
+                               output_csv=Path().bound_refinement_batch_csv,
+                               refinement_type=self.refinement_type)
 
     def output(self):
-        return luigi.LocalTarget(self.out_csv)
+        return luigi.LocalTarget(self.output_csv)
 
     def run(self):
 
@@ -361,73 +210,17 @@ class SuperposedRefinementFolderToCsv(luigi.Task):
                 elif f == "refine.mtz":
                     mtz_latest = os.path.join(self.input_folder, crystal, f)
 
-            try:
-                refinement_log = get_most_recent_quick_refine(crystal_dir)
-            except FileNotFoundError:
-                continue
 
-            if None not in [pdb_latest, mtz_latest, refinement_log]:
-                pdb_mtz_log_dict[crystal] = (pdb_latest,
-                                             mtz_latest,
-                                             refinement_log)
+            if self.refinement_type == "superposed":
+                try:
+                    refinement_log = get_most_recent_quick_refine(crystal_dir)
+                except FileNotFoundError:
+                    continue
+            elif self.refinement_type == "bound":
+                for f in os.listdir(crystal_dir):
+                    if f == "refmac.log":
+                        refinement_log = os.path.join(self.input_folder, crystal, f)
 
-        df = pd.DataFrame.from_dict(data=pdb_mtz_log_dict,
-                                    columns=['pdb_latest',
-                                             'mtz_latest',
-                                             'refine_log'],
-                                    orient='index')
-        df.index.name = 'crystal_name'
-        df.to_csv(self.out_csv)
-
-# TODO Refactor so SuperposedRefinementFolderToCsv and RefinementFolderToCsv are not both required
-
-class RefinementFolderToCsv(luigi.Task):
-
-    """Convert refinement folders to CSV
-
-    Parse a refinement folder to get a csv with minimally:
-        refine_log: path to refmac log
-        crystal_name: crystal name
-        pdb_latest: path to
-        mtz_latest: path to latest mtz
-
-    Methods
-    ----------
-    """
-    output_csv = luigi.Parameter()
-    input_folder = luigi.Parameter()
-
-    def requires(self):
-        return BatchRefinement(out_dir=Path().bound_refinement_dir,
-                               output_csv=Path().bound_refinement_batch_csv,
-                               refinement_type="bound")
-
-    def output(self):
-        return luigi.LocalTarget(self.output_csv)
-
-    def run(self):
-
-        pdb_mtz_log_dict = {}
-
-        for crystal in os.listdir(self.input_folder):
-
-            pdb_latest = None
-            mtz_latest = None
-            refinement_log = None
-
-            crystal_dir = os.path.join(self.input_folder, crystal)
-
-            for f in os.listdir(crystal_dir):
-                if f == "refine_bound.pdb":
-                    pdb_latest = os.path.join(self.input_folder, crystal, f)
-                elif f == "refine_bound.mtz":
-                    mtz_latest = os.path.join(self.input_folder, crystal, f)
-                elif f == "refmac.log":
-                    refinement_log = os.path.join(self.input_folder, crystal, f)
-
-            print(pdb_latest)
-            print(mtz_latest)
-            print(refinement_log)
 
             if None not in [pdb_latest, mtz_latest, refinement_log]:
                 pdb_mtz_log_dict[crystal] = (pdb_latest,
@@ -442,55 +235,6 @@ class RefinementFolderToCsv(luigi.Task):
         df.index.name = 'crystal_name'
         df.to_csv(self.output_csv)
 
-
-class RefineToDF(luigi.Task):
-    """
-    Task to get refinement postgres table as csv
-
-    Methods
-    --------
-    output()
-        output of task is the path to the csv
-        of refinement table
-    run()
-        gets table from postgres database
-
-    """
-    def requires(self):
-        return None
-
-    def output(self):
-        return luigi.LocalTarget(Path().refine)
-
-    def run(self):
-        refine_df = get_table_df('refinement')
-        refine_df.to_csv(Path().refine)
-
-
-@requires(RefineToDF)
-class SuperposedToDF(luigi.Task):
-
-    """
-    Task to get refinements with valid pdb files
-
-    Methods
-    --------
-    output()
-        output of task is the path to the csv
-        of refinement table with only valid pdb files
-    run()
-        gets table from postgres database
-    """
-    def output(self):
-        return luigi.LocalTarget(Path().superposed)
-
-
-    def run(self):
-        refine_df = pd.read_csv(Path().refine)
-        pdb_df = refine_df[refine_df.pdb_latest.notnull()]
-        pdb_df = drop_pdb_not_in_filesystem(pdb_df)
-        superposed_df = drop_only_dimple_processing(pdb_df)
-        superposed_df.to_csv(Path().superposed)
 
 @requires(OccFromLog)
 class ResnameToOccLog(luigi.Task):
@@ -573,9 +317,9 @@ class SummaryRefinement(luigi.Task):
     def requires(self):
         return OccConvergence(log_labelled_csv=Path().log_occ_resname,
                               occ_conv_csv=Path().occ_conv,
-                              log_pdb_mtz=Path().log_pdb_mtz),\
-               ParseXchemdbToCsv(), \
-               SuperposedToDF(),\
+                              log_pdb_mtz=Path().log_pdb_mtz), \
+               ParseXchemdbToCsv(log_pdb_mtz_csv=Path().log_pdb_mtz), \
+               SuperposedToDF(), \
                RefineToDF()
 
     def output(self):
@@ -587,7 +331,7 @@ class SummaryRefinement(luigi.Task):
                            log_pdb_mtz_csv=Path().log_pdb_mtz,
                            out_csv=Path().refinement_summary)
 
-
+@requires(ParseXchemdbToCsv)
 class SplitConformations(luigi.Task):
     """
     Task to run giant.split conformations
@@ -613,9 +357,6 @@ class SplitConformations(luigi.Task):
     """
     pdb = luigi.Parameter()
     working_dir = luigi.Parameter()
-
-    def requires(self):
-        return ParseXchemdbToCsv()
 
     def output(self):
 
@@ -774,45 +515,18 @@ class PrepareSuperposedRefinement(luigi.Task):
                                       extra_params=self.extra_params,
                                       free_mtz=self.free_mtz)
 
-class QsubRefinement(luigi.Task):
+class QsubTask(luigi.Task):
 
-    """Initiate & check progress of a single job on cluster submitted by qsub
+    """ Base class for single job on cluster submitted by qsub
 
 
     Attributes
     -----------
-    crystal: luigi.Parameter
-        crystal name
-
-    pdb: luigi.Parameter
-        path to pdb file
-
-    cif: luigi.Parameter
-        path to cif file
-
-    out_dir: luigi.Parameter
-        path to refinement folder
-
-    refinement_script_dir: luigi.Parameter
-        path to refinement script dir with '<crystal_name>_<type>.csh' file
-
-    free_mtz: luigi.Parameter
-        path to free mtz file
-
-    refinement_script: luigi.Parameter
-        path to luigi parameter
 
     Methods
     ---------
-    requires()
-        Task requires the associated PrepareRefienement Task
-        with the same parameters
-
     output()
         Task should output refined pdb and mtz files
-
-    run_qstat()
-        wrapper for running qstat -r
 
     run()
         Check for presence of PDB and MTZ,
@@ -825,67 +539,19 @@ class QsubRefinement(luigi.Task):
     and that the pdb/mtz are stored hierarchically in that folder.
     Uses luigi.Parameter to pass a refinement script name.
 
-    TODO Consider ways to check for existence of not just PDB
-
     Skeleton code adapted from working version for the formulatrix
     pipeline at diamond:
 
     https://github.com/xchem/formulatrix_pipe/blob/master/run_ranker.py
 
-    TODO This job, or it's batch runner should be run multiple times to check
-         that the files being created.
-
-    TODO Check whether removal of ssh from submit job is going to cause issues
-
-    TODO This should share an abstract class with QsubSuperposedRefinement
     """
-
-    refinement_script = luigi.Parameter()
-    crystal = luigi.Parameter()
-    pdb = luigi.Parameter()
-    cif = luigi.Parameter()
-    out_dir = luigi.Parameter()
-    refinement_script_dir = luigi.Parameter()
-    free_mtz = luigi.Parameter()
-    refinement_type = luigi.Parameter()
-    output_csv  = luigi.Parameter()
-
-    def requires(self):
-        return PrepareRefinement(crystal=self.crystal,
-                                 pdb=self.pdb,
-                                 cif=self.cif,
-                                 out_dir=self.out_dir,
-                                 refinement_script_dir=self.refinement_script_dir,
-                                 free_mtz=self.free_mtz,
-                                 refinement_type=self.refinement_type,
-                                 output_csv=self.output_csv)
-
     def output(self):
 
-        out_mtz = os.path.join(self.out_dir, "refine_{}.mtz".format(self.refinement_type))
-        out_pdb = os.path.join(self.out_dir, "refine_{}.pdb".format(self.refinement_type))
+        out_mtz = os.path.join(self.out_dir, "refine.mtz")
+        out_pdb = os.path.join(self.out_dir, "refine.pdb")
 
         return luigi.LocalTarget(out_pdb), luigi.LocalTarget(out_mtz)
 
-    def run_qstat(self):
-        """
-        Qstat wrapped to return output queue
-        Returns
-        -------
-
-        """
-
-        submission_string = 'qstat -r'
-
-        submission = subprocess.Popen(submission_string,
-                                      shell=True,
-                                      stdout=subprocess.PIPE,
-                                      stderr=subprocess.PIPE)
-        out, err = submission.communicate()
-
-        output_queue = (out.decode('ascii').split('\n'))
-
-        return output_queue
 
     def run(self):
         """
@@ -905,15 +571,15 @@ class QsubRefinement(luigi.Task):
             If the job has not been newly submitted and is not running
         """
 
-        out_mtz = os.path.join(self.out_dir, "refine_{}.mtz".format(self.refinement_type))
-        out_pdb = os.path.join(self.out_dir, "refine_{}.pdb".format(self.refinement_type))
+        out_mtz = os.path.join(self.out_dir, "refine.mtz")
+        out_pdb = os.path.join(self.out_dir, "refine.pdb")
 
         # Only run if the pdb and mtz are not present
         if not (os.path.isfile(out_pdb) and os.path.isfile(out_mtz)):
             queue_jobs = []
 
             # run 'qstat -r'
-            output_queue = self.run_qstat()
+            output_queue = run_qstat()
 
             # Turn qstat output into list of jobs
             for line in output_queue:
@@ -939,169 +605,13 @@ class QsubRefinement(luigi.Task):
                 raise RuntimeError('Something went wrong or job is still running')
 
 
+@requires(PrepareRefinement)
+class QsubRefienement(QsubTask):
+    pass
 
-# TODO Consider using clone tasks for parameter handling
-#       https://luigi.readthedocs.io/en/stable/api/luigi.util.html
-
+@requires(PrepareSuperposedRefinement)
 class QsubSuperposedRefinement(luigi.Task):
-
-    """Initiate & check progress of a single job on cluster submitted by qsub
-
-    Attributes
-    -----------
-    crystal: luigi.Parameter
-        crystal name
-
-    pdb: luigi.Parameter
-        path to pdb file
-
-    cif: luigi.Parameter
-        path to cif file
-
-    out_dir: luigi.Parameter
-        path to refinement folder
-
-    refinement_script_dir: luigi.Parameter
-        path to refinement script dir to store '<crystal_name>.csh'
-
-    extra_params: luigi.Parameter
-        parameters to add to refinement.
-        i.e. to run longer till convergence
-
-    free_mtz: luigi.Parameter
-        path to free mtz file
-
-    refinement_script: luigi.Parameter
-        path to luigi parameter
-
-    Methods
-    ---------
-    requires()
-        Task requires the associated PrepareRefienement Task
-        with the same parameters
-
-    output()
-        Task should output refined pdb and mtz files
-
-    run_qstat()
-        wrapper for running qstat -r
-
-    run()
-        Check for presence of PDB and MTZ,
-        if they do not exist, check for running jobs on cluster.
-        If no running jobs, submit <crystal_name>.csh as job.
-
-    Notes
-    ---------
-    Requires the refinement script name to the name of the crystal,
-    and that the pdb/mtz are stored hierarchically in that folder.
-    Uses luigi.Parameter to pass a refinement script name.
-
-    Skeleton code adapted from working version for the formulatrix
-    pipeline at diamond:
-
-    https://github.com/xchem/formulatrix_pipe/blob/master/run_ranker.py
-
-    TODO This job, or it's batch runner should be run multiple times to check
-         that the files being created.
-
-    TODO Check whether removal of ssh is going to cause issues
-    """
-
-    refinement_script = luigi.Parameter()
-    crystal = luigi.Parameter()
-    pdb = luigi.Parameter()
-    cif = luigi.Parameter()
-    out_dir = luigi.Parameter()
-    refinement_script_dir = luigi.Parameter()
-    extra_params = luigi.Parameter()
-    free_mtz = luigi.Parameter()
-    output_csv = luigi.Parameter()
-
-    def requires(self):
-        return PrepareSuperposedRefinement(crystal=self.crystal,
-                                           pdb=self.pdb,
-                                           cif=self.cif,
-                                           free_mtz=self.free_mtz,
-                                           refinement_script_dir=Path().tmp_dir,
-                                           extra_params="NCYC=50",
-                                           out_dir=Path().refinement_dir,
-                                           output_csv=Path().convergence_refinement_failures)
-
-    def output(self):
-        crystal = os.path.basename(self.refinement_script.split('.')[0])
-        pdb = os.path.join(Path().refinement_dir, crystal, 'refine.pdb')
-        mtz = os.path.join(Path().refinement_dir, crystal, 'refine.mtz')
-        return luigi.LocalTarget(pdb), luigi.LocalTarget(mtz)
-
-    def run_qstat(self):
-
-        submission_string = 'qstat -r'
-
-        submission = subprocess.Popen(submission_string,
-                                      shell=True,
-                                      stdout=subprocess.PIPE,
-                                      stderr=subprocess.PIPE)
-        out, err = submission.communicate()
-
-        output_queue = (out.decode('ascii').split('\n'))
-
-        return output_queue
-
-    def run(self):
-        """
-        Run Qsub Refienement
-
-        Check for presence of PDB and MTZ,
-        if they do not exist, check for running jobs on cluster.
-        If no running jobs, submit job.
-
-        Returns
-        -------
-        None
-
-        Raises
-        -------
-        RuntimeError
-            If the job has not been newly submitted and is not running
-        """
-
-        # get crystal name
-        crystal = os.path.basename(self.refinement_script.split('.')[0])
-
-        # output files
-        pdb = os.path.join(Path().refinement_dir, crystal, 'refine.pdb')
-        mtz = os.path.join(Path().refinement_dir, crystal, 'refine.mtz')
-
-        # Only run if the pdb and mtz are not present
-        if not (os.path.isfile(pdb) and os.path.isfile(mtz)):
-            queue_jobs = []
-
-            # run 'qstat -r'
-            output_queue = self.run_qstat()
-
-            # Turn qstat output into list of jobs
-            for line in output_queue:
-                if 'Full jobname' in line:
-                    jobname = line.split()[-1]
-                    queue_jobs.append(jobname)
-
-            # Get <crystal_name>.csh
-            job = self.refinement_script
-            job_file = os.path.basename(str(job))
-
-            # Check whether <crystal_name>.csh is running in queue,
-            # If not submit job to queue
-            if job_file not in queue_jobs:
-                submit_job(job_directory=Path().tmp_dir,
-                           job_script=job_file)
-
-                print('The job had no output, and was not found to be running ' 
-                      'in the queue. The job has been resubmitted. ' 
-                      'Will check again later!')
-
-            elif not queue_jobs:
-                raise RuntimeError('Something went wrong or job is still running')
+    pass
 
 
 @PrepareSuperposedRefinement.event_handler(luigi.Event.FAILURE)
@@ -1187,6 +697,7 @@ class StateOccupancyToCsv(luigi.Task):
     def run(self):
         state_occupancies(occ_conv_csv=self.occ_conv_csv,
                           occ_correct_csv=self.occ_correct_csv)
+
 
 class ConvergenceStateByRefinementType(luigi.Task):
 
