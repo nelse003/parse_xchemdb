@@ -17,8 +17,6 @@ class PlotOccCorrect(luigi.Task):
     #      allowing any task with sufficient columns
     #      in output table?
 
-    # TODO Test
-
     """
     Base Class for plotting functions using occ_correct_csv
 
