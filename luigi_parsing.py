@@ -1,4 +1,6 @@
 import luigi
+from luigi.util import requires
+
 import os
 import pandas as pd
 import numpy as np
@@ -22,6 +24,8 @@ from refinement_summary import refinement_summary
 from refinement import get_most_recent_quick_refine
 from refinement import split_conformations
 from refinement import prepare_refinement
+from refinement import state_occupancies
+from refinement import convergence_state_by_refinement_type
 
 from plotting import refinement_summary_plot
 from plotting import ground_state_occupancy_histogram
@@ -34,13 +38,29 @@ class Path(luigi.Config):
 
     """Config: Paths to be used """
 
+    # Default Directories
+
+    # Directory containing scripts (i.e. repo)
     script_dir = "/dls/science/groups/i04-1/elliot-dev/parse_xchemdb"
+
+    # Output directory, where default paths are derived from
     out_dir = "/dls/science/groups/i04-1/elliot-dev/Work/" \
               "exhaustive_parse_xchem_db/"
+
+    # Temporary directory to contain csh scripts
     tmp_dir = os.path.join(out_dir, "tmp")
+
     refinement_dir = os.path.join(out_dir, "convergence_refinement")
 
-    # CSVS
+    # Directory to contain bound refinements (refmac)
+    bound_refinement_dir = "/dls/science/groups/i04-1/elliot-dev/Work/" \
+                        "exhaustive_parse_xchem_db/bound_refinement"
+
+    # Directory to contain ground refinements (refmac)
+    ground_refinement_dir = "/dls/science/groups/i04-1/elliot-dev/Work/" \
+                        "exhaustive_parse_xchem_db/ground_refinement"
+
+    # Csvs from parsing the database
     log_pdb_mtz = luigi.Parameter(
         default=os.path.join(out_dir, 'log_pdb_mtz.csv'))
     log_occ = luigi.Parameter(
@@ -59,7 +79,7 @@ class Path(luigi.Config):
     occ_conv_failures = luigi.Parameter(
         default=os.path.join(out_dir, 'occ_conv_failures.csv'))
 
-    # CSV from convergence occupancy
+    # Csv paths from parsing the re-refinements done to extend towards convergence
     convergence_refinement_failures = luigi.Parameter(
         default=os.path.join(out_dir, 'convergence_refinement.csv'))
 
@@ -75,7 +95,10 @@ class Path(luigi.Config):
     convergence_occ_conv = luigi.Parameter(
         default=os.path.join(out_dir, 'convergence_refinement_occ_conv.csv'))
 
-    # Plots
+    convergence_occ_correct = luigi.Parameter(
+        default=os.path.join(out_dir, "occ_correct.csv"))
+
+    # Plot paths
     refinement_summary_plot = luigi.Parameter(
         default=os.path.join(out_dir, 'refinement_summary.png'))
     bound_occ_hist = luigi.Parameter(
@@ -90,22 +113,280 @@ class Path(luigi.Config):
         default=os.path.join(out_dir, 'convergence_occ_conv_scatter.png'))
     convergence_conv_hist = luigi.Parameter(
         default=os.path.join(out_dir, 'convergence_conv_hist.png'))
-    convergence_occ_correct = luigi.Parameter(default=os.path.join(out_dir,"occ_correct.csv"))
 
-    # Scripts
-    convergence_py = luigi.Parameter(
-        default=os.path.join(script_dir, "convergence.py"))
 
-    # Batch Management
-    refmac_batch = luigi.Parameter(default = os.path.join(out_dir, "refmac_batch.log"))
-    prepare_batch = luigi.Parameter(default=os.path.join(out_dir, "prepare_batch.log"))
+    # Bound refmac refinement
+    bound_refinement = luigi.Parameter(
+        default=os.path.join(out_dir, 'bound_refinement_log_pdb_mtz.csv'))
 
-    # Dirs
+    bound_occ = luigi.Parameter(
+        default=os.path.join(out_dir, 'bound_refinement_occ.csv'))
+
+    bound_occ_conv_state = luigi.Parameter(
+        default=os.path.join(out_dir, 'bound_refinement_occ_conv_state.csv'))
+
+
+    # Bound refmac refinement plotting
+    bound_refmac_bound_hist = luigi.Parameter(
+        default=os.path.join(out_dir, 'bound_refmac_bound_hist.png'))
+
+
+    # Batch management csvs
+    bound_refinement_batch_csv = luigi.Parameter(
+        default=os.path.join(out_dir,'bound_refmac.csv'))
+
+    ground_refinement_batch_csv = luigi.Parameter(
+        default=os.path.join(out_dir,'bound_refmac.csv'))
+
+    # Directory Luigi Parameters
+    # Currently dirved from above default values.
+    # TODO alternative ways fo defining directories
+
+    # Directory containing scripts (i.e. repo)
     script_dir = luigi.Parameter(default= script_dir)
+
+    # Temporary directory to contain csh scripts
     tmp_dir = luigi.Parameter(default= tmp_dir)
+
+    # Output directory, where default paths are derived from
     out_dir = luigi.Parameter(default=out_dir)
+
     refinement_dir = luigi.Parameter(default=refinement_dir)
 
+    # Directory to contain bound refinements (refmac)
+    bound_refinement_dir = luigi.Parameter(default=bound_refinement_dir)
+
+    # Directory to contain ground refinements (refmac)
+    ground_refinement_dir = luigi.Parameter(default=ground_refinement_dir)
+
+
+class BatchRefinement(luigi.Task):
+
+    """
+    Batch Refinement for non-superposed refmac refinement
+    """
+
+    output_csv = luigi.Parameter()
+    refinement_type = luigi.Parameter()
+    out_dir = luigi.Parameter()
+
+    def output(self):
+        #return None
+        return luigi.LocalTarget(self.output_csv)
+
+    def requires(self):
+        """
+        Batch of QsubRefinement tasks
+
+        Returns
+        -------
+        refinement_tasks: list of Luigi.Tasks
+            list of QSubRefinement tasks
+        """
+        # Read crystal/refinement table csv
+        df = pd.read_csv(Path().log_pdb_mtz)
+
+        # Replace Nans with empty strings,
+        # used to allow luigi.Parameters
+        df = df.replace(np.nan, '', regex=True)
+
+        # Loop over crystal/refienemnt table csv
+        refinement_tasks = []
+        for i in df.index:
+            cif = df.at[i, 'cif']
+            pdb = df.at[i, 'pdb_latest']
+            mtz = df.at[i, 'mtz_free']
+            crystal = df.at[i, 'crystal_name']
+
+            #Cheat to allow run on single folder
+            # if crystal != "SERC-x0124":
+            #     continue
+
+            refinement_script = os.path.join(Path().tmp_dir,
+                                             "{}_{}.csh".format(crystal, self.refinement_type))
+            # produce refinement task
+            ref_task = QsubRefinement(
+                            refinement_script=refinement_script,
+                            crystal=crystal,
+                            pdb=pdb,
+                            cif=cif,
+                            free_mtz=mtz,
+                            refinement_script_dir=Path().tmp_dir,
+                            out_dir=self.out_dir,
+                            refinement_type=self.refinement_type,
+                            output_csv=self.output_csv)
+
+            # add to list of refienement tasks
+            refinement_tasks.append(ref_task)
+
+        return refinement_tasks
+
+class BatchSuperposedRefinement(luigi.Task):
+
+    """Run a Batch of refinement jobs
+
+    This works to set the job up, and not run if already started,
+    but doesn't retry to check jobs.
+
+    Methods
+    -------
+    requires()
+        batch of QSubRefienment Tasks
+    output()
+        csv path to a csv summarising
+
+    Notes
+    ---------
+    Output is only localc to the current run,
+    does not include complete jobs
+
+    Skeleton code adapted from working version for the formulatrix
+    pipeline at diamond:
+
+    https://github.com/xchem/formulatrix_pipe/blob/master/run_ranker.py
+
+    (Converegence refinement) Failure modes:
+
+    Issues that have been fixed
+
+    1) Only cif and PDB found.
+       No csh file is created
+
+        Examples:
+
+        HPrP-x0256
+        STAG-x0167
+
+        Looking at
+
+        STAG1A-x0167
+
+        The search path:
+
+        /dls/labxchem/data/2017/lb18145-52/processing/analysis/initial_model/STAG1A-x0167/Refine_0002
+
+        is not the most recent refinement.
+        In that search path there is a input.params file.
+
+        Solution:
+
+        Search for a parameter file,
+        changed to look for any file matching parameter file in folder.
+        If multiple are present,
+        check that the refinement program matches
+
+        Secondary required solution:
+
+        Also search for .mtz file,
+        if search for .free.mtz fails.
+        Edit to write_refmac_csh()
+
+        No folders have no quick-refine.log
+
+    2) cif missing
+
+        Recursively search
+        If not found get smiles from DB
+        run acedrg
+        If acedrg fails raise FileNotFoundError
+
+        Examples:
+
+        UP1-x0030: Has an input cif file, but won't refine due mismatch in cif file:
+
+            atom: "C01 " is absent in coord_file
+            atom: "N02 " is absent in coord_file
+            atom: "C03 " is absent in coord_file
+            atom: "C04 " is absent in coord_file
+            atom: "N05 " is absent in coord_file
+            atom: "C06 " is absent in coord_file
+            atom: "C07 " is absent in coord_file
+            atom: "C08 " is absent in coord_file
+            atom: "O09 " is absent in coord_file
+            atom: "O11 " is absent in coord_file
+            atom: "C15 " is absent in coord_file
+            atom: "C16 " is absent in coord_file
+            atom: "C17 " is absent in coord_file
+            atom: "C18 " is absent in coord_file
+            atom: "C1  " is absent in lib description.
+            atom: "N1  " is absent in lib description.
+            atom: "C2  " is absent in lib description.
+            atom: "C3  " is absent in lib description.
+            atom: "N2  " is absent in lib description.
+            atom: "C4  " is absent in lib description.
+            atom: "C5  " is absent in lib description.
+            atom: "C6  " is absent in lib description.
+            atom: "O1  " is absent in lib description.
+            atom: "C7  " is absent in lib description.
+            atom: "O2  " is absent in lib description.
+            atom: "C8  " is absent in lib description.
+            atom: "C9  " is absent in lib description.
+            atom: "C11 " is absent in lib description.
+
+    3) Refinement fails due to external distance restraints not being satisfiable.
+
+        Examples:
+
+        FIH-x0241
+        FIH-x0379
+        VIM2-MB-403
+        NUDT7A_Crude-x0030
+
+        Solution
+
+        If identified as issue rerun giant.make_restraints
+
+
+    """
+    def output(self):
+        return luigi.LocalTarget(Path().convergence_refinement_failures)
+
+    def requires(self):
+        """
+        Batch of QsubRefinement tasks
+
+        Returns
+        -------
+        refinement_tasks: list of Luigi.Tasks
+            list of QSubRefinement tasks
+        """
+        # Read crystal/refinement table csv
+        df = pd.read_csv(Path().log_pdb_mtz)
+
+        # Replace Nans with empty strings,
+        # used to allow luigi.Parameters
+        df = df.replace(np.nan, '', regex=True)
+
+        # Loop over crystal/refienemnt table csv
+        refinement_tasks = []
+        for i in df.index:
+            cif = df.at[i, 'cif']
+            pdb = df.at[i, 'pdb_latest']
+            mtz = df.at[i, 'mtz_free']
+            crystal = df.at[i, 'crystal_name']
+
+            # Cheat to allow run on single folder
+            # if crystal != "FIH-x0439":
+            #     continue
+
+            refinement_script = os.path.join(Path().tmp_dir,
+                                             "{}.csh".format(crystal))
+            # produce refinement task
+            ref_task = QsubSuperposedRefinement(
+                            refinement_script=refinement_script,
+                            crystal=crystal,
+                            pdb=pdb,
+                            cif=cif,
+                            free_mtz=mtz,
+                            refinement_script_dir=Path().tmp_dir,
+                            extra_params="NCYC=50",
+                            out_dir=Path().refinement_dir,
+                            output_csv=Path().convergence_refinement_failures)
+
+            # add to list of refienement tasks
+            refinement_tasks.append(ref_task)
+
+        return refinement_tasks
 
 class ParseXchemdbToCsv(luigi.Task):
     """Task to parse Postgres tables into csv
@@ -134,6 +415,8 @@ class ParseXchemdbToCsv(luigi.Task):
     def run(self):
         process_refined_crystals(out_csv=Path().log_pdb_mtz)
 
+
+# TODO This requriement is incorrect/ indirect: it can depend on RefinementFolderToCsv instead
 
 @requires(ParseXchemdbToCsv)
 class OccFromLog(luigi.Task):
@@ -167,8 +450,8 @@ class OccFromLog(luigi.Task):
         get_occ_from_log(log_pdb_mtz_csv=self.log_pdb_mtz_csv,
                          log_occ_csv=self.log_occ_csv)
 
-@requires(BatchSuperposedRefinement)
-class RefinementFolderToCsv(luigi.Task):
+
+class SuperposedRefinementFolderToCsv(luigi.Task):
 
     """Convert refinement folders to CSV
 
@@ -183,6 +466,9 @@ class RefinementFolderToCsv(luigi.Task):
     """
     out_csv = luigi.Parameter()
     input_folder = luigi.Parameter()
+
+    def requires(self):
+        return BatchSuperposedRefinement()
 
     def output(self):
         return luigi.LocalTarget(self.out_csv)
@@ -215,7 +501,6 @@ class RefinementFolderToCsv(luigi.Task):
                                              mtz_latest,
                                              refinement_log)
 
-
         df = pd.DataFrame.from_dict(data=pdb_mtz_log_dict,
                                     columns=['pdb_latest',
                                              'mtz_latest',
@@ -224,6 +509,68 @@ class RefinementFolderToCsv(luigi.Task):
         df.index.name = 'crystal_name'
         df.to_csv(self.out_csv)
 
+# TODO Refactor so SuperposedRefinementFolderToCsv and RefinementFolderToCsv are not both required
+
+class RefinementFolderToCsv(luigi.Task):
+
+    """Convert refinement folders to CSV
+
+    Parse a refinement folder to get a csv with minimally:
+        refine_log: path to refmac log
+        crystal_name: crystal name
+        pdb_latest: path to
+        mtz_latest: path to latest mtz
+
+    Methods
+    ----------
+    """
+    output_csv = luigi.Parameter()
+    input_folder = luigi.Parameter()
+
+    def requires(self):
+        return BatchRefinement(out_dir=Path().bound_refinement_dir,
+                               output_csv=Path().bound_refinement_batch_csv,
+                               refinement_type="bound")
+
+    def output(self):
+        return luigi.LocalTarget(self.output_csv)
+
+    def run(self):
+
+        pdb_mtz_log_dict = {}
+
+        for crystal in os.listdir(self.input_folder):
+
+            pdb_latest = None
+            mtz_latest = None
+            refinement_log = None
+
+            crystal_dir = os.path.join(self.input_folder, crystal)
+
+            for f in os.listdir(crystal_dir):
+                if f == "refine_bound.pdb":
+                    pdb_latest = os.path.join(self.input_folder, crystal, f)
+                elif f == "refine_bound.mtz":
+                    mtz_latest = os.path.join(self.input_folder, crystal, f)
+                elif f == "refmac.log":
+                    refinement_log = os.path.join(self.input_folder, crystal, f)
+
+            print(pdb_latest)
+            print(mtz_latest)
+            print(refinement_log)
+
+            if None not in [pdb_latest, mtz_latest, refinement_log]:
+                pdb_mtz_log_dict[crystal] = (pdb_latest,
+                                             mtz_latest,
+                                             refinement_log)
+
+        df = pd.DataFrame.from_dict(data=pdb_mtz_log_dict,
+                                    columns=['pdb_latest',
+                                             'mtz_latest',
+                                             'refine_log'],
+                                    orient='index')
+        df.index.name = 'crystal_name'
+        df.to_csv(self.output_csv)
 
 
 class RefineToDF(luigi.Task):
@@ -269,7 +616,7 @@ class SuperposedToDF(luigi.Task):
 
 
     def run(self):
-        refine_df =pd.read_csv(Path().refine)
+        refine_df = pd.read_csv(Path().refine)
         pdb_df = refine_df[refine_df.pdb_latest.notnull()]
         pdb_df = drop_pdb_not_in_filesystem(pdb_df)
         superposed_df = drop_only_dimple_processing(pdb_df)
@@ -302,10 +649,10 @@ class ResnameToOccLog(luigi.Task):
 
     def run(self):
         os.system("ccp4-python resnames_using_ccp4.py {} {}".format(
-                    self.log_occ,
+                    self.log_occ_csv,
                     self.log_occ_resname))
 
-
+@requires(ResnameToOccLog)
 class OccConvergence(luigi.Task):
     """
     Task to add state and comment to resname labelled convergence
@@ -321,22 +668,14 @@ class OccConvergence(luigi.Task):
 
     TODO Add a progress bar and/or parallelise task
     """
-    log_pdb_mtz =  luigi.Parameter()
-    log_labelled_csv = luigi.Parameter()
+
     occ_conv_csv = luigi.Parameter()
-
-
-    def requires(self):
-        return ResnameToOccLog(log_occ=self.occ_conv_csv,
-                               log_occ_resname=self.log_labelled_csv,
-                               log_pdb_mtz=self.log_pdb_mtz)
-
     def output(self):
         return luigi.LocalTarget(self.occ_conv_csv)
 
 
     def run(self):
-        convergence_to_csv(self.log_labelled_csv,
+        convergence_to_csv(self.log_occ_resname,
                            self.occ_conv_csv)
 
 
@@ -1089,233 +1428,6 @@ def success_write_to_csv(task):
         task_csv_writer = csv.writer(task_csv, delimiter=',')
         task_csv_writer.writerow(["Sucesss", task.crystal])
 
-class BatchSuperposedRefinement(luigi.Task):
-
-    """Run a Batch of refinement jobs
-
-    This works to set the job up, and not run if already started,
-    but doesn't retry to check jobs.
-
-    Methods
-    -------
-    requires()
-        batch of QSubRefienment Tasks
-    output()
-        csv path to a csv summarising
-
-    Notes
-    ---------
-    Output is only localc to the current run,
-    does not include complete jobs
-
-    Skeleton code adapted from working version for the formulatrix
-    pipeline at diamond:
-
-    https://github.com/xchem/formulatrix_pipe/blob/master/run_ranker.py
-
-    (Converegence refinement) Failure modes:
-
-    Issues that have been fixed
-
-    1) Only cif and PDB found.
-       No csh file is created
-
-        Examples:
-
-        HPrP-x0256
-        STAG-x0167
-
-        Looking at
-
-        STAG1A-x0167
-
-        The search path:
-
-        /dls/labxchem/data/2017/lb18145-52/processing/analysis/initial_model/STAG1A-x0167/Refine_0002
-
-        is not the most recent refinement.
-        In that search path there is a input.params file.
-
-        Solution:
-
-        Search for a parameter file,
-        changed to look for any file matching parameter file in folder.
-        If multiple are present,
-        check that the refinement program matches
-
-        Secondary required solution:
-
-        Also search for .mtz file,
-        if search for .free.mtz fails.
-        Edit to write_refmac_csh()
-
-        No folders have no quick-refine.log
-
-    2) cif missing
-
-        Recursively search
-        If not found get smiles from DB
-        run acedrg
-        If acedrg fails raise FileNotFoundError
-
-        Examples:
-
-        UP1-x0030: Has an input cif file, but won't refine due mismatch in cif file:
-
-            atom: "C01 " is absent in coord_file
-            atom: "N02 " is absent in coord_file
-            atom: "C03 " is absent in coord_file
-            atom: "C04 " is absent in coord_file
-            atom: "N05 " is absent in coord_file
-            atom: "C06 " is absent in coord_file
-            atom: "C07 " is absent in coord_file
-            atom: "C08 " is absent in coord_file
-            atom: "O09 " is absent in coord_file
-            atom: "O11 " is absent in coord_file
-            atom: "C15 " is absent in coord_file
-            atom: "C16 " is absent in coord_file
-            atom: "C17 " is absent in coord_file
-            atom: "C18 " is absent in coord_file
-            atom: "C1  " is absent in lib description.
-            atom: "N1  " is absent in lib description.
-            atom: "C2  " is absent in lib description.
-            atom: "C3  " is absent in lib description.
-            atom: "N2  " is absent in lib description.
-            atom: "C4  " is absent in lib description.
-            atom: "C5  " is absent in lib description.
-            atom: "C6  " is absent in lib description.
-            atom: "O1  " is absent in lib description.
-            atom: "C7  " is absent in lib description.
-            atom: "O2  " is absent in lib description.
-            atom: "C8  " is absent in lib description.
-            atom: "C9  " is absent in lib description.
-            atom: "C11 " is absent in lib description.
-
-    3) Refinement fails due to external distance restraints not being satisfiable.
-
-        Examples:
-
-        FIH-x0241
-        FIH-x0379
-        VIM2-MB-403
-        NUDT7A_Crude-x0030
-
-        Solution
-
-        If identified as issue rerun giant.make_restraints
-
-
-    """
-    def output(self):
-        return luigi.LocalTarget(Path().convergence_refinement_failures)
-
-    def requires(self):
-        """
-        Batch of QsubRefinement tasks
-
-        Returns
-        -------
-        refinement_tasks: list of Luigi.Tasks
-            list of QSubRefinement tasks
-        """
-        # Read crystal/refinement table csv
-        df = pd.read_csv(Path().log_pdb_mtz)
-
-        # Replace Nans with empty strings,
-        # used to allow luigi.Parameters
-        df = df.replace(np.nan, '', regex=True)
-
-        # Loop over crystal/refienemnt table csv
-        refinement_tasks = []
-        for i in df.index:
-            cif = df.at[i, 'cif']
-            pdb = df.at[i, 'pdb_latest']
-            mtz = df.at[i, 'mtz_free']
-            crystal = df.at[i, 'crystal_name']
-
-            # Cheat to allow run on single folder
-            # if crystal != "FIH-x0439":
-            #     continue
-
-            refinement_script = os.path.join(Path().tmp_dir,
-                                             "{}.csh".format(crystal))
-            # produce refinement task
-            ref_task = QsubSuperposedRefinement(
-                            refinement_script=refinement_script,
-                            crystal=crystal,
-                            pdb=pdb,
-                            cif=cif,
-                            free_mtz=mtz,
-                            refinement_script_dir=Path().tmp_dir,
-                            extra_params="NCYC=50",
-                            out_dir=Path().refinement_dir,
-                            output_csv=Path().convergence_refinement_failures)
-
-            # add to list of refienement tasks
-            refinement_tasks.append(ref_task)
-
-        return refinement_tasks
-
-class BatchRefinement(luigi.Task):
-
-    """
-    Batch Refinement for non-superposed refmac refinement
-    """
-
-    output_csv = luigi.Parameter()
-    refinement_type = luigi.Parameter()
-    out_dir = luigi.Parameter()
-
-    def output(self):
-        #return None
-        return luigi.LocalTarget(self.output_csv)
-
-    def requires(self):
-        """
-        Batch of QsubRefinement tasks
-
-        Returns
-        -------
-        refinement_tasks: list of Luigi.Tasks
-            list of QSubRefinement tasks
-        """
-        # Read crystal/refinement table csv
-        df = pd.read_csv(Path().log_pdb_mtz)
-
-        # Replace Nans with empty strings,
-        # used to allow luigi.Parameters
-        df = df.replace(np.nan, '', regex=True)
-
-        # Loop over crystal/refienemnt table csv
-        refinement_tasks = []
-        for i in df.index:
-            cif = df.at[i, 'cif']
-            pdb = df.at[i, 'pdb_latest']
-            mtz = df.at[i, 'mtz_free']
-            crystal = df.at[i, 'crystal_name']
-
-            #Cheat to allow run on single folder
-            # if crystal != "SERC-x0124":
-            #     continue
-
-            refinement_script = os.path.join(Path().tmp_dir,
-                                             "{}_{}.csh".format(crystal, self.refinement_type))
-            # produce refinement task
-            ref_task = QsubRefinement(
-                            refinement_script=refinement_script,
-                            crystal=crystal,
-                            pdb=pdb,
-                            cif=cif,
-                            free_mtz=mtz,
-                            refinement_script_dir=Path().tmp_dir,
-                            out_dir=self.out_dir,
-                            refinement_type=self.refinement_type,
-                            output_csv=self.output_csv)
-
-            # add to list of refienement tasks
-            refinement_tasks.append(ref_task)
-
-        return refinement_tasks
 
 class StateOccupancyToCsv(luigi.Task):
 
@@ -1356,6 +1468,23 @@ class StateOccupancyToCsv(luigi.Task):
         state_occupancies(occ_conv_csv=self.occ_conv_csv,
                           occ_correct_csv=self.occ_correct_csv)
 
+class ConvergenceStateByRefinementType(luigi.Task):
+
+    occ_csv = luigi.Parameter()
+    occ_conv_state_csv = luigi.Parameter()
+    refinement_type = luigi.Parameter()
+
+    def output(self):
+        return luigi.LocalTarget(self.occ_conv_state_csv)
+
+    def requires(self):
+        RefinementFolderToCsv(output_csv=self.occ_csv,
+                              input_folder=Path().bound_refinement_dir),
+
+    def run(self):
+        convergence_state_by_refinement_type(occ_csv=self.occ_csv,
+                                             occ_conv_state_csv=self.occ_conv_state_csv,
+                                             refinement_type=self.refinement_type)
 
 if __name__ == '__main__':
 
@@ -1364,7 +1493,7 @@ if __name__ == '__main__':
 
     # luigi.build([BatchSuperposedRefinement(),
     #
-    #              RefinementFolderToCsv(out_csv=Path().convergence_refinement,
+    #              SuperposedRefinementFolderToCsv(out_csv=Path().convergence_refinement,
     #                                    input_folder=Path().refinement_dir),
     #
     #              OccFromLog(log_pdb_mtz_csv=Path().convergence_refinement,
@@ -1441,13 +1570,30 @@ if __name__ == '__main__':
     #             ],
     #             local_scheduler=False, workers=20)
 
+
+    # For bound state refinement
+
     luigi.build([BatchRefinement(
-        out_dir="/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/"\
-                 "bound_refinement",
-        output_csv="/dls/science/groups/i04-1/elliot-dev/Work/"\
-                    "exhaustive_parse_xchem_db/bound_refmac.csv",
-        refinement_type="bound")],
-    local_scheduler=True, workers=20)
+        out_dir=Path().bound_refinement_dir,
+        output_csv=Path().bound_refinement_batch_csv,
+        refinement_type="bound"),
+
+        # Needed refactoring
+        RefinementFolderToCsv(output_csv=Path().bound_refinement,
+                              input_folder=Path().bound_refinement_dir),
+
+        OccFromLog(log_pdb_mtz_csv=Path().bound_refinement,
+                   log_occ_csv=Path().bound_occ),
+
+        #Needed refactoring into new task
+        ConvergenceStateByRefinementType(occ_csv=Path().bound_occ,
+                                         occ_conv_state_csv=Path().bound_occ_conv_state,
+                                         refinement_type="bound")
+
+    ],
+
+    local_scheduler=False, workers=20)
+
 
 
     # luigi.build([PlottingOccHistogram(),

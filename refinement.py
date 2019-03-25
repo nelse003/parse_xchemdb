@@ -3,6 +3,7 @@ import glob
 import subprocess
 import shutil
 import ast
+import pandas as pd
 
 from parse_xchemdb import smiles_from_crystal
 
@@ -1221,4 +1222,39 @@ def state_occupancies(occ_conv_csv, occ_correct_csv):
     occ_correct_df = pd.concat(pdb_df_list)
     occ_correct_df.to_csv(occ_correct_csv)
 
+# TODO Split state_occupancies into below function and second function, split associated task
 
+def convergence_state_by_refinement_type(occ_csv, occ_conv_state_csv, refinement_type):
+
+    """
+    Add convergence and occupancy and state to csv which has at least convergence columns
+
+    Parameters
+    ----------
+    occ_csv: str
+        Path to input csv which contains occupancy, but not necessarily
+    occ_conv_csv: str
+        Path to output csv
+    refinement_type: str
+        "bound" or "ground"
+
+    Returns
+    -------
+
+    """
+    occ_df = pd.read_csv(occ_csv)
+
+    int_cols = []
+    for col in occ_df.columns.values:
+        try:
+            int_cols.append(int(col))
+        except ValueError:
+            continue
+    str_cols = list(map(str, int_cols))
+    df = occ_df[str_cols]
+
+    occ_df['state'] = refinement_type
+    occ_df['converge'] = abs(df[str_cols[-1]] / df[str_cols[-2]] - 1)
+    occ_df['state occupancy'] = df[str_cols[-1]]
+
+    occ_df.to_csv(occ_conv_state_csv)

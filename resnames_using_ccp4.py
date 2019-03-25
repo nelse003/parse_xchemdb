@@ -54,8 +54,6 @@ def update_from_pdb(pdb_df):
     # read into iotbx.selection cache
     sel_cache = pdb_in.hierarchy.atom_selection_cache()
 
-    print(pdb)
-
     # loop over rows/ residues
     rows = []
     for index, row in pdb_df.iterrows():
@@ -171,7 +169,6 @@ def main():
                         help="output csv with log info and resnames",
                         type=str)
     args = parser.parse_args()
-
 
     get_resname_for_log_occ(args.log_occ_csv, args.log_occ_resname_csv)
 
