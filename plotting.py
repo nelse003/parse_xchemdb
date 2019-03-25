@@ -71,8 +71,9 @@ def plot_histogram_collection_bin(data,
     plt.ylabel(ylabel)
 
     fig.tight_layout()
-    plt.savefig(file_path)
+    plt.savefig(file_path, dpi=300)
     plt.close()
+
 
 def refinement_summary_plot(refinement_csv, out_file_path):
 
@@ -133,7 +134,7 @@ def ground_state_occupancy_histogram(occ_correct_csv, plot_path):
     plt.title("Ground State: {} datasets".format(len(ground_df)))
 
     plt.hist(ground_df['state occupancy'], bins=100)
-    plt.savefig(plot_path)
+    plt.savefig(plot_path, dpi=300)
     plt.close()
 
 
@@ -170,8 +171,9 @@ def bound_state_occ_histogram(occ_correct_csv, plot_path):
     plt.title("Bound State: {} datasets".format(len(bound_df)))
 
     plt.hist(bound_df['state occupancy'], bins=100)
-    plt.savefig(plot_path)
+    plt.savefig(plot_path, dpi=300)
     plt.close()
+
 
 def occupancy_vs_convergence(occ_correct_csv, plot_path):
     """
@@ -198,10 +200,11 @@ def occupancy_vs_convergence(occ_correct_csv, plot_path):
     plt.xlabel("Occupancy")
     plt.ylabel('Convergence ratio between ' \
                'last two point |x(n)/x(n-1)-1|')
-    plt.savefig(plot_path)
+    plt.savefig(plot_path, dpi=300)
     plt.close()
 
-def convergence_ratio_histogram(occ_corect_csv, plot_path):
+
+def convergence_ratio_histogram(occ_correct_csv, plot_path):
 
     """
     Plot convergence ratio of occupancy
@@ -221,6 +224,10 @@ def convergence_ratio_histogram(occ_corect_csv, plot_path):
 
     occ_correct_df = pd.read_csv(occ_correct_csv)
 
+    # Select out bound state residues
+    ground_df = occ_correct_df.loc[
+        (occ_correct_df['state'] == 'ground')]
+
     # Drop to unique occuopancies for each pdb
     ground_df = ground_df[['state occupancy', 'pdb_latest']]
     ground_df = ground_df.drop_duplicates()
@@ -232,8 +239,3 @@ def convergence_ratio_histogram(occ_corect_csv, plot_path):
                                       len(ground_df)),
                                   xlabel='Convergence ratio between ' \
                                          'last two point |x(n)/x(n-1)-1|')
-
-
-
-
-

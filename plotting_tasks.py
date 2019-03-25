@@ -1,74 +1,163 @@
 import luigi
 from luigi.util import requires
 
+import luigi_parsing
+
 from plotting import refinement_summary_plot
 from plotting import ground_state_occupancy_histogram
 from plotting import bound_state_occ_histogram
 from plotting import occupancy_vs_convergence
 from plotting import convergence_ratio_histogram
 
-class PlotConvergenceHistogram(luigi.Task):
-    """Task to plot histogram of convergence ratios
+class PlotOccCorrect(luigi.Task):
+
+    # TODO Consider using decorator @requires(StateOccupancyToCsv)
+
+    # TODO Consder making requires more broad,
+    #      allowing any task with sufficient columns
+    #      in output table?
+
+    # TODO Test
+
+    """
+    Base Class for plotting functions using occ_correct_csv
+
+    Attributes
+    ----------
+    log_occ_resname: luigi.Parameter()
+    occ_conv_csv: luigi.Parameter()
+    occ_correct_csv: luigi.Parameter()
+    log_pdb_mtz: luigi.Parameter()
+    plot_path: luigi.Parameter()
+        path to plot file to be plotted
 
     Methods
     --------
     requires()
-        csv with convergence of occupancies
+        Needs StateOccupancyToCsv.
     output()
-        plot file path
+        path to plot
     run()
-        plotting from csv
+        runs the supplied plot_function
+
+    Notes
+    -----
+    Cannot pass a function as a luigi parameter, so using inheritance.
+    functions below can use this base class
+
+        convergence_ratio_histogram()
+        occupancy_vs_convergence()
+        bound_state_occ_histogram()
+        ground_state_occupancy_histogram()
+        
+    These are below as:
+    
+        PlotConvergenceHistogram(PlotOccCorrect)
+        PlotOccConvScatter(PlotOccCorrect)
+        PlotBoundOccHistogram(PlotOccCorrect)
+        PlotGroundOccHistogram(PlotOccCorrect)
     """
-    plot_path = luigi.Parameter()
-    log_labelled_csv = luigi.Parameter()
+
+    log_occ_resname = luigi.Parameter()
     occ_conv_csv = luigi.Parameter()
     occ_correct_csv = luigi.Parameter()
     log_pdb_mtz = luigi.Parameter()
 
+    plot_path = luigi.Parameter()
+
     def requires(self):
-        StateOccupancyToCsv(log_labelled_csv=Path().convergence_occ_resname,
-                            occ_conv_csv=Path().convergence_occ_conv,
-                            log_pdb_mtz=Path().convergence_refinement,
-                            occ_correct_csv=Path().convergence_occ_correct)
+        luigi_parsing.StateOccupancyToCsv(log_occ_resname=self.log_occ_resname,
+                                          occ_conv_csv=self.occ_conv_csv,
+                                          log_pdb_mtz=self.log_pdb_mtz,
+                                          occ_correct_csv=self.occ_correct_csv)
 
     def output(self):
         return luigi.LocalTarget(self.plot_path)
 
+
+class PlotConvergenceHistogram(PlotOccCorrect):
+    """
+    Plots a histogram of convergence ratio:
+
+    Notes
+    ------
+    Subclass of PlotOccCorrect, requires
+
+    log_occ_resname: luigi.Parameter()
+    occ_conv_csv: luigi.Parameter()
+    occ_correct_csv: luigi.Parameter()
+    log_pdb_mtz: luigi.Parameter()
+    plot_path: luigi.Parameter()
+        path to plot file to be plotted
+
+    """
     def run(self):
         convergence_ratio_histogram(occ_correct_csv=self.occ_correct_csv,
-                                         plot_path=self.plot_path)
+                                    plot_path=self.plot_path)
 
 
-class PlotOccConvScatter(luigi.Task):
-    """Task to plot scatter of occupancy vs convergence
-
-    Methods
-    --------
-    requires()
-        csv with convergence of occupancies
-    output()
-        plot file path
-    run()
-        plotting from csv
+class PlotOccConvScatter(PlotOccCorrect):
     """
-    plot_path = luigi.Parameter()
-    log_labelled_csv = luigi.Parameter()
-    occ_conv_csv = luigi.Parameter()
-    occ_correct_csv = luigi.Parameter()
-    log_pdb_mtz = luigi.Parameter()
+    Plots a scatter plot of convergence ratios occupancy:
 
-    def requires(self):
-        StateOccupancyToCsv(log_labelled_csv=Path().convergence_occ_resname,
-                            occ_conv_csv=Path().convergence_occ_conv,
-                            log_pdb_mtz=Path().convergence_refinement,
-                            occ_correct_csv=Path().convergence_occ_correct)
+    Notes
+    ------
+    Subclass of PlotOccCorrect, requires
 
-    def output(self):
-        return luigi.LocalTarget(self.plot_path)
+    log_occ_resname: luigi.Parameter()
+    occ_conv_csv: luigi.Parameter()
+    occ_correct_csv: luigi.Parameter()
+    log_pdb_mtz: luigi.Parameter()
+    plot_path: luigi.Parameter()
+        path to plot file to be plotted
 
+    """
     def run(self):
         occupancy_vs_convergence(occ_correct_csv=self.occ_correct_csv,
-                                         plot_path=self.plot_path)
+                                    plot_path=self.plot_path)
+
+
+class PlotGroundOccHistogram(PlotOccCorrect):
+    """
+    Plots a histogram of ground state occupancy:
+
+    Notes
+    ------
+    Subclass of PlotOccCorrect, requires
+
+    log_occ_resname: luigi.Parameter()
+    occ_conv_csv: luigi.Parameter()
+    occ_correct_csv: luigi.Parameter()
+    log_pdb_mtz: luigi.Parameter()
+    plot_path: luigi.Parameter()
+        path to plot file to be plotted
+
+    """
+    def run(self):
+        ground_state_occupancy_histogram(occ_correct_csv=self.occ_correct_csv,
+                                    plot_path=self.plot_path)
+
+
+class PlotBoundOccHistogram(PlotOccCorrect):
+    """
+    Plots a histogram of bound state occupancy:
+
+    Notes
+    ------
+    Subclass of PlotOccCorrect, requires
+
+    log_occ_resname: luigi.Parameter()
+    occ_conv_csv: luigi.Parameter()
+    occ_correct_csv: luigi.Parameter()
+    log_pdb_mtz: luigi.Parameter()
+    plot_path: luigi.Parameter()
+        path to plot file to be plotted
+
+    """
+    def run(self):
+        bound_state_occ_histogram(occ_correct_csv=self.occ_correct_csv,
+                                    plot_path=self.plot_path)
+
 
 class SummaryRefinementPlot(luigi.Task):
     """
@@ -94,67 +183,3 @@ class SummaryRefinementPlot(luigi.Task):
         refinement_summary_plot(refinement_csv=Path().refinement_summary,
                                 out_file_path=Path().refinement_summary_plot)
 
-
-class PlotGroundOccHistogram(luigi.Task):
-
-    """Task to plot histogram of ground occupancies
-
-    Methods
-    --------
-    requires()
-        csv with convergence of occupancies
-    output()
-        plot file path
-    run()
-        plotting from csv
-    """
-    plot_path = luigi.Parameter()
-    log_labelled_csv = luigi.Parameter()
-    occ_conv_csv = luigi.Parameter()
-    occ_correct_csv = luigi.Parameter()
-    log_pdb_mtz = luigi.Parameter()
-
-    def requires(self):
-        StateOccupancyToCsv(log_labelled_csv=Path().convergence_occ_resname,
-                            occ_conv_csv=Path().convergence_occ_conv,
-                            log_pdb_mtz=Path().convergence_refinement,
-                            occ_correct_csv=Path().convergence_occ_correct)
-
-    def output(self):
-        return luigi.LocalTarget(self.plot_path)
-
-    def run(self):
-        ground_state_occupancy_histogram(occ_correct_csv=self.occ_correct_csv,
-                                         plot_path=self.plot_path)
-
-
-class PlotBoundOccHistogram(luigi.Task):
-    """Task to plot histogram of bound occupancies
-
-    Methods
-    --------
-    requires()
-        csv with convergence of occupancies
-    output()
-        plot file path
-    run()
-        plotting from csv
-    """
-    plot_path = luigi.Parameter()
-    log_labelled_csv = luigi.Parameter()
-    occ_conv_csv = luigi.Parameter()
-    occ_correct_csv = luigi.Parameter()
-    log_pdb_mtz = luigi.Parameter()
-
-    def requires(self):
-        StateOccupancyToCsv(log_labelled_csv=Path().convergence_occ_resname,
-                            occ_conv_csv=Path().convergence_occ_conv,
-                            log_pdb_mtz=Path().convergence_refinement,
-                            occ_correct_csv=Path().convergence_occ_correct)
-
-    def output(self):
-        return luigi.LocalTarget(self.plot_path)
-
-    def run(self):
-        bound_state_occ_histogram(occ_correct_csv=self.occ_correct_csv,
-                                  plot_path=self.plot_path)
