@@ -4,7 +4,7 @@ from luigi.util import requires
 import tasks
 
 from plotting import refinement_summary_plot
-from plotting import ground_state_occupancy_histogram
+from plotting import occupancy_histogram
 from plotting import bound_state_occ_histogram
 from plotting import occupancy_vs_convergence
 from plotting import convergence_ratio_histogram
@@ -132,8 +132,9 @@ class PlotGroundOccHistogram(PlotOccCorrect):
 
     """
     def run(self):
-        ground_state_occupancy_histogram(occ_correct_csv=self.occ_correct_csv,
-                                    plot_path=self.plot_path)
+        occupancy_histogram(occ_correct_csv=self.occ_correct_csv,
+                            plot_path=self.plot_path,
+                            state="ground")
 
 
 class PlotBoundOccHistogram(PlotOccCorrect):
@@ -153,8 +154,9 @@ class PlotBoundOccHistogram(PlotOccCorrect):
 
     """
     def run(self):
-        bound_state_occ_histogram(occ_correct_csv=self.occ_correct_csv,
-                                    plot_path=self.plot_path)
+        occupancy_histogram(occ_correct_csv=self.occ_correct_csv,
+                                  plot_path=self.plot_path,
+                                  state="bound")
 
 
 class SummaryRefinementPlot(luigi.Task):

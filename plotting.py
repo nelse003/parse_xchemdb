@@ -98,8 +98,7 @@ def refinement_summary_plot(refinement_csv, out_file_path):
     fig.subplots_adjust(bottom=0.2)
     fig.savefig(out_file_path, dpi=300)
 
-
-def ground_state_occupancy_histogram(occ_correct_csv, plot_path):
+def occupancy_histogram(occ_correct_csv, plot_path, state):
 
     """
     Plot ground state occupancy histogram
@@ -111,6 +110,8 @@ def ground_state_occupancy_histogram(occ_correct_csv, plot_path):
         for each residue involved in complete groups
     plot_path : str
         path to plot
+    state: str
+        "bound" or "ground"
 
     Returns
     -------
@@ -119,61 +120,44 @@ def ground_state_occupancy_histogram(occ_correct_csv, plot_path):
 
     occ_correct_df = pd.read_csv(occ_correct_csv)
 
-    # Select out bound state residues
-    ground_df = occ_correct_df.loc[
-        (occ_correct_df['state'] == 'ground')]
-
-    # Drop to unique occuopancies for each pdb
-    ground_df = ground_df[['state occupancy', 'pdb_latest']]
-    ground_df = ground_df.drop_duplicates()
+    # Select out residues corresponding to the state: "ground" or "bound"
+    state_df = get_state_df(occ_correct_df=occ_correct_df, state=state)
 
     fig, ax = plt.subplots()
     ax.grid(False)
     plt.xlabel("Occupancy")
     plt.ylabel("Frequncy")
-    plt.title("Ground State: {} datasets".format(len(ground_df)))
+    plt.title("{} state: {} datasets".format(len(state_df), state.capitalize()))
 
-    plt.hist(ground_df['state occupancy'], bins=100)
+    plt.hist(state_df['state occupancy'], bins=100)
     plt.savefig(plot_path, dpi=300)
     plt.close()
 
-
-def bound_state_occ_histogram(occ_correct_csv, plot_path):
+def get_state_df(occ_correct_df, state):
 
     """
-    Plot bound state occupancy histogram
+    Strip down to state occupancy and pdb, split into "bound" or "ground"
 
     Parameters
     ----------
-    occ_conv_csv : str
-        path to csv with occupancy convergence information
-        for each residue involved in complete groups
-    plot_path : str
-        path to plot
+    state: str
+        "bound" or "ground"
+    occ_correct_df: pandas.DataFrame
+        dataframe that contains occupancy for
 
     Returns
     -------
-    None
-    """
-    occ_correct_df = pd.read_csv(occ_correct_csv)
 
-    # Select out bound state residues
-    bound_df = occ_correct_df.loc[
-        (occ_correct_df['state'] == 'bound')]
+    """
+
+    state_df = occ_correct_df.loc[
+        (occ_correct_df['state'] == state)]
 
     # Drop to unique occuopancies for each pdb
-    bound_df = bound_df[['state occupancy','pdb_latest']]
-    bound_df = bound_df.drop_duplicates()
+    state_df = state_df[['state occupancy', 'pdb_latest']]
+    state_df = state_df.drop_duplicates()
 
-    fig, ax = plt.subplots()
-    plt.xlabel("Occupancy")
-    plt.ylabel("Frequncy")
-    plt.title("Bound State: {} datasets".format(len(bound_df)))
-
-    plt.hist(bound_df['state occupancy'], bins=100)
-    plt.savefig(plot_path, dpi=300)
-    plt.close()
-
+    return state_df
 
 def occupancy_vs_convergence(occ_correct_csv, plot_path):
     """
@@ -224,13 +208,7 @@ def convergence_ratio_histogram(occ_correct_csv, plot_path):
 
     occ_correct_df = pd.read_csv(occ_correct_csv)
 
-    # Select out bound state residues
-    ground_df = occ_correct_df.loc[
-        (occ_correct_df['state'] == 'ground')]
-
-    # Drop to unique occuopancies for each pdb
-    ground_df = ground_df[['state occupancy', 'pdb_latest']]
-    ground_df = ground_df.drop_duplicates()
+    ground_df = get_state_df(occ_correct_df=occ_correct_df, state="ground")
 
     plot_histogram_collection_bin(data=occ_correct_df['converge'],
                                   file_path=plot_path,

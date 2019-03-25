@@ -164,11 +164,7 @@ def get_state_comment(pdb_df):
                                                   axis=1)
 
             # If a complete group contains only ground state add comment
-            if unique_states[0] == "ground":
-
-                # TODO Cases where might also contain LIG not present,
-                #  such as NUDT7A_Crude-x2116 where ligand seems to be FRG
-
+            elif unique_states[0] == "ground":
                 pdb_df['comment'] = pdb_df.apply(func=comment_cg,
                                                  complete_group=complete_group,
                                                  comment="All ground state",
