@@ -2,12 +2,12 @@ import luigi
 
 from path_config import Path
 
-from luigi_parsing import BatchSuperposedRefinement
-from luigi_parsing import SuperposedRefinementFolderToCsv
-from luigi_parsing import OccFromLog
-from luigi_parsing import ResnameToOccLog
-from luigi_parsing import OccConvergence
-from luigi_parsing import StateOccupancyToCsv
+from tasks import BatchSuperposedRefinement
+from tasks import SuperposedRefinementFolderToCsv
+from tasks import OccFromLog
+from tasks import ResnameToOccLog
+from tasks import OccConvergence
+from tasks import StateOccupancyToCsv
 
 from plotting_tasks import PlotConvergenceHistogram
 from plotting_tasks import PlotBoundOccHistogram
@@ -64,63 +64,31 @@ if __name__ == '__main__':
                                           occ_correct_csv=Path().convergence_occ_correct,
                                           log_pdb_mtz=Path().convergence_refinement,
                                           plot_path=Path().convergence_conv_hist)
-    #
                  ],
                 local_scheduler=False, workers=20)
 
-    # This is a builf dfor the single bound and ground refinments in refmac
 
-    # luigi.build([PrepareRefinement(crystal = "SERC-x0124",
-    #                  pdb="/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/" \
-    #                                "convergence_refinement/SERC-x0124/input.pdb",
-    #                   cif="/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/" \
-    #                         "convergence_refinement/SERC-x0124/input.cif",
-    #                   out_dir="/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/"\
-    #                           "ground_refinement",
-    #                   refinement_script_dir = "/dls/science/groups/i04-1/"\
-    #                                         "elliot-dev/Work/exhaustive_parse_xchem_db/tmp",
-    #                   free_mtz = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/" \
-    #                              "convergence_refinement/SERC-x0124/input.mtz",
-    #                   type="ground"),
-    #
-    #             QsubRefinement(refinement_script="SERC-x0124_ground.csh",
-    #                            crystal="SERC-x0124",
-    #                            pdb="/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/" \
-    #                                "convergence_refinement/SERC-x0124/input.pdb",
-    #                            cif="/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/" \
-    #                                "convergence_refinement/SERC-x0124/input.cif",
-    #                            out_dir = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/" \
-    #                                          "ground_refinement",
-    #                            refinement_script_dir = "/dls/science/groups/i04-1/" \
-    #                                "elliot-dev/Work/exhaustive_parse_xchem_db/tmp",
-    #                            free_mtz = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/" \
-    #                            "convergence_refinement/SERC-x0124/input.mtz",
-    #                            type="ground")
-    #             ],
-    #             local_scheduler=False, workers=20)
+    # For REFMAC5 bound state refinement
 
+    luigi.build([BatchRefinement(
+        out_dir=Path().bound_refinement_dir,
+        output_csv=Path().bound_refinement_batch_csv,
+        refinement_type="bound"),
 
-    # For bound state refinement
+        # Needed refactoring
+        RefinementFolderToCsv(output_csv=Path().bound_refinement,
+                              input_folder=Path().bound_refinement_dir),
 
-    # luigi.build([BatchRefinement(
-    #     out_dir=Path().bound_refinement_dir,
-    #     output_csv=Path().bound_refinement_batch_csv,
-    #     refinement_type="bound"),
-    #
-    #     # Needed refactoring
-    #     RefinementFolderToCsv(output_csv=Path().bound_refinement,
-    #                           input_folder=Path().bound_refinement_dir),
-    #
-    #     OccFromLog(log_pdb_mtz_csv=Path().bound_refinement,
-    #                log_occ_csv=Path().bound_occ),
-    #
-    #     #Needed refactoring into new task
-    #     ConvergenceStateByRefinementType(occ_csv=Path().bound_occ,
-    #                                      occ_conv_state_csv=Path().bound_occ_conv_state,
-    #                                      refinement_type="bound")
-    #
-    # ],
-    # local_scheduler=False, workers=20)
+        OccFromLog(log_pdb_mtz_csv=Path().bound_refinement,
+                   log_occ_csv=Path().bound_occ),
+
+        #Needed refactoring into new task
+        ConvergenceStateByRefinementType(occ_csv=Path().bound_occ,
+                                         occ_conv_state_csv=Path().bound_occ_conv_state,
+                                         refinement_type="bound")
+
+    ],
+    local_scheduler=False, workers=20)
 
 
     # luigi.build([PlottingOccHistogram(),

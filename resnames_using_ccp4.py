@@ -33,11 +33,15 @@ def update_progress(progress):
 
 def update_from_pdb(pdb_df):
     """
-    Carries out cctbx.iotbx depdendent, find resname and B factors
+    Find residue name, B factors given DataFrame with chain, residue id and altloc
+
+    Carries out cctbx.iotbx depdendent searching of pdb file.
+    Requires a dataframe where the row has at least,
+        pdb_latest: The
 
     Parameters
     ----------
-    pdb_df
+    pdb_df: Pandas.DataFrame
 
     Returns
     -------

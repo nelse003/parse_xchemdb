@@ -16,8 +16,9 @@ from parse_xchemdb import get_table_df
 from parse_xchemdb import drop_only_dimple_processing
 from parse_xchemdb import drop_pdb_not_in_filesystem
 
-from convergence import get_occ_from_log
-from convergence import convergence_to_csv
+from parse_refmac_logs import get_occ_from_log
+
+from annotate_ligand_state import annotate_csv_with_state_comment
 
 from refinement import prepare_superposed_refinement
 from refinement_summary import refinement_summary
@@ -555,8 +556,8 @@ class OccConvergence(luigi.Task):
 
 
     def run(self):
-        convergence_to_csv(self.log_occ_resname,
-                           self.occ_conv_csv)
+        annotate_csv_with_state_comment(self.log_occ_resname,
+                                        self.occ_conv_csv)
 
 
 class SummaryRefinement(luigi.Task):

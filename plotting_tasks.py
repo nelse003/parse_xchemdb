@@ -1,7 +1,7 @@
 import luigi
 from luigi.util import requires
 
-import luigi_parsing
+import tasks
 
 from plotting import refinement_summary_plot
 from plotting import ground_state_occupancy_histogram
@@ -64,10 +64,10 @@ class PlotOccCorrect(luigi.Task):
     plot_path = luigi.Parameter()
 
     def requires(self):
-        luigi_parsing.StateOccupancyToCsv(log_occ_resname=self.log_occ_resname,
-                                          occ_conv_csv=self.occ_conv_csv,
-                                          log_pdb_mtz=self.log_pdb_mtz,
-                                          occ_correct_csv=self.occ_correct_csv)
+        tasks.StateOccupancyToCsv(log_occ_resname=self.log_occ_resname,
+                                  occ_conv_csv=self.occ_conv_csv,
+                                  log_pdb_mtz=self.log_pdb_mtz,
+                                  occ_correct_csv=self.occ_correct_csv)
 
     def output(self):
         return luigi.LocalTarget(self.plot_path)
