@@ -75,6 +75,7 @@ class PrepareRefinement(luigi.Task):
     free_mtz = luigi.Parameter()
     refinement_type = luigi.Parameter()
     output_csv = luigi.Parameter()
+    script_dir = luigi.Parameter()
 
     def requires(self):
 
@@ -108,6 +109,7 @@ class PrepareRefinement(luigi.Task):
                            ncyc=50,
                            out_dir=self.out_dir,
                            refinement_type=self.refinement_type,
+                           script_dir=self.script_dir,
                            refinement_script_dir=self.refinement_script_dir,
                            ccp4_path="/dls/science/groups/i04-1/" \
                              "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/" \

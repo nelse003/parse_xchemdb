@@ -98,7 +98,7 @@ luigi.build([
 test_paths.convergence_refinement_failures = os.path.join(out_dir,
                             'convergence_refinement_failures.csv')
 
-test_paths.refinement_dir = os.path.join(out_dir, "bound_refinement")
+test_paths.refinement_dir = os.path.join(out_dir, "convergence_refinement")
 
 test_paths.tmp_dir = os.path.join(out_dir, "tmp")
 
@@ -175,7 +175,19 @@ luigi.build([
 
 # Generate new unconstrained refinements REFMAC5
 
-luigi.build([])
+test_paths.bound_refinement_dir = os.path.join(out_dir, "bound_refinement")
+test_paths.bound_refinement_batch_csv = os.path.join(out_dir,'bound_refmac.csv')
+test_paths.bound_refinement = os.path.join(out_dir, 'bound_refinement_log_pdb_mtz.csv')
+
+luigi.build([
+    # Calls BatchRefinement
+    RefinementFolderToCsv(refinement_csv=test_paths.bound_refinement,
+                          output_csv=test_paths.bound_refinement_batch_csv,
+                          out_dir=test_paths.bound_refinement_dir,
+                          tmp_dir=test_paths.tmp_dir,
+                          log_pdb_mtz_csv=test_paths.log_pdb_mtz,
+                          refinement_type="bound")
+])
 
 
 # Generate new unconstrained refinements phenix

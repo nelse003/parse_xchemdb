@@ -39,7 +39,9 @@ class BatchRefinement(luigi.Task):
 
     log_pdb_mtz_csv: luigi.Parameter()
         summary csv contianing at least path to pdb, mtz
-        and refinement log file
+        and refinement log file.
+        This needs to exist before the batch refinement,
+        not be written by it
 
     out_dir: luigi.Parameter()
         output directory
@@ -65,6 +67,7 @@ class BatchRefinement(luigi.Task):
     out_dir = luigi.Parameter()
     tmp_dir = luigi.Parameter(default=Path().tmp_dir)
     extra_params = luigi.Parameter(default="NCYC=50", significant=False)
+    script_dir = luigi.Parameter(default=Path().script_dir)
 
     def output(self):
         return luigi.LocalTarget(self.output_csv)
@@ -77,6 +80,8 @@ class BatchRefinement(luigi.Task):
         -------
         refinement_tasks: list of Luigi.Tasks
         """
+        if not os.path.isdir(self.out_dir):
+            os.makedirs(self.out_dir)
 
         # Read crystal/refinement table csv
         df = pd.read_csv(self.log_pdb_mtz_csv)
@@ -112,6 +117,7 @@ class BatchRefinement(luigi.Task):
                                 refinement_script=refinement_script,
                                 refinement_script_dir=self.tmp_dir,
                                 out_dir=self.out_dir,
+                                script_dir=self.script_dir,
                                 refinement_type=self.refinement_type,
                                 output_csv=self.output_csv)
 

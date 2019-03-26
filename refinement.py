@@ -395,8 +395,9 @@ def write_refmac_csh(pdb,
                      mtz,
                      out_dir,
                      refinement_script_dir,
+                     script_dir,
                      ncyc=50,
-                     type=None,
+                     refinement_type=None,
                      ccp4_path="/dls/science/groups/i04-1/" \
                                "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/"\
                                "ccp4.setup-sh"):
@@ -421,6 +422,8 @@ def write_refmac_csh(pdb,
         path to output directory
     refinement_script_dir: str
         path to directory where csh files will be written
+    refinement_type: str
+        type of refinement
 
     Returns
     -------
@@ -435,17 +438,17 @@ def write_refmac_csh(pdb,
     pbs_line = '#PBS -joe -N \n'
 
     if "bound" in pdb:
-        type = "bound"
+        refinement_type = "bound"
     elif "ground" in pdb:
-        type = "ground"
+        refinement_type = "ground"
     else:
-        type = ""
+        refinement_type = ""
 
     # get name of pdb after giant.split_conformations
-    if type == "bound":
+    if refinement_type == "bound":
         pdb_dir = os.path.dirname(pdb)
         pdb = os.path.join(pdb_dir, "input.split.bound-state.pdb")
-    elif type == "ground":
+    elif refinement_type == "ground":
         pdb_dir = os.path.dirname(pdb)
         pdb = os.path.join(pdb_dir, "input.split.ground-state.pdb")
 
@@ -453,12 +456,13 @@ def write_refmac_csh(pdb,
     occ_group = get_occ_groups(tmp_dir=refinement_script_dir,
                                crystal=crystal,
                                pdb=pdb,
+                               script_dir=script_dir,
                                ccp4_path=ccp4_path)
 
     out_mtz = os.path.join(out_dir, "refine.mtz")
     out_pdb = os.path.join(out_dir, "refine.pdb")
     out_cif = os.path.join(out_dir, "refine.cif")
-    log = os.path.join(out_dir, "refmac.log".format(type))
+    log = os.path.join(out_dir, "refmac.log".format(refinement_type))
 
     source = "source {}".format(ccp4_path)
 
@@ -523,7 +527,7 @@ labout  FC=FC FWT=FWT PHIC=PHIC PHWT=PHWT DELFWT=DELFWT PHDELWT=PHDELWT FOM=FOM"
             )
 
     # File location and name
-    csh_file = os.path.join(refinement_script_dir, "{}_{}.csh".format(crystal, type))
+    csh_file = os.path.join(refinement_script_dir, "{}_{}.csh".format(crystal, refinement_type))
 
     # Write file
     cmd = open(csh_file, 'w')
@@ -901,6 +905,7 @@ def lig_pos_to_occupancy_refinement_string(lig_pos):
 def get_occ_groups(tmp_dir,
                    crystal,
                    pdb,
+                   script_dir,
                    ccp4_path):
     """
     Get occupancy groups from pdb by calling ligand.py
@@ -929,7 +934,8 @@ def get_occ_groups(tmp_dir,
     tmp_file = os.path.join(tmp_dir, "lig_pos_tmp_{}.txt".format(crystal))
     source = "source {}".format(ccp4_path)
     os.system(source)
-    os.system("ccp4-python ligand.py {} {}".format(pdb, tmp_file))
+    ligand_py = os.path.join(script_dir, "ccp4/ligand.py")
+    os.system("ccp4-python {} {} {}".format(ligand_py, pdb, tmp_file))
     with open(tmp_file) as f:
         lig_pos = f.read()
     os.remove(tmp_file)
@@ -949,6 +955,7 @@ def prepare_refinement(pdb,
                        out_dir,
                        refinement_script_dir,
                        refinement_type,
+                       script_dir,
                        ccp4_path="/dls/science/groups/i04-1/" \
                                "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/" \
                                "ccp4.setup-sh"):
@@ -1019,7 +1026,8 @@ def prepare_refinement(pdb,
                      out_dir=input_dir,
                      refinement_script_dir=refinement_script_dir,
                      ncyc=ncyc,
-                     type=refinement_type,
+                     script_dir=script_dir,
+                     refinement_type=refinement_type,
                      ccp4_path=ccp4_path)
 
 
