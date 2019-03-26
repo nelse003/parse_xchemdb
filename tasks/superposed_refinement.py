@@ -64,20 +64,17 @@ class PrepareSuperposedRefinement(luigi.Task):
     extra_params = luigi.Parameter()
     free_mtz = luigi.Parameter()
     output_csv = luigi.Parameter()
-
-    def requires(self):
-        return ParseXchemdbToCsv()
+    refinement_script = luigi.Parameter()
+    refinement_type = luigi.Parameter()
 
     def output(self):
-
-        ref_script = os.path.join(self.refinement_script_dir,
-                     '{}.csh'.format(self.crystal))
-        return luigi.LocalTarget(ref_script)
+        return luigi.LocalTarget(self.refinement_script)
 
 
     def run(self):
         prepare_superposed_refinement(crystal=self.crystal,
                                       pdb=self.pdb,
+                                      refinement_type=self.refinement_type,
                                       cif=self.cif,
                                       out_dir=self.out_dir,
                                       refinement_script_dir=self.refinement_script_dir,
@@ -96,7 +93,7 @@ class ConvergenceStateByRefinementType(luigi.Task):
 
     def requires(self):
         RefinementFolderToCsv(output_csv=self.occ_csv,
-                              input_folder=Path().bound_refinement_dir),
+                              input_folder=self.bound_refinement_dir),
 
     def run(self):
         convergence_state_by_refinement_type(occ_csv=self.occ_csv,

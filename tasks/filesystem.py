@@ -1,6 +1,8 @@
+import luigi
+
 from path_config import Path
 from refinement import get_most_recent_quick_refine
-from tasks import BatchRefinement
+import tasks.batch_refinement
 
 
 class RefinementFolderToCsv(luigi.Task):
@@ -26,9 +28,10 @@ class RefinementFolderToCsv(luigi.Task):
     refinement_type = luigi.Parameter()
 
     def requires(self):
-        return BatchRefinement(out_dir=Path().bound_refinement_dir,
-                               output_csv=Path().bound_refinement_batch_csv,
-                               refinement_type=self.refinement_type)
+        return batch_refinement.BatchRefinement(
+            out_dir=Path().bound_refinement_dir,
+            output_csv=Path().bound_refinement_batch_csv,
+            refinement_type=self.refinement_type)
 
     def output(self):
         return luigi.LocalTarget(self.output_csv)

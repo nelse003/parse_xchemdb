@@ -2,7 +2,7 @@ import subprocess
 import os
 
 
-def run_qstat(self):
+def run_qstat():
     """
     Qstat wrapped to return output queue
 

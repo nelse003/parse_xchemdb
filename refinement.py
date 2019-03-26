@@ -396,6 +396,7 @@ def write_refmac_csh(pdb,
                      out_dir,
                      refinement_script_dir,
                      ncyc=50,
+                     type=None,
                      ccp4_path="/dls/science/groups/i04-1/" \
                                "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/"\
                                "ccp4.setup-sh"):
@@ -454,9 +455,9 @@ def write_refmac_csh(pdb,
                                pdb=pdb,
                                ccp4_path=ccp4_path)
 
-    out_mtz = os.path.join(out_dir, "refine_{}.mtz".format(type))
-    out_pdb = os.path.join(out_dir, "refine_{}.pdb".format(type))
-    out_cif = os.path.join(out_dir, "refine_{}.cif".format(type))
+    out_mtz = os.path.join(out_dir, "refine.mtz")
+    out_pdb = os.path.join(out_dir, "refine.pdb")
+    out_cif = os.path.join(out_dir, "refine.cif")
     log = os.path.join(out_dir, "refmac.log".format(type))
 
     source = "source {}".format(ccp4_path)
@@ -539,6 +540,7 @@ def write_quick_refine_csh(refine_pdb,
                            out_dir,
                            refinement_script_dir,
                            refinement_program='refmac',
+                           refinement_type="superposed",
                            out_prefix="refine_",
                            dir_prefix="refine_",
                            ccp4_path="/dls/science/groups/i04-1/"\
@@ -591,7 +593,7 @@ def write_quick_refine_csh(refine_pdb,
     if os.getcwd().startswith('/dls'):
         module_load = 'module load phenix\n'
 
-    source = "source {}".foramt(ccp4_path)
+    source = "source {}".format(ccp4_path)
 
     # Shell suitable string for csh file
     Cmds = (
@@ -627,12 +629,14 @@ def write_quick_refine_csh(refine_pdb,
     )
 
     # File location and name
-    csh_file = os.path.join(refinement_script_dir, "{}.csh".format(crystal))
+    csh_file = os.path.join(refinement_script_dir,
+                            "{}_{}.csh".format(crystal,refinement_type))
 
     # Write file
     cmd = open(csh_file, 'w')
     cmd.write(Cmds)
     cmd.close()
+
 
 def make_symlinks(input_dir, cif, pdb, params, free_mtz):
     """
@@ -694,6 +698,7 @@ def make_symlinks(input_dir, cif, pdb, params, free_mtz):
         input_mtz = None
 
     return input_cif, input_pdb, input_params, input_mtz
+
 
 def check_inputs(cif,
                  pdb,
@@ -795,6 +800,7 @@ def check_inputs(cif,
 
     return cif, params, free_mtz
 
+
 def smiles_to_cif_acedrg(smiles, out_file):
     """
     Run Acedrg with smiles to generate cif
@@ -851,6 +857,7 @@ def smiles_to_cif_acedrg(smiles, out_file):
     if os.path.isdir(tmp_folder):
         shutil.rmtree(tmp_folder)
 
+
 def lig_pos_to_occupancy_refinement_string(lig_pos):
     """
     Write occupancy refinement parameters for refmac single model
@@ -889,6 +896,7 @@ def lig_pos_to_occupancy_refinement_string(lig_pos):
                      'occupancy refine' + '\n'
 
     return refinement_str
+
 
 def get_occ_groups(tmp_dir,
                    crystal,
@@ -932,6 +940,7 @@ def get_occ_groups(tmp_dir,
 
     return occ_group
 
+
 def prepare_refinement(pdb,
                        crystal,
                        cif,
@@ -939,6 +948,7 @@ def prepare_refinement(pdb,
                        ncyc,
                        out_dir,
                        refinement_script_dir,
+                       refinement_type,
                        ccp4_path="/dls/science/groups/i04-1/" \
                                "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/" \
                                "ccp4.setup-sh"):
@@ -1009,6 +1019,7 @@ def prepare_refinement(pdb,
                      out_dir=input_dir,
                      refinement_script_dir=refinement_script_dir,
                      ncyc=ncyc,
+                     type=refinement_type,
                      ccp4_path=ccp4_path)
 
 
@@ -1017,6 +1028,7 @@ def prepare_superposed_refinement(crystal,
                               cif,
                               out_dir,
                               refinement_script_dir,
+                              refinement_type="superposed",
                               extra_params="NCYC=50",
                               free_mtz='',
                               params=''):
@@ -1216,6 +1228,7 @@ def prepare_superposed_refinement(crystal,
                            out_dir=input_dir,
                            refinement_script_dir=refinement_script_dir,
                            refinement_program='refmac',
+                           refinement_type=refinement_type,
                            out_prefix="refine_1",
                            dir_prefix="refine_")
 

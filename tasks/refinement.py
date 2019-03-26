@@ -95,10 +95,10 @@ class PrepareRefinement(luigi.Task):
 
     def output(self):
 
-        ref_script = os.path.join(self.refinement_script_dir,
+        refinement_script = os.path.join(self.refinement_script_dir,
                      '{}_{}.csh'.format(self.crystal, self.refinement_type))
 
-        return luigi.LocalTarget(ref_script)
+        return luigi.LocalTarget(refinement_script)
 
     def run(self):
         prepare_refinement(pdb=self.pdb,
@@ -107,6 +107,7 @@ class PrepareRefinement(luigi.Task):
                            mtz=self.free_mtz,
                            ncyc=50,
                            out_dir=self.out_dir,
+                           refinement_type=self.refinement_type,
                            refinement_script_dir=self.refinement_script_dir,
                            ccp4_path="/dls/science/groups/i04-1/" \
                              "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/" \

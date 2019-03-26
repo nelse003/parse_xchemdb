@@ -6,9 +6,10 @@ import numpy as np
 import pandas as pd
 
 from path_config import Path
-from tasks import PrepareSuperposedRefinement, PrepareRefinement
-from tasks.qsub import QsubSuperposedRefinement
 
+import tasks.refinement
+import tasks.superposed_refinement
+import tasks.qsub
 
 class BatchRefinement(luigi.Task):
 
@@ -59,7 +60,7 @@ class BatchRefinement(luigi.Task):
     https://github.com/xchem/formulatrix_pipe/blob/master/run_ranker.py
     """
     output_csv = luigi.Parameter()
-    log_pdb_mtz_csv = luig.Paramter(default=Path().log_pdb_mtz)
+    log_pdb_mtz_csv = luigi.Parameter(default=Path().log_pdb_mtz)
     refinement_type = luigi.Parameter()
     out_dir = luigi.Parameter()
     tmp_dir = luigi.Parameter(default=Path().tmp_dir)
@@ -97,16 +98,18 @@ class BatchRefinement(luigi.Task):
             #     continue
 
             refinement_script = os.path.join(self.tmp_dir,
-                                             "{}_{}.csh".format(crystal, self.refinement_type))
+                                             '{}_{}.csh'.format(crystal,
+                                                                self.refinement_type))
+
             # produce refinement task
             if self.refinement_type in ["bound","ground"]:
 
-                ref_task = QsubRefinement(
-                                refinement_script=refinement_script,
+                ref_task = tasks.qsub.QsubRefinement(
                                 crystal=crystal,
                                 pdb=pdb,
                                 cif=cif,
                                 free_mtz=mtz,
+                                refinement_script=refinement_script,
                                 refinement_script_dir=self.tmp_dir,
                                 out_dir=self.out_dir,
                                 refinement_type=self.refinement_type,
@@ -114,15 +117,16 @@ class BatchRefinement(luigi.Task):
 
             elif self.refinement_type == "superposed":
 
-                ref_task = QsubSuperposedRefinement(
-                            refinement_script=refinement_script,
+                ref_task = tasks.qsub.QsubSuperposedRefinement(
                             crystal=crystal,
                             pdb=pdb,
                             cif=cif,
                             free_mtz=mtz,
+                            refinement_script=refinement_script,
                             refinement_script_dir=self.tmp_dir,
                             extra_params=self.extra_params,
                             out_dir=Path().refinement_dir,
+                            refinement_type="superposed",
                             output_csv=self.output_csv)
 
             # add to list of refienement tasks
@@ -131,10 +135,10 @@ class BatchRefinement(luigi.Task):
         return refinement_tasks
 
 
-@PrepareSuperposedRefinement.event_handler(luigi.Event.FAILURE)
-@QsubSuperposedRefinement.event_handler(luigi.Event.FAILURE)
-@PrepareRefinement.event_handler(luigi.Event.FAILURE)
-@QsubRefinement.event_handler(luigi.Event.FAILURE)
+@tasks.superposed_refinement.PrepareSuperposedRefinement.event_handler(luigi.Event.FAILURE)
+@tasks.qsub.QsubSuperposedRefinement.event_handler(luigi.Event.FAILURE)
+@tasks.refinement.PrepareRefinement.event_handler(luigi.Event.FAILURE)
+@tasks.qsub.QsubRefinement.event_handler(luigi.Event.FAILURE)
 def failure_write_to_csv(task, exception):
     """
     If failure of task occurs, summarise in CSV
@@ -154,10 +158,10 @@ def failure_write_to_csv(task, exception):
         task_csv_writer.writerow(["Failure", task.crystal, type(exception), exception])
 
 
-@PrepareSuperposedRefinement.event_handler(luigi.Event.SUCCESS)
-@QsubSuperposedRefinement.event_handler(luigi.Event.SUCCESS)
-@PrepareRefinement.event_handler(luigi.Event.SUCCESS)
-@QsubRefinement.event_handler(luigi.Event.SUCCESS)
+@tasks.superposed_refinement.PrepareSuperposedRefinement.event_handler(luigi.Event.SUCCESS)
+@tasks.qsub.QsubSuperposedRefinement.event_handler(luigi.Event.SUCCESS)
+@tasks.refinement.PrepareRefinement.event_handler(luigi.Event.SUCCESS)
+@tasks.qsub.QsubRefinement.event_handler(luigi.Event.SUCCESS)
 def success_write_to_csv(task):
     """
     If success of task occurs, summarise in CSV

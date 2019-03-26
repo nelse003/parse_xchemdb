@@ -7,6 +7,8 @@ from tasks.plotting import PlotOccConvScatter
 from tasks.plotting import PlotGroundOccHistogram
 from tasks.plotting import PlotBoundOccHistogram
 
+from tasks.batch_refinement import BatchRefinement
+
 from path_config import Path
 
 out_dir = "/dls/science/groups/i04-1/elliot-dev/Work/" \
@@ -86,8 +88,22 @@ luigi.build([
              ],
             local_scheduler=True, workers=20)
 
-# Generate new Superposed refinements REFMAC5
 
+# Generate new Superposed refinements REFMAC5
+test_paths.convergence_refinement_failures = os.path.join(out_dir,
+                            'convergence_refinement_failures.csv')
+test_paths.refinement_dir = os.path.join(out_dir, "bound_refinement")
+test_paths.tmp_dir = os.path.join(out_dir, "tmp")
+
+luigi.build([
+        BatchRefinement(output_csv=test_paths.convergence_refinement_failures,
+                        refinement_type="superposed",
+                        out_dir=test_paths.refinement_dir,
+                        tmp_dir=test_paths.tmp_dir,
+                        extra_params="NCYC 3",
+                        log_pdb_mtz_csv=test_paths.log_pdb_mtz)
+        ],
+    local_scheduler=False, workers=20)
 # Generate new Superposed refinements phenix
 
 # Generate new unconstrained refinements REFMAC5

@@ -4,9 +4,6 @@ from shutil import rmtree
 import pandas as pd
 import sqlalchemy
 
-pd.options.display.max_columns = 30
-pd.options.display.max_colwidth = 50
-
 def parse_args():
     # TODO Refactor into luigi config
     parser = argparse.ArgumentParser()

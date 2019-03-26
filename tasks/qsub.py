@@ -1,7 +1,12 @@
+import os
+import luigi
+from luigi.util import requires
+
 from cluster_submission import run_qstat, submit_job
 from path_config import Path
-from tasks import PrepareRefinement, PrepareSuperposedRefinement
 
+import tasks.refinement
+import tasks.superposed_refinement
 
 class QsubTask(luigi.Task):
 
@@ -33,6 +38,8 @@ class QsubTask(luigi.Task):
     https://github.com/xchem/formulatrix_pipe/blob/master/run_ranker.py
 
     """
+    refinement_script = luigi.Parameter()
+
     def output(self):
 
         out_mtz = os.path.join(self.out_dir, "refine.mtz")
@@ -75,7 +82,7 @@ class QsubTask(luigi.Task):
                     jobname = line.split()[-1]
                     queue_jobs.append(jobname)
 
-            # Get <crystal_name>.csh
+            # Get <crystal_name>_<refinement_type>.csh
             job = self.refinement_script
             job_file = os.path.basename(str(job))
 
@@ -93,11 +100,11 @@ class QsubTask(luigi.Task):
                 raise RuntimeError('Something went wrong or job is still running')
 
 
-@requires(PrepareRefinement)
-class QsubRefienement(QsubTask):
+@requires(tasks.refinement.PrepareRefinement)
+class QsubRefinement(QsubTask):
     pass
 
 
-@requires(PrepareSuperposedRefinement)
+@requires(tasks.superposed_refinement.PrepareSuperposedRefinement)
 class QsubSuperposedRefinement(QsubTask):
     pass
