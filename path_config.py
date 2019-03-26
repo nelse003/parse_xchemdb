@@ -106,7 +106,7 @@ class Path(luigi.Config):
         default=os.path.join(out_dir,'bound_refmac.csv'))
 
     # Directory Luigi Parameters
-    # Currently dirved from above default values.
+    # Currently derived from above default values.
     # TODO alternative ways fo defining directories
 
     # Directory containing scripts (i.e. repo)
