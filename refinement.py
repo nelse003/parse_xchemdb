@@ -4,6 +4,7 @@ import subprocess
 import shutil
 import ast
 import pandas as pd
+import numpy as np
 
 from parse_xchemdb import smiles_from_crystal
 
@@ -1227,7 +1228,7 @@ def state_occ(row, bound, ground, pdb):
             return ground
 
 
-def state_occupancies(occ_conv_csv, occ_correct_csv):
+def state_occupancies(occ_state_comment_csv, occ_correct_csv):
     """
     Sum occupancies in occupancies for full states
 
@@ -1240,9 +1241,12 @@ def state_occupancies(occ_conv_csv, occ_correct_csv):
 
     Parameters
     ----------
-    occ_conv_csv: str
+    occ_state_comment_csv: str
         path to csv with occupancy convergence information
         for each residue involved in complete groups
+    occ_correct_csv: str
+        path to csv with convergence information,
+        and occupancy for the "bound" or "ground" state
 
     Returns
     -------
@@ -1250,7 +1254,7 @@ def state_occupancies(occ_conv_csv, occ_correct_csv):
     """
 
     # Read CSV
-    occ_df = pd.read_csv(occ_conv_csv, index_col=[0, 1])
+    occ_df = pd.read_csv(occ_state_comment_csv, index_col=[0, 1])
 
     # Select only residues that are correctly occupied
     occ_correct_df = occ_df[occ_df['comment'] == 'Correctly Occupied']

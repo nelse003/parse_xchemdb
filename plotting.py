@@ -188,14 +188,14 @@ def occupancy_vs_convergence(occ_correct_csv, plot_path):
     plt.close()
 
 
-def convergence_ratio_histogram(occ_correct_csv, plot_path):
+def convergence_ratio_histogram(occ_state_comment_csv, plot_path):
 
     """
     Plot convergence ratio of occupancy
 
     Parameters
     ----------
-    occ_correct_csv : str
+    occ_state_comment_csv : str
         path to csv with occupancy convergence information
         for each residue involved in complete groups
     plot_path : str
@@ -206,7 +206,7 @@ def convergence_ratio_histogram(occ_correct_csv, plot_path):
     None
     """
 
-    occ_correct_df = pd.read_csv(occ_correct_csv)
+    occ_correct_df = pd.read_csv(occ_state_comment_csv)
 
     ground_df = get_state_df(occ_correct_df=occ_correct_df, state="ground")
 

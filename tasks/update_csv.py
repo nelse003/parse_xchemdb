@@ -236,17 +236,48 @@ class StateOccupancyToCsv(luigi.Task):
         OccConvergence() to get lead in csv
     output()
         csv file path
+
+    Notes
+    -----
+
+
+    Attributes
+    ----------
+    Inherited
+
+    occ_state_comment_csv: luigi.Parameter()
+         path to csv with state and comment
+
+    log_occ_resname: luigi.Parameter()
+         path to csv annotate with residue names for
+         residues involved in complete refinment groups,
+         as parsed from the REFMAC5 Log file
+
+    log_occ_csv: luigi.Parameter()
+        path to csv file where occupancies have
+        been obtained from REFMAC logs
+
+    log_pdb_mtz_csv: luigi.Parameter()
+        path to summary csv containing at least path to pdb, mtz
+        and refinement log file
+
+    test: luigi.Parameter(), optional
+        integer representing number of rows to extract when
+        used as test
+
+    New
+
+    occ_correct_csv: luigi.paramter()
+        path to csv with convergence information,
+        and occupancy for the "bound" or "ground" state
     """
 
     occ_correct_csv = luigi.Parameter()
-    occ_conv_csv = luigi.Parameter()
-    log_occ_resname = luigi.Parameter()
-    log_pdb_mtz = luigi.Parameter()
 
     def output(self):
         return luigi.LocalTarget(self.occ_correct_csv)
 
 
     def run(self):
-        state_occupancies(occ_conv_csv=self.occ_conv_csv,
+        state_occupancies(occ_state_comment_csv=self.occ_state_comment_csv,
                           occ_correct_csv=self.occ_correct_csv)

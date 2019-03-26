@@ -70,16 +70,40 @@ class PlotConvergenceHistogram(PlotOccCorrect):
 
     Attributes
     ----------
+    Inherited
+
+    occ_state_comment_csv: luigi.Parameter()
+         path to csv with state and comment
+
     log_occ_resname: luigi.Parameter()
-    occ_conv_csv: luigi.Parameter()
+         path to csv annotate with residue names for
+         residues involved in complete refinment groups,
+         as parsed from the REFMAC5 Log file
+
+    log_occ_csv: luigi.Parameter()
+        path to csv file where occupancies have
+        been obtained from REFMAC logs
+
+    log_pdb_mtz_csv: luigi.Parameter()
+        path to summary csv containing at least path to pdb, mtz
+        and refinement log file
+
+    test: luigi.Parameter(), optional
+        integer representing number of rows to extract when
+        used as test
+
     occ_correct_csv: luigi.Parameter()
-    log_pdb_mtz: luigi.Parameter()
+        path to csv with convergence information,
+        and occupancy for the "bound" or "ground" state
+
+    New
+
     plot_path: luigi.Parameter()
         path to plot file to be plotted
 
     """
     def run(self):
-        convergence_ratio_histogram(occ_correct_csv=self.occ_correct_csv,
+        convergence_ratio_histogram(occ_state_comment_csv=self.occ_correct_csv,
                                     plot_path=self.plot_path)
 
 
@@ -93,12 +117,37 @@ class PlotOccConvScatter(PlotOccCorrect):
 
     Attributes
     ----------
+    Inherited
+
+    occ_state_comment_csv: luigi.Parameter()
+         path to csv with state and comment
+
     log_occ_resname: luigi.Parameter()
-    occ_conv_csv: luigi.Parameter()
+         path to csv annotate with residue names for
+         residues involved in complete refinment groups,
+         as parsed from the REFMAC5 Log file
+
+    log_occ_csv: luigi.Parameter()
+        path to csv file where occupancies have
+        been obtained from REFMAC logs
+
+    log_pdb_mtz_csv: luigi.Parameter()
+        path to summary csv containing at least path to pdb, mtz
+        and refinement log file
+
+    test: luigi.Parameter(), optional
+        integer representing number of rows to extract when
+        used as test
+
     occ_correct_csv: luigi.Parameter()
-    log_pdb_mtz: luigi.Parameter()
+        path to csv with convergence information,
+        and occupancy for the "bound" or "ground" state
+
+    New
+
     plot_path: luigi.Parameter()
         path to plot file to be plotted
+
 
     """
     def run(self):
@@ -116,12 +165,37 @@ class PlotGroundOccHistogram(PlotOccCorrect):
 
     Attributes
     ----------
+    Inherited
+
+    occ_state_comment_csv: luigi.Parameter()
+         path to csv with state and comment
+
     log_occ_resname: luigi.Parameter()
-    occ_conv_csv: luigi.Parameter()
+         path to csv annotate with residue names for
+         residues involved in complete refinment groups,
+         as parsed from the REFMAC5 Log file
+
+    log_occ_csv: luigi.Parameter()
+        path to csv file where occupancies have
+        been obtained from REFMAC logs
+
+    log_pdb_mtz_csv: luigi.Parameter()
+        path to summary csv containing at least path to pdb, mtz
+        and refinement log file
+
+    test: luigi.Parameter(), optional
+        integer representing number of rows to extract when
+        used as test
+
     occ_correct_csv: luigi.Parameter()
-    log_pdb_mtz: luigi.Parameter()
+        path to csv with convergence information,
+        and occupancy for the "bound" or "ground" state
+
+    New
+
     plot_path: luigi.Parameter()
         path to plot file to be plotted
+
 
     """
     def run(self):
@@ -140,12 +214,37 @@ class PlotBoundOccHistogram(PlotOccCorrect):
 
     Attributes
     ----------
+    Inherited
+
+    occ_state_comment_csv: luigi.Parameter()
+         path to csv with state and comment
+
     log_occ_resname: luigi.Parameter()
-    occ_conv_csv: luigi.Parameter()
+         path to csv annotate with residue names for
+         residues involved in complete refinment groups,
+         as parsed from the REFMAC5 Log file
+
+    log_occ_csv: luigi.Parameter()
+        path to csv file where occupancies have
+        been obtained from REFMAC logs
+
+    log_pdb_mtz_csv: luigi.Parameter()
+        path to summary csv containing at least path to pdb, mtz
+        and refinement log file
+
+    test: luigi.Parameter(), optional
+        integer representing number of rows to extract when
+        used as test
+
     occ_correct_csv: luigi.Parameter()
-    log_pdb_mtz: luigi.Parameter()
+        path to csv with convergence information,
+        and occupancy for the "bound" or "ground" state
+
+    New
+
     plot_path: luigi.Parameter()
         path to plot file to be plotted
+
 
     """
     def run(self):
