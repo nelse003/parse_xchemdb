@@ -7,7 +7,8 @@ from tasks.plotting import PlotOccConvScatter
 from tasks.plotting import PlotGroundOccHistogram
 from tasks.plotting import PlotBoundOccHistogram
 
-from tasks.batch_refinement import BatchRefinement
+from tasks.batch import BatchRefinement
+from tasks.filesystem import RefinementFolderToCsv
 
 from path_config import Path
 
@@ -64,6 +65,7 @@ luigi.build([
                                occ_correct_csv=test_paths.occ_correct_csv,
                                plot_path = test_paths.convergence_histogram,
                                test=5),
+
             PlotOccConvScatter(occ_state_comment_csv=test_paths.occ_state_comment_csv,
                                log_occ_resname=test_paths.log_occ_resname,
                                log_occ_csv=test_paths.log_occ_csv,
@@ -71,6 +73,7 @@ luigi.build([
                                occ_correct_csv=test_paths.occ_correct_csv,
                                plot_path = test_paths.occ_conv_scatter,
                                test=5),
+
             PlotGroundOccHistogram(occ_state_comment_csv=test_paths.occ_state_comment_csv,
                                log_occ_resname=test_paths.log_occ_resname,
                                log_occ_csv=test_paths.log_occ_csv,
@@ -78,6 +81,7 @@ luigi.build([
                                occ_correct_csv=test_paths.occ_correct_csv,
                                plot_path=test_paths.ground_occ_histogram,
                                test=5),
+
             PlotBoundOccHistogram(occ_state_comment_csv=test_paths.occ_state_comment_csv,
                            log_occ_resname=test_paths.log_occ_resname,
                            log_occ_csv=test_paths.log_occ_csv,
@@ -94,14 +98,21 @@ test_paths.convergence_refinement_failures = os.path.join(out_dir,
                             'convergence_refinement_failures.csv')
 test_paths.refinement_dir = os.path.join(out_dir, "bound_refinement")
 test_paths.tmp_dir = os.path.join(out_dir, "tmp")
+test_paths.convergence_refinement = os.path.join(out_dir,'convergence_refinement.csv')
 
 luigi.build([
-        BatchRefinement(output_csv=test_paths.convergence_refinement_failures,
-                        refinement_type="superposed",
-                        out_dir=test_paths.refinement_dir,
-                        tmp_dir=test_paths.tmp_dir,
-                        extra_params="NCYC 3",
-                        log_pdb_mtz_csv=test_paths.log_pdb_mtz)
+        # Calls BatchRefinement
+        RefinementFolderToCsv(refinement_csv=test_paths.convergence_refinement,
+                              output_csv=test_paths.convergence_refinement_failures,
+                              out_dir=test_paths.refinement_dir,
+                              tmp_dir=test_paths.tmp_dir,
+                              extra_params="NCYC 3",
+                              log_pdb_mtz_csv=test_paths.log_pdb_mtz,
+                              refinement_type="superposed")
+
+        # OccFromLog(log_pdb_mtz_csv=Path().convergence_refinement,
+        #            log_occ_csv=Path().convergence_occ)
+
         ],
     local_scheduler=False, workers=20)
 # Generate new Superposed refinements phenix

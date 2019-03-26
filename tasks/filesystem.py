@@ -1,10 +1,14 @@
+import os
+import pandas as pd
 import luigi
+from luigi.util import requires
 
 from path_config import Path
 from refinement import get_most_recent_quick_refine
-import tasks.batch_refinement
+import tasks.batch
 
 
+@requires(tasks.batch.BatchRefinement)
 class RefinementFolderToCsv(luigi.Task):
 
     """Convert refinement folders to CSV
@@ -18,41 +22,32 @@ class RefinementFolderToCsv(luigi.Task):
     Methods
     ----------
 
-
     Attributes
     -----------
 
     """
-    output_csv = luigi.Parameter()
-    input_folder = luigi.Parameter()
-    refinement_type = luigi.Parameter()
-
-    def requires(self):
-        return batch_refinement.BatchRefinement(
-            out_dir=Path().bound_refinement_dir,
-            output_csv=Path().bound_refinement_batch_csv,
-            refinement_type=self.refinement_type)
+    refinement_csv = luigi.Parameter()
 
     def output(self):
-        return luigi.LocalTarget(self.output_csv)
+        return luigi.LocalTarget(self.refinement_csv)
 
     def run(self):
 
         pdb_mtz_log_dict = {}
 
-        for crystal in os.listdir(self.input_folder):
+        for crystal in os.listdir(self.out_dir):
 
             pdb_latest = None
             mtz_latest = None
             refinement_log = None
 
-            crystal_dir = os.path.join(self.input_folder, crystal)
+            crystal_dir = os.path.join(self.out_dir, crystal)
 
             for f in os.listdir(crystal_dir):
                 if f == "refine.pdb":
-                    pdb_latest = os.path.join(self.input_folder, crystal, f)
+                    pdb_latest = os.path.join(self.out_dir, crystal, f)
                 elif f == "refine.mtz":
-                    mtz_latest = os.path.join(self.input_folder, crystal, f)
+                    mtz_latest = os.path.join(self.out_dir, crystal, f)
 
 
             if self.refinement_type == "superposed":
@@ -63,7 +58,7 @@ class RefinementFolderToCsv(luigi.Task):
             elif self.refinement_type == "bound":
                 for f in os.listdir(crystal_dir):
                     if f == "refmac.log":
-                        refinement_log = os.path.join(self.input_folder, crystal, f)
+                        refinement_log = os.path.join(self.out_dir, crystal, f)
 
 
             if None not in [pdb_latest, mtz_latest, refinement_log]:
@@ -77,4 +72,4 @@ class RefinementFolderToCsv(luigi.Task):
                                              'refine_log'],
                                     orient='index')
         df.index.name = 'crystal_name'
-        df.to_csv(self.output_csv)
+        df.to_csv(self.refinement_csv)

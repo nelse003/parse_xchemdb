@@ -5,9 +5,10 @@ from luigi.util import requires
 from annotate_ligand_state import annotate_csv_with_state_comment
 from parse_refmac_logs import get_occ_from_log
 from path_config import Path
-from refinement import state_occupancies
+from refinement import state_occupancies, convergence_state_by_refinement_type
 from refinement_summary import refinement_summary
 from tasks.database import ParseXchemdbToCsv, SuperposedToCsv
+from tasks.filesystem import RefinementFolderToCsv
 
 
 @requires(ParseXchemdbToCsv)
@@ -281,3 +282,22 @@ class StateOccupancyToCsv(luigi.Task):
     def run(self):
         state_occupancies(occ_state_comment_csv=self.occ_state_comment_csv,
                           occ_correct_csv=self.occ_correct_csv)
+
+
+class ConvergenceStateByRefinementType(luigi.Task):
+
+    occ_csv = luigi.Parameter()
+    occ_conv_state_csv = luigi.Parameter()
+    refinement_type = luigi.Parameter()
+
+    def output(self):
+        return luigi.LocalTarget(self.occ_conv_state_csv)
+
+    def requires(self):
+        RefinementFolderToCsv(output_csv=self.occ_csv,
+                              input_folder=self.bound_refinement_dir),
+
+    def run(self):
+        convergence_state_by_refinement_type(occ_csv=self.occ_csv,
+                                             occ_conv_state_csv=self.occ_conv_state_csv,
+                                             refinement_type=self.refinement_type)

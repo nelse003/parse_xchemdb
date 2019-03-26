@@ -30,7 +30,7 @@ class BatchRefinement(luigi.Task):
 
     Attributes
     -----------
-    output_csv: luigi.Parameter()
+    refinement_csv: luigi.Parameter()
         path to csv output summarise success and failure
 
     refinement type: luigi.Parameter()
@@ -85,7 +85,7 @@ class BatchRefinement(luigi.Task):
         # used to allow luigi.Parameters
         df = df.replace(np.nan, '', regex=True)
 
-        # Loop over crystal/refienemnt table csv
+        # Loop over crystal/refinement table csv
         refinement_tasks = []
         for i in df.index:
             cif = df.at[i, 'cif']
@@ -101,7 +101,7 @@ class BatchRefinement(luigi.Task):
                                              '{}_{}.csh'.format(crystal,
                                                                 self.refinement_type))
 
-            # produce refinement task
+            # Setup a refinement task
             if self.refinement_type in ["bound","ground"]:
 
                 ref_task = tasks.qsub.QsubRefinement(

@@ -1,11 +1,6 @@
-import os
-
 import luigi
 
-from path_config import Path
-from refinement import prepare_superposed_refinement, convergence_state_by_refinement_type
-from tasks.database import ParseXchemdbToCsv
-from tasks.filesystem import RefinementFolderToCsv
+from refinement import prepare_superposed_refinement
 
 
 class PrepareSuperposedRefinement(luigi.Task):
@@ -80,22 +75,3 @@ class PrepareSuperposedRefinement(luigi.Task):
                                       refinement_script_dir=self.refinement_script_dir,
                                       extra_params=self.extra_params,
                                       free_mtz=self.free_mtz)
-
-
-class ConvergenceStateByRefinementType(luigi.Task):
-
-    occ_csv = luigi.Parameter()
-    occ_conv_state_csv = luigi.Parameter()
-    refinement_type = luigi.Parameter()
-
-    def output(self):
-        return luigi.LocalTarget(self.occ_conv_state_csv)
-
-    def requires(self):
-        RefinementFolderToCsv(output_csv=self.occ_csv,
-                              input_folder=self.bound_refinement_dir),
-
-    def run(self):
-        convergence_state_by_refinement_type(occ_csv=self.occ_csv,
-                                             occ_conv_state_csv=self.occ_conv_state_csv,
-                                             refinement_type=self.refinement_type)

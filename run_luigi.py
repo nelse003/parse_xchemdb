@@ -27,7 +27,7 @@ if __name__ == '__main__':
                                        input_folder=Path().refinement_dir),
 
     OccFromLog(log_pdb_mtz_csv=Path().convergence_refinement,
-                            log_occ_csv=Path().convergence_occ),
+                log_occ_csv=Path().convergence_occ),
 
     ResnameToOccLog(log_occ_csv=Path().convergence_occ,
                                  log_occ_resname=Path().convergence_occ_resname,
