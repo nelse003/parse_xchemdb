@@ -1,6 +1,6 @@
 import pandas as pd
 
-def refinement_summary(occ_conv_csv,
+def refinement_summary(occ_state_comment_csv,
                        refine_csv,
                        superposed_csv,
                        log_pdb_mtz_csv,
@@ -10,7 +10,7 @@ def refinement_summary(occ_conv_csv,
 
     Parameters
     ----------
-    occ_conv_csv: str
+    occ_state_comment_csv: str
         path to occupancy convergence csv
     refine_csv: str
         path to csv representing refinement table
@@ -28,7 +28,7 @@ def refinement_summary(occ_conv_csv,
     """
 
     # Read in csvs
-    occ_conv_df = pd.read_csv(occ_conv_csv)
+    occ_conv_df = pd.read_csv(occ_state_comment_csv)
     refine_df = pd.read_csv(refine_csv)
     superposed_df = pd.read_csv(superposed_csv)
     log_pdb_mtz_df = pd.read_csv(log_pdb_mtz_csv)

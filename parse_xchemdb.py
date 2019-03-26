@@ -110,9 +110,10 @@ def get_databases(args):
                  "data_processing": data_processing,
                  "refinement": refinement,
                  "compounds": compounds,
-                 "target":target}
+                 "target": target}
 
     return databases
+
 
 def get_table_df(table_name, databases=None, args=None):
 
@@ -145,6 +146,7 @@ def get_table_df(table_name, databases=None, args=None):
 
     return df
 
+
 def drop_only_dimple_processing(df):
 
     """
@@ -175,6 +177,7 @@ def drop_only_dimple_processing(df):
 
     return df
 
+
 def drop_pdb_not_in_filesystem(df):
 
     """
@@ -204,6 +207,7 @@ def drop_pdb_not_in_filesystem(df):
     df = df[~df['id'].isin(missing_ids)]
 
     return df
+
 
 def drop_missing_mtz(df):
 

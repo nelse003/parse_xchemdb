@@ -894,7 +894,7 @@ def get_occ_groups(tmp_dir,
                    pdb,
                    ccp4_path):
     """
-    Get occupancy groups from pdb by calling lig_ccp4.py
+    Get occupancy groups from pdb by calling ligand.py
 
     Parameters
     ----------
@@ -920,7 +920,7 @@ def get_occ_groups(tmp_dir,
     tmp_file = os.path.join(tmp_dir, "lig_pos_tmp_{}.txt".format(crystal))
     source = "source {}".format(ccp4_path)
     os.system(source)
-    os.system("ccp4-python lig_ccp4.py {} {}".format(pdb, tmp_file))
+    os.system("ccp4-python ligand.py {} {}".format(pdb, tmp_file))
     with open(tmp_file) as f:
         lig_pos = f.read()
     os.remove(tmp_file)

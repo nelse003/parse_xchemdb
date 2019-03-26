@@ -1,7 +1,8 @@
 import luigi
 from luigi.util import requires
 
-from tasks import StateOccupancyToCsv
+from tasks.update_csv import StateOccupancyToCsv
+from tasks.update_csv import SummaryRefinement
 
 from plotting import refinement_summary_plot
 from plotting import occupancy_histogram
@@ -67,6 +68,8 @@ class PlotConvergenceHistogram(PlotOccCorrect):
     ------
     Subclass of PlotOccCorrect, requires
 
+    Attributes
+    ----------
     log_occ_resname: luigi.Parameter()
     occ_conv_csv: luigi.Parameter()
     occ_correct_csv: luigi.Parameter()
@@ -86,8 +89,10 @@ class PlotOccConvScatter(PlotOccCorrect):
 
     Notes
     ------
-    Subclass of PlotOccCorrect, requires
+    Subclass of PlotOccCorrect
 
+    Attributes
+    ----------
     log_occ_resname: luigi.Parameter()
     occ_conv_csv: luigi.Parameter()
     occ_correct_csv: luigi.Parameter()
@@ -107,8 +112,10 @@ class PlotGroundOccHistogram(PlotOccCorrect):
 
     Notes
     ------
-    Subclass of PlotOccCorrect, requires
+    Subclass of PlotOccCorrect
 
+    Attributes
+    ----------
     log_occ_resname: luigi.Parameter()
     occ_conv_csv: luigi.Parameter()
     occ_correct_csv: luigi.Parameter()
@@ -129,8 +136,10 @@ class PlotBoundOccHistogram(PlotOccCorrect):
 
     Notes
     ------
-    Subclass of PlotOccCorrect, requires
+    Subclass of PlotOccCorrect
 
+    Attributes
+    ----------
     log_occ_resname: luigi.Parameter()
     occ_conv_csv: luigi.Parameter()
     occ_correct_csv: luigi.Parameter()
@@ -144,28 +153,80 @@ class PlotBoundOccHistogram(PlotOccCorrect):
                                   plot_path=self.plot_path,
                                   state="bound")
 
-
+@requires(SummaryRefinement)
 class SummaryRefinementPlot(luigi.Task):
     """
     Task to produce a plot summarising refinement
 
     Methods
     --------
-    requires()
-        csv summarising refinement
     output()
         plot file path
     run()
         plotting from csv
-    """
 
-    def requires(self):
-        return SummaryRefinement()
+    Notes
+    -----
+    As requires:
+
+        ResnameToOccLog
+        OccFromLog
+        ParseXchemdbToCsv
+        OccStateComment
+        SuperposedToCsv
+        SummaryRefinement
+
+    attributes are extended to include those from required tasks
+
+    Attributes
+    ----------
+    INHERITED:
+
+    occ_state_comment_csv: luigi.Parameter()
+         path to csv with state and comment
+
+    log_occ_resname: luigi.Parameter()
+         path to csv annotate with residue names for
+         residues involved in complete refinment groups,
+         as parsed from the REFMAC5 Log file
+
+    log_occ_csv: luigi.Parameter()
+        path to csv file where occupancies have
+        been obtained from REFMAC logs
+
+    log_pdb_mtz_csv: luigi.Parameter()
+        path to summary csv containing at least path to pdb, mtz
+        and refinement log file
+
+    test: luigi.Parameter(), optional
+        integer representing number of rows to extract when
+        used as test
+
+    occ_state_comment_csv: luigi.Parameter()
+        path to csv that has state ("bound" or "ground")
+
+    superposed_csv: luigi.Parameter()
+        path to csv file detailing files that have a superposed pdb file,
+         output
+
+    refine_csv: luigi.Parameter()
+        path to csv file showing refinemnet table, input
+
+    refinement_summary: luigi.Parameter()
+        path to csv file summarising refinement
+
+    NEW:
+
+    refinement_summary_plot: luigi.Paramter()
+        path to plot file
+
+    """
+    refinement_summary_plot = luigi.Parameter()
 
     def output(self):
-        return luigi.LocalTarget(Path().refinement_summary_plot)
+        return luigi.LocalTarget(self.refinement_summary_plot)
 
     def run(self):
-        refinement_summary_plot(refinement_csv=Path().refinement_summary,
-                                out_file_path=Path().refinement_summary_plot)
+        refinement_summary_plot(refinement_csv=self.refinement_summary,
+                                out_file_path=self.refinement_summary_plot)
 

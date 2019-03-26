@@ -112,7 +112,7 @@ class SuperposedToCsv(luigi.Task):
     refine_csv = luigi.Parameter(default=Path().refine)
 
     def output(self):
-        return luigi.LocalTarget(Path().superposed)
+        return luigi.LocalTarget(self.superposed_csv)
 
 
     def run(self):

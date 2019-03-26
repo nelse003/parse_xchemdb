@@ -5,7 +5,9 @@ from luigi.util import requires
 from annotate_ligand_state import annotate_csv_with_state_comment
 from parse_refmac_logs import get_occ_from_log
 from path_config import Path
-from tasks.database import ParseXchemdbToCsv
+from refinement import state_occupancies
+from refinement_summary import refinement_summary
+from tasks.database import ParseXchemdbToCsv, SuperposedToCsv
 
 
 @requires(ParseXchemdbToCsv)
@@ -61,7 +63,6 @@ class ResnameToOccLog(luigi.Task):
     Notes
     ------
     Requires ccp4-python
-    # TODO Add a source statement
     """
     log_occ_resname = luigi.Parameter()
 
@@ -71,7 +72,7 @@ class ResnameToOccLog(luigi.Task):
 
     def run(self):
         os.system("source {}".format(Path().ccp4))
-        os.system("ccp4-python resnames_using_ccp4.py {} {}".format(
+        os.system("ccp4-python ccp4/get_resname_b.py {} {}".format(
                     self.log_occ_csv,
                     self.log_occ_resname))
 
@@ -134,3 +135,118 @@ class OccStateComment(luigi.Task):
     def run(self):
         annotate_csv_with_state_comment(self.log_occ_resname,
                                         self.occ_state_comment_csv)
+
+
+@requires(OccStateComment, SuperposedToCsv)
+class SummaryRefinement(luigi.Task):
+
+    """
+    Task to summarise refinement in csv
+
+    Methods
+    --------
+    requires()
+        Occupancy convergence csv,
+        refinement table csv,
+        refinement that have valid pdbs csv,
+        csv file with refinement and crystal details from xchemdb
+    output()
+        path to refinement summary csv
+    run()
+        generate renfiment summary csv
+
+    Notes
+    -----
+    As requires:
+
+        ResnameToOccLog
+        OccFromLog
+        ParseXchemdbToCsv
+        OccStateComment
+        SuperposedToCsv
+
+    attributes are extended to include those from required tasks
+
+    Attributes
+    -----------
+    occ_state_comment_csv: luigi.Parameter()
+         path to csv with state and comment
+
+    log_occ_resname: luigi.Parameter()
+         path to csv annotate with residue names for
+         residues involved in complete refinment groups,
+         as parsed from the REFMAC5 Log file
+
+    log_occ_csv: luigi.Parameter()
+        path to csv file where occupancies have
+        been obtained from REFMAC logs
+
+    log_pdb_mtz_csv: luigi.Parameter()
+        path to summary csv containing at least path to pdb, mtz
+        and refinement log file
+
+    test: luigi.Parameter(), optional
+        integer representing number of rows to extract when
+        used as test
+
+    occ_state_comment_csv: luigi.Parameter()
+        path to csv that has state ("bound" or "ground")
+
+    superposed_csv: luigi.Parameter()
+        path to csv file detailing files that have a superposed pdb file,
+         output
+
+    refine_csv: luigi.Parameter()
+        path to csv file showing refinemnet table, input
+
+    refinement_sumamry: luigi.Parameter()
+        path to csv file summarising refinement
+    """
+    refinement_summary = luigi.Parameter()
+
+    def output(self):
+        return luigi.LocalTarget(self.refinement_summary)
+
+    def run(self):
+        refinement_summary(occ_state_comment_csv=self.occ_state_comment_csv,
+                           refine_csv=self.refine_csv,
+                           superposed_csv=self.superposed_csv,
+                           log_pdb_mtz_csv=self.log_pdb_mtz_csv,
+                           out_csv=self.refinement_summary)
+
+
+@requires(OccStateComment)
+class StateOccupancyToCsv(luigi.Task):
+
+    """
+    Add convergence summary and sum ground and bound state occupancies to csv
+
+    Adds convergence ratio
+    x(n)/(x(n-1) -1)
+    to csv.
+
+    Adds up occupancy for ground and bound states respectively
+    across each complete group
+
+    Methods
+    -------
+    run()
+        refinement.state_occupancies()
+    requires()
+        OccConvergence() to get lead in csv
+    output()
+        csv file path
+    """
+
+    occ_correct_csv = luigi.Parameter()
+    occ_conv_csv = luigi.Parameter()
+    log_occ_resname = luigi.Parameter()
+    log_pdb_mtz = luigi.Parameter()
+
+    def output(self):
+        return luigi.LocalTarget(self.occ_correct_csv)
+
+
+    def run(self):
+        state_occupancies(occ_conv_csv=self.occ_conv_csv,
+                          occ_correct_csv=self.occ_correct_csv)
