@@ -17,13 +17,8 @@ def test_check_inputs_refmac():
     input_dir = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/test/test_filesystem"
     crystal = "ACVR1A-x1242"
 
-    cif, params, free_mtz = check_inputs(cif=cif,
-                                         pdb=pdb,
-                                         params=params,
-                                         free_mtz=free_mtz,
-                                         refinement_program="refmac",
-                                         input_dir=input_dir,
-                                         crystal=crystal)
+    cif, params, free_mtz = check_inputs(cif=cif, pdb=pdb, params=params, free_mtz=free_mtz,
+                                         refinement_program="refmac", input_dir=input_dir, crystal=crystal)
     assert os.path.isfile(cif)
     assert os.path.isfile(params)
     assert os.path.isfile(free_mtz)
@@ -41,13 +36,8 @@ def test_check_inputs_phenix():
     input_dir = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/test/test_filesystem"
     crystal = "ACVR1A-x1242"
 
-    cif, params, free_mtz = check_inputs(cif=cif,
-                                         pdb=pdb,
-                                         params=params,
-                                         free_mtz=free_mtz,
-                                         refinement_program="phenix",
-                                         input_dir=input_dir,
-                                         crystal=crystal)
+    cif, params, free_mtz = check_inputs(cif=cif, pdb=pdb, params=params, free_mtz=free_mtz,
+                                         refinement_program="phenix", input_dir=input_dir, crystal=crystal)
     assert os.path.isfile(cif)
     assert os.path.isfile(params)
     assert os.path.isfile(free_mtz)

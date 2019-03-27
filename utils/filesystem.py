@@ -4,7 +4,9 @@ import shutil
 
 from utils.smiles import smiles_from_crystal
 from utils.smiles import smiles_to_cif_acedrg
+from refinement.giant_scripts import make_restraints
 
+from path_config import Path
 
 def find_program_from_parameter_file(file):
     """ Read parameter file to determine whether refmac or phenix
@@ -193,13 +195,8 @@ def cif_path(cif='', pdb='', input_dir=None, crystal=None):
     return cif_p
 
 
-def check_inputs(cif,
-                 pdb,
-                 params,
-                 free_mtz,
-                 refinement_program,
-                 input_dir,
-                 crystal):
+def check_inputs(cif, pdb, params, free_mtz, refinement_program,
+                 input_dir, crystal, ccp4=Path().ccp4):
     """
     Check whether refinement input files are valid, replace if not and possible
 
@@ -212,6 +209,7 @@ def check_inputs(cif,
 
     Parameters
     ----------
+    ccp4
     cif: str
         path to cif file
     pdb: str
@@ -278,16 +276,36 @@ def check_inputs(cif,
     # If parameter file is not provided,
     # search the relative_path for the pdb file
     # First look for a file in the folder
-    if params is '':
+    if params is '' or params is None:
         params = parameter_from_refine_pdb(pdb,
                                            glob_string="*params",
                                            refinement_program=refinement_program)
-    #If the refinement program does not amtch the parameter file,
+
+    if params is None:
+        params, _ = make_restraints(pdb=pdb,
+                                    ccp4=ccp4,
+                                    refinement_program=refinement_program,
+                                    working_dir=input_dir)
+
+    # If the refinement program does not match the parameter file,
     # search for one that does in relative_path for the pdb file
     if find_program_from_parameter_file(params) != refinement_program:
         params = parameter_from_refine_pdb(pdb,
                                            glob_string="*params",
                                            refinement_program=refinement_program)
+
+    # Clean up end of file for addition if phenix is used
+    if refinement_program == "phenix" and os.path.isfile(params):
+        param_file = open(params)
+        lines = param_file.readlines()
+        param_file.close()
+
+        [lines.remove(line) for line in lines if "NCYC" in line]
+
+        param_file = open(params, 'w')
+        param_file.writelines(lines)
+        param_file.close()
+
 
     # Check that the source files for the symlinks exist
     if not os.path.isfile(cif):

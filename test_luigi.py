@@ -100,12 +100,16 @@ luigi.build([
 
 luigi.build([
         # Calls BatchRefinement
-        RefinementFolderToCsv(refinement_csv=os.path.join(out_dir, "phenix_superposed_log_pdb_mtz.csv"),
-                              output_csv=os.path.join(out_dir, "phenix_superposed_batch.csv"),
-                              out_dir=os.path.join(out_dir, "phenix_superposed"),
+        RefinementFolderToCsv(refinement_csv=os.path.join(out_dir,
+                                "phenix_superposed_log_pdb_mtz.csv"),
+                              output_csv=os.path.join(out_dir,
+                               "phenix_superposed_batch.csv"),
+                              out_dir=os.path.join(out_dir,
+                                    "phenix_superposed"),
+                              extra_params=None,
                               tmp_dir=test_paths.tmp_dir,
-                              extra_params="NCYC 3",
-                              log_pdb_mtz_csv=os.path.join(out_dir, "log_pdb_mtz.csv"),
+                              log_pdb_mtz_csv=os.path.join(out_dir,
+                                                "log_pdb_mtz.csv"),
                               refinement_program = "phenix",
                               refinement_type="superposed")
                               ],
