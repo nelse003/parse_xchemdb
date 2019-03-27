@@ -33,7 +33,7 @@ def parse_args():
 
     args = parser.parse_args()
 
-    # TODO Not sure whehter this is needed
+    # TODO Not sure whether this is needed
     # Make output directories if not used
     if not os.path.exists(args.output):
         try:
@@ -382,48 +382,6 @@ def process_refined_crystals(out_csv, test=None):
 
     # Write to csv
     pdb_log_mtz_df.to_csv(out_csv)
-
-
-def smiles_from_crystal(crystal):
-
-    """
-    Get smiles string from crystal_name in XChemDB postgres tables
-
-    Parameters
-    ----------
-    crystal: str
-        crystal name
-
-    Returns
-    -------
-    smiles: str
-        smiles string
-
-    Notes
-    -----
-    This parses the XChemDB postgres table to multiple dataframes
-    just to read one line. This will be inefficent,
-    but is currently only being called a few times currently
-    """
-
-    args = parse_args()
-    databases = get_databases(args)
-
-    compounds = get_table_df(table_name='compounds',
-                 databases=databases,
-                 args=args)
-
-    crystals = get_table_df(table_name='crystals',
-                 databases=databases,
-                 args=args)
-
-    # Use query to get cmpd_id from crystal table
-    cmpd_id = crystals.query('crystal_name==@crystal')['compound_id'].values[0]
-
-    # Use query to get smiles from cmpd_id
-    smiles = compounds.query('id==@cmpd_id')['smiles'].values[0]
-
-    return smiles
 
 
 

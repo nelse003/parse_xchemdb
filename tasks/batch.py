@@ -66,8 +66,10 @@ class BatchRefinement(luigi.Task):
     refinement_type = luigi.Parameter()
     out_dir = luigi.Parameter()
     tmp_dir = luigi.Parameter(default=Path().tmp_dir)
-    extra_params = luigi.Parameter(default="NCYC=50", significant=False)
     script_dir = luigi.Parameter(default=Path().script_dir)
+
+    extra_params = luigi.Parameter(default="NCYC=50", significant=False)
+    ncyc = luigi.Parameter(default=50, significant=False)
 
     def output(self):
         return luigi.LocalTarget(self.output_csv)
@@ -119,7 +121,8 @@ class BatchRefinement(luigi.Task):
                                 out_dir=self.out_dir,
                                 script_dir=self.script_dir,
                                 refinement_type=self.refinement_type,
-                                output_csv=self.output_csv)
+                                output_csv=self.output_csv,
+                                ncyc=self.ncyc)
 
             elif self.refinement_type == "superposed":
 

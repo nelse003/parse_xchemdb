@@ -1,8 +1,9 @@
 import os
 import luigi
+import time
 from luigi.util import requires
 
-from cluster_submission import run_qstat, submit_job
+from utils.cluster_submission import run_qstat, submit_job
 from path_config import Path
 
 import tasks.refinement
@@ -66,8 +67,8 @@ class QsubTask(luigi.Task):
             If the job has not been newly submitted and is not running
         """
 
-        out_mtz = os.path.join(self.out_dir, "refine.mtz")
-        out_pdb = os.path.join(self.out_dir, "refine.pdb")
+        out_mtz = os.path.join(self.out_dir, self.crystal, "refine.mtz")
+        out_pdb = os.path.join(self.out_dir, self.crystal, "refine.pdb")
 
         # Only run if the pdb and mtz are not present
         if not (os.path.isfile(out_pdb) and os.path.isfile(out_mtz)):
@@ -98,6 +99,21 @@ class QsubTask(luigi.Task):
 
             elif not queue_jobs:
                 raise RuntimeError('Something went wrong or job is still running')
+
+            # Run until job complete
+            time.sleep(5)
+            queue_jobs = []
+            output_queue = run_qstat()
+
+            # Turn qstat output into list of jobs
+            for line in output_queue:
+                if 'Full jobname' in line:
+                    jobname = line.split()[-1]
+                    queue_jobs.append(jobname)
+
+            if job_file in queue_jobs:
+                time.sleep(30)
+                self.run()
 
 
 @requires(tasks.refinement.PrepareRefinement)

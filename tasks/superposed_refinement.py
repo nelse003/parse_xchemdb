@@ -1,6 +1,6 @@
 import luigi
 
-from refinement import prepare_superposed_refinement
+from refinement.prepare_scripts import prepare_superposed_refinement
 
 
 class PrepareSuperposedRefinement(luigi.Task):

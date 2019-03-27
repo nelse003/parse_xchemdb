@@ -1,8 +1,8 @@
 import os
-
 import luigi
 
-from refinement import split_conformations, prepare_refinement
+from refinement.split_conformations import split_conformations
+from refinement.prepare_scripts import prepare_refinement
 
 
 class SplitConformations(luigi.Task):
@@ -53,17 +53,46 @@ class PrepareRefinement(luigi.Task):
 
     Attributes
     -----------
+    crystal: luigi.Parameter
+        crystal name
 
+    pdb: luigi.Parameter
+        path to pdb file
+
+    cif: luigi.Parameter
+        path to cif file
+
+    out_dir: luigi.Parameter
+        path to output directory
+
+    refinement_script_dir: luigi.Parameter
+        path to refinement script directory
+
+    free_mtz: luigi.Parameter
+        path to free mtz
+
+    refinement_type: luigi.Parameter
+        type of refinement "bound" or "ground"
+
+    output_csv: luigi.Parameter
+        path to csv ??
+
+    script_dir:luigi.Parameter
+        path to script directory to get location of ccp4 files
+
+    ncyc: luigi.Parameter
+        number of cycles for refienement
 
     Methods
     -------
     requires()
-
+        Require task which runs giant.split_conformations
     output()
         target of refinement script
         '<crystal_name>_<type>.csh'
         in refinemnt script dir. where type is either "ground" or "bound"
     run()
+        runs prepare_refinement()
 
     """
 
@@ -76,6 +105,7 @@ class PrepareRefinement(luigi.Task):
     refinement_type = luigi.Parameter()
     output_csv = luigi.Parameter()
     script_dir = luigi.Parameter()
+    ncyc = luigi.Parameter()
 
     def requires(self):
 
@@ -106,7 +136,7 @@ class PrepareRefinement(luigi.Task):
                            crystal=self.crystal,
                            cif=self.cif,
                            mtz=self.free_mtz,
-                           ncyc=50,
+                           ncyc=self.ncyc,
                            out_dir=self.out_dir,
                            refinement_type=self.refinement_type,
                            script_dir=self.script_dir,

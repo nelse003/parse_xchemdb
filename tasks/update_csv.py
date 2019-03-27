@@ -3,10 +3,12 @@ import luigi
 from luigi.util import requires
 
 from annotate_ligand_state import annotate_csv_with_state_comment
-from parse_refmac_logs import get_occ_from_log
+from annotate_ligand_state import state_occupancies
+from annotate_ligand_state import convergence_state_by_refinement_type
+from refinement.parse_refmac_logs import get_occ_from_log
 from path_config import Path
-from refinement import state_occupancies, convergence_state_by_refinement_type
-from refinement_summary import refinement_summary
+
+from utils.refinement_summary import refinement_summary
 from tasks.database import ParseXchemdbToCsv, SuperposedToCsv
 from tasks.filesystem import RefinementFolderToCsv
 

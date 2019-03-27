@@ -2,9 +2,7 @@ import os
 import pandas as pd
 import luigi
 from luigi.util import requires
-
-from path_config import Path
-from refinement import get_most_recent_quick_refine
+from utils.filesystem import get_most_recent_quick_refine
 import tasks.batch
 
 

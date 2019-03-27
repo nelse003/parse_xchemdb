@@ -245,3 +245,139 @@ def annotate_csv_with_state_comment(log_occ_resname, occ_conv_csv):
     # Add all commented df together and output as csv
     occ_conv_summary_df = pd.concat(occ_conv_df_list)
     occ_conv_summary_df.to_csv(occ_conv_csv)
+
+
+def state_occ(row, bound, ground, pdb):
+    if row.pdb_latest == pdb:
+        if row.state == "bound":
+            return bound
+        if row.state == "ground":
+            return ground
+
+
+def state_occupancies(occ_state_comment_csv, occ_correct_csv):
+    """
+    Sum occupancies in occupancies for full states
+
+    Adds convergence ratio
+    x(n)/(x(n-1) -1)
+    to csv.
+
+    Adds up occupancy for ground and bound states respectively
+    across each complete group
+
+    Parameters
+    ----------
+    occ_state_comment_csv: str
+        path to csv with occupancy convergence information
+        for each residue involved in complete groups
+    occ_correct_csv: str
+        path to csv with convergence information,
+        and occupancy for the "bound" or "ground" state
+
+    Returns
+    -------
+    None
+    """
+
+    # Read CSV
+    occ_df = pd.read_csv(occ_state_comment_csv, index_col=[0, 1])
+
+    # Select only residues that are correctly occupied
+    occ_correct_df = occ_df[occ_df['comment'] == 'Correctly Occupied']
+
+    # print(occ_correct_df.head())
+    # print(occ_correct_df.columns.values)
+
+    # TODO Fix to run where rows are different lengths
+
+    int_cols = []
+    for col in occ_correct_df.columns.values:
+        try:
+            int_cols.append(int(col))
+        except ValueError:
+            continue
+    str_cols = list(map(str, int_cols))
+    df = occ_correct_df[str_cols]
+
+    # TODO Find a more robust convergence metric
+
+    occ_correct_df['converge'] = abs(df[str_cols[-1]] / df[str_cols[-2]] - 1)
+
+    # Select the final occupancy value
+    occ_correct_df['occupancy'] = df[str_cols[-1]]
+
+    pdb_df_list = []
+    for pdb in occ_correct_df.pdb_latest.unique():
+
+        bound = 0
+        ground = 0
+
+        pdb_df = occ_correct_df.loc[
+            (occ_correct_df['pdb_latest'] == pdb)]
+
+        grouped = pdb_df.groupby(['complete group', 'occupancy', 'alte', 'state'])
+
+        for name, group in grouped:
+
+            group_occ = group.occupancy.unique()[0]
+
+            if "ground" in group.state.unique()[0]:
+                ground += group_occ
+
+            if "bound" in group.state.unique()[0]:
+                bound += group_occ
+
+        print(ground + bound)
+        try:
+            np.testing.assert_allclose(ground + bound, 1.0, atol=0.01)
+        except AssertionError:
+            continue
+
+        pdb_df['state occupancy'] = pdb_df.apply(
+            func=state_occ,
+            bound=bound,
+            ground=ground,
+            pdb=pdb,
+            axis=1)
+
+        pdb_df_list.append(pdb_df)
+
+    occ_correct_df = pd.concat(pdb_df_list)
+    occ_correct_df.to_csv(occ_correct_csv)
+
+
+def convergence_state_by_refinement_type(occ_csv, occ_conv_state_csv, refinement_type):
+
+    """
+    Add convergence and occupancy and state to csv which has at least convergence columns
+
+    Parameters
+    ----------
+    occ_csv: str
+        Path to input csv which contains occupancy, but not necessarily
+    occ_conv_csv: str
+        Path to output csv
+    refinement_type: str
+        "bound" or "ground"
+
+    Returns
+    -------
+
+    """
+    occ_df = pd.read_csv(occ_csv)
+
+    int_cols = []
+    for col in occ_df.columns.values:
+        try:
+            int_cols.append(int(col))
+        except ValueError:
+            continue
+    str_cols = list(map(str, int_cols))
+    df = occ_df[str_cols]
+
+    occ_df['state'] = refinement_type
+    occ_df['converge'] = abs(df[str_cols[-1]] / df[str_cols[-2]] - 1)
+    occ_df['state occupancy'] = df[str_cols[-1]]
+
+    occ_df.to_csv(occ_conv_state_csv)

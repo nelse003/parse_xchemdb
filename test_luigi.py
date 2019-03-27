@@ -186,8 +186,10 @@ luigi.build([
                           out_dir=test_paths.bound_refinement_dir,
                           tmp_dir=test_paths.tmp_dir,
                           log_pdb_mtz_csv=test_paths.log_pdb_mtz,
+                          ncyc=3,
                           refinement_type="bound")
-])
+],
+    local_scheduler=False, workers=20)
 
 
 # Generate new unconstrained refinements phenix
