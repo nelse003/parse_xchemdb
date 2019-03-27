@@ -367,14 +367,15 @@ def prepare_refinement(pdb,
 
 
 def prepare_superposed_refinement(crystal,
-                              pdb,
-                              cif,
-                              out_dir,
-                              refinement_script_dir,
-                              refinement_type="superposed",
-                              extra_params="NCYC=50",
-                              free_mtz='',
-                              params=''):
+                                  pdb,
+                                  cif,
+                                  out_dir,
+                                  refinement_script_dir,
+                                  refinement_type="superposed",
+                                  extra_params="NCYC=50",
+                                  free_mtz='',
+                                  params='',
+                                  refinement_program="refmac"):
 
     """
     Prepare files and write csh script to run giant.quick_refine
@@ -390,6 +391,7 @@ def prepare_superposed_refinement(crystal,
 
     Parameters
     -----------
+    refinement_program
     crystal: str
         crystal name
     cif: str
@@ -517,7 +519,7 @@ def prepare_superposed_refinement(crystal,
                                          pdb=pdb,
                                          params=params,
                                          free_mtz=free_mtz,
-                                         refinement_program="refmac",
+                                         refinement_program=refinement_program,
                                          input_dir=input_dir,
                                          crystal=crystal)
 
@@ -570,7 +572,7 @@ def prepare_superposed_refinement(crystal,
                            refinement_params=input_params,
                            out_dir=input_dir,
                            refinement_script_dir=refinement_script_dir,
-                           refinement_program='refmac',
+                           refinement_program=refinement_program,
                            refinement_type=refinement_type,
                            out_prefix="refine_1",
                            dir_prefix="refine_")

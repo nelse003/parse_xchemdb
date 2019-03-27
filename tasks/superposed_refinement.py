@@ -61,6 +61,7 @@ class PrepareSuperposedRefinement(luigi.Task):
     output_csv = luigi.Parameter()
     refinement_script = luigi.Parameter()
     refinement_type = luigi.Parameter()
+    refinement_program = luigi.Parameter()
 
     def output(self):
         return luigi.LocalTarget(self.refinement_script)
@@ -69,9 +70,10 @@ class PrepareSuperposedRefinement(luigi.Task):
     def run(self):
         prepare_superposed_refinement(crystal=self.crystal,
                                       pdb=self.pdb,
-                                      refinement_type=self.refinement_type,
                                       cif=self.cif,
                                       out_dir=self.out_dir,
                                       refinement_script_dir=self.refinement_script_dir,
+                                      refinement_type=self.refinement_type,
                                       extra_params=self.extra_params,
-                                      free_mtz=self.free_mtz)
+                                      free_mtz=self.free_mtz,
+                                      refinement_program=self.refinement_program)

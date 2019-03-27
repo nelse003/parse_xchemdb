@@ -33,6 +33,9 @@ test_paths.occ_conv_scatter = os.path.join(out_dir, 'occ_conv_scatter.png')
 test_paths.ground_occ_histogram = os.path.join(out_dir, 'occ_ground_histogram.png')
 test_paths.bound_occ_histogram = os.path.join(out_dir, 'occ_bound_histogram.png')
 
+test_paths.tmp_dir = os.path.join(out_dir, "tmp")
+
+
 # Analyse existing refinements
 luigi.build([
             # This will also call/test:
@@ -93,14 +96,28 @@ luigi.build([
              ],
             local_scheduler=True, workers=20)
 
+# Generate new Superposed refinements phenix
+
+luigi.build([
+        # Calls BatchRefinement
+        RefinementFolderToCsv(refinement_csv=os.path.join(out_dir, "phenix_superposed_log_pdb_mtz.csv"),
+                              output_csv=os.path.join(out_dir, "phenix_superposed_batch.csv"),
+                              out_dir=os.path.join(out_dir, "phenix_superposed"),
+                              tmp_dir=test_paths.tmp_dir,
+                              extra_params="NCYC 3",
+                              log_pdb_mtz_csv=os.path.join(out_dir, "log_pdb_mtz.csv"),
+                              refinement_program = "phenix",
+                              refinement_type="superposed")
+                              ],
+    local_scheduler=True, workers=20)
+
+raise Exception
 
 # Generate new Superposed refinements REFMAC5
 test_paths.convergence_refinement_failures = os.path.join(out_dir,
                             'convergence_refinement_failures.csv')
 
 test_paths.refinement_dir = os.path.join(out_dir, "convergence_refinement")
-
-test_paths.tmp_dir = os.path.join(out_dir, "tmp")
 
 test_paths.convergence_refinement = os.path.join(out_dir,
                                 'convergence_refinement.csv')
@@ -171,7 +188,6 @@ luigi.build([
 
         ],
     local_scheduler=False, workers=20)
-# Generate new Superposed refinements phenix
 
 # Generate new unconstrained refinements REFMAC5
 

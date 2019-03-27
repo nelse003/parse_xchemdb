@@ -66,23 +66,21 @@ def parameter_from_refine_pdb(pdb, glob_string, refinement_program):
     files_list = glob.glob(os.path.join(path, glob_string))
 
     # If only a single parameter file is present use that
-    if len(files_list) == 1:
-        return files_list[0]
+    for f in files_list:
+        if find_program_from_parameter_file(f) == refinement_program:
+            if len(files_list) == 1:
+                return files_list[0]
 
-    # If multiple paramter files are present
-    elif len(files_list) >= 1:
-        for file in files_list:
+            # If multiple paramter files are present
+            elif len(files_list) >= 1:
 
-            # If the name of the refinement program
-            # appears in the file string
-            if refinement_program in file:
-                return file
+                    # If the name of the refinement program
+                    # appears in the file string
+                    if refinement_program in f:
+                        return f
 
-            # Otherwise check the file contents
-            elif find_program_from_parameter_file(file) == refinement_program:
-                return file
 
-    elif path == "/":
+    if path == "/":
         return
 
     return parameter_from_refine_pdb(path,
@@ -281,6 +279,12 @@ def check_inputs(cif,
     # search the relative_path for the pdb file
     # First look for a file in the folder
     if params is '':
+        params = parameter_from_refine_pdb(pdb,
+                                           glob_string="*params",
+                                           refinement_program=refinement_program)
+    #If the refinement program does not amtch the parameter file,
+    # search for one that does in relative_path for the pdb file
+    if find_program_from_parameter_file(params) != refinement_program:
         params = parameter_from_refine_pdb(pdb,
                                            glob_string="*params",
                                            refinement_program=refinement_program)
