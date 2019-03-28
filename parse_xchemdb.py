@@ -373,7 +373,7 @@ def process_refined_crystals(out_csv, test=None):
 
     # Use a test flag to create a short table for testing purposes
     if test is not None:
-        pdb_log_mtz_df = pdb_log_mtz_df.head(n=test)
+        pdb_log_mtz_df = pdb_log_mtz_df.tail(n=test)
 
     # If the ouptut csv folder does not exist make it
     folder = os.path.dirname(out_csv)

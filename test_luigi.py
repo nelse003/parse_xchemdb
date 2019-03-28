@@ -35,6 +35,7 @@ test_paths.bound_occ_histogram = os.path.join(out_dir, 'occ_bound_histogram.png'
 
 test_paths.tmp_dir = os.path.join(out_dir, "tmp")
 
+test = 300
 
 # Analyse existing refinements
 luigi.build([
@@ -54,7 +55,7 @@ luigi.build([
                                refine_csv=test_paths.refine,
                                refinement_summary=test_paths.refinement_summary,
                                refinement_summary_plot=test_paths.refinement_summary_plot,
-                               test=5),
+                               test=test),
 
             # These will also call/test:
             #
@@ -68,7 +69,7 @@ luigi.build([
                                log_pdb_mtz_csv=test_paths.log_pdb_mtz,
                                occ_correct_csv=test_paths.occ_correct_csv,
                                plot_path = test_paths.convergence_histogram,
-                               test=5),
+                               test=test),
 
             PlotOccConvScatter(occ_state_comment_csv=test_paths.occ_state_comment_csv,
                                log_occ_resname=test_paths.log_occ_resname,
@@ -76,7 +77,7 @@ luigi.build([
                                log_pdb_mtz_csv=test_paths.log_pdb_mtz,
                                occ_correct_csv=test_paths.occ_correct_csv,
                                plot_path = test_paths.occ_conv_scatter,
-                               test=5),
+                               test=test),
 
             PlotGroundOccHistogram(occ_state_comment_csv=test_paths.occ_state_comment_csv,
                                log_occ_resname=test_paths.log_occ_resname,
@@ -84,7 +85,7 @@ luigi.build([
                                log_pdb_mtz_csv=test_paths.log_pdb_mtz,
                                occ_correct_csv=test_paths.occ_correct_csv,
                                plot_path=test_paths.ground_occ_histogram,
-                               test=5),
+                               test=test),
 
             PlotBoundOccHistogram(occ_state_comment_csv=test_paths.occ_state_comment_csv,
                            log_occ_resname=test_paths.log_occ_resname,
@@ -92,7 +93,7 @@ luigi.build([
                            log_pdb_mtz_csv=test_paths.log_pdb_mtz,
                            occ_correct_csv=test_paths.occ_correct_csv,
                            plot_path=test_paths.bound_occ_histogram,
-                           test=5)
+                           test=test)
              ],
             local_scheduler=True, workers=20)
 
@@ -209,7 +210,7 @@ luigi.build([
                           ncyc=3,
                           refinement_type="bound")
 ],
-    local_scheduler=False, workers=20)
+    local_scheduler=True, workers=20)
 
 
 # Generate new unconstrained refinements phenix
