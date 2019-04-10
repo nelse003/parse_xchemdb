@@ -95,7 +95,7 @@ luigi.build([
                            plot_path=test_paths.bound_occ_histogram,
                            test=test)
              ],
-            local_scheduler=True, workers=10)
+            local_scheduler=False, workers=10)
 
 
 # Generate new Superposed refinements REFMAC5
@@ -172,7 +172,7 @@ luigi.build([
                               test=5)
 
         ],
-    local_scheduler=True, workers=20)
+    local_scheduler=False, workers=20)
 
 # Generate new unconstrained refinements REFMAC5
 
@@ -211,7 +211,7 @@ luigi.build([
                               refinement_program = "phenix",
                               refinement_type="superposed")
                               ],
-    local_scheduler=True, workers=10)
+    local_scheduler=False, workers=10)
 
 # Generate new unconstrained refinements phenix
 

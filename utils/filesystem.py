@@ -1,6 +1,7 @@
 import glob
 import os
 import shutil
+import pandas as pd
 
 from utils.smiles import smiles_from_crystal
 from utils.smiles import smiles_to_cif_acedrg
@@ -419,11 +420,15 @@ def get_most_recent_quick_refine(input_dir):
     # Search for highest number, and thus most recent folder
     max_num = 0
     recent_refinement = None
+
     for folder in subfolders:
 
         # TMP fodlers to be ignored
         if 'TMP' in folder:
             shutil.rmtree(os.path.join(input_dir, folder))
+            continue
+
+        if 'refine' not in folder:
             continue
 
         num = int(folder.split('_')[1])
