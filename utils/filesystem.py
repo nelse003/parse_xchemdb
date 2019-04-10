@@ -8,6 +8,85 @@ from refinement.giant_scripts import make_restraints
 
 from path_config import Path
 
+def parse_refinement_folder(refinement_dir, refinement_csv, refinement_type):
+
+    """
+    Parse folder for refinements
+
+    Parse a refinement folder to get a csv with minimally:
+        refine_log: path to refinement log
+        crystal_name: crystal name
+        pdb_latest: path to
+        mtz_latest: path to latest mtz
+
+    The folder structure to be parsed is:
+        ./<crystal>/refine.pdb
+        ./<crystal>/refine.mtz
+        ./<crystal>/refmac.log or ./<crystal>/refine_XXXX/*quick.refine.log
+
+    Parameters
+    ----------
+    refinement_dir: str
+        path to refienement directory
+    refinement_csv: str
+        path to refinement csv file
+    refinement_type: str
+        "superposed" or "bound"
+
+    Returns
+    -------
+    None
+    """
+
+    pdb_mtz_log_dict = {}
+
+    # Loop over folders
+    for crystal in os.listdir(refinement_dir):
+
+        pdb_latest = None
+        mtz_latest = None
+        refinement_log = None
+
+        crystal_dir = os.path.join(refinement_dir, crystal)
+
+        # Check for existence of refine.pdb and refine.mtz
+        for f in os.listdir(crystal_dir):
+            if f == "refine.pdb":
+                pdb_latest = os.path.join(refinement_dir, crystal, f)
+            elif f == "refine.mtz":
+                mtz_latest = os.path.join(refinement_dir, crystal, f)
+
+        # When giant.quick.refine has been used
+        if refinement_type == "superposed":
+            try:
+                refinement_log = get_most_recent_quick_refine(crystal_dir)
+            except FileNotFoundError:
+                continue
+
+        # When refmac refinement of bound state has been performed
+        elif refinement_type == "bound":
+            for f in os.listdir(crystal_dir):
+                if f == "refmac.log":
+                    refinement_log = os.path.join(refinement_dir, crystal, f)
+
+        # Add row if pdb, mtz and log have been found for this crystal
+        if None not in [pdb_latest, mtz_latest, refinement_log]:
+            pdb_mtz_log_dict[crystal] = (pdb_latest,
+                                         mtz_latest,
+                                         refinement_log)
+
+    # Write dictionary of pdb, mtz and logs to dataframe
+    df = pd.DataFrame.from_dict(data=pdb_mtz_log_dict,
+                                columns=['pdb_latest',
+                                         'mtz_latest',
+                                         'refine_log'],
+                                orient='index')
+    # Name the index
+    df.index.name = 'crystal_name'
+    # Write dataframe to csv file
+    df.to_csv(refinement_csv)
+
+
 def find_program_from_parameter_file(file):
     """ Read parameter file to determine whether refmac or phenix
 
@@ -293,19 +372,6 @@ def check_inputs(cif, pdb, params, free_mtz, refinement_program,
         params = parameter_from_refine_pdb(pdb,
                                            glob_string="*params",
                                            refinement_program=refinement_program)
-
-    # Clean up end of file for addition if phenix is used
-    if refinement_program == "phenix" and os.path.isfile(params):
-        param_file = open(params)
-        lines = param_file.readlines()
-        param_file.close()
-
-        [lines.remove(line) for line in lines if "NCYC" in line]
-
-        param_file = open(params, 'w')
-        param_file.writelines(lines)
-        param_file.close()
-
 
     # Check that the source files for the symlinks exist
     if not os.path.isfile(cif):

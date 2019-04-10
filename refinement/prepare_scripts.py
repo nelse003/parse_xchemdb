@@ -338,8 +338,13 @@ def prepare_refinement(pdb,
 
     # Check and replace inputs with existing files,
     # or regenerate if necessary
-    cif, params, mtz = check_inputs(cif=cif, pdb=pdb, params='', free_mtz=mtz, refinement_program="refmac",
-                                    input_dir=input_dir, crystal=crystal)
+    cif, params, mtz = check_inputs(cif=cif,
+                                    pdb=pdb,
+                                    params='',
+                                    free_mtz=mtz,
+                                    refinement_program="refmac",
+                                    input_dir=input_dir,
+                                    crystal=crystal)
 
 
     # generate symlinks to refinement files

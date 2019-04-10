@@ -39,7 +39,7 @@ class BatchRefinement(luigi.Task):
 
     log_pdb_mtz_csv: luigi.Parameter()
         summary csv contianing at least path to pdb, mtz
-        and refinement log file.
+        and refinement log file from original refinement/ Database.
         This needs to exist before the batch refinement,
         not be written by it
 
