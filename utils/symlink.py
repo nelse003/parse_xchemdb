@@ -1,5 +1,5 @@
 import os
-
+import shutil
 
 def make_symlink(file, link_dir, link_name):
     """ Generate symlink
@@ -23,9 +23,9 @@ def make_symlink(file, link_dir, link_name):
     return link
 
 
-def make_symlinks(input_dir, cif, pdb, params, free_mtz):
+def make_copies_and_symlinks(input_dir, cif, pdb, params, free_mtz):
     """
-    Make symbolic links to refinement input files
+    Make symbolic links to refinement input files, copy of param file
 
     Parameters
     ----------
@@ -62,9 +62,8 @@ def make_symlinks(input_dir, cif, pdb, params, free_mtz):
                              link_dir=input_dir,
                              link_name="input.pdb")
 
-    input_params = make_symlink(file=params,
-                             link_dir=input_dir,
-                             link_name="input.params")
+    input_params = shutil.copyfile(src=params,
+                             dst=os.path.join(input_dir,"input.params"))
 
     input_mtz = make_symlink(file=free_mtz,
                              link_dir=input_dir,

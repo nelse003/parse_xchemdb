@@ -34,76 +34,11 @@ test_paths.ground_occ_histogram = os.path.join(out_dir, 'occ_ground_histogram.pn
 test_paths.bound_occ_histogram = os.path.join(out_dir, 'occ_bound_histogram.png')
 
 test_paths.tmp_dir = os.path.join(out_dir, "tmp")
+
+# For refamc bound re-refinement
+
 test_paths.script_dir = "/dls/science/groups/i04-1/elliot-dev/parse_xchemdb"
-test = 10
 
-# Analyse existing refinements
-luigi.build([
-            # This will also call/test:
-            #
-            # ResnameToOccLog,
-            # OccFromLog,
-            # ParseXchemdbToCsv
-            # RefineToCsv
-            # SuperposedToCsv
-            # SummaryRefinement
-             SummaryRefinementPlot(occ_state_comment_csv=test_paths.occ_state_comment_csv,
-                               log_occ_resname=test_paths.log_occ_resname,
-                               log_occ_csv=test_paths.log_occ_csv,
-                               log_pdb_mtz_csv=test_paths.log_pdb_mtz,
-                               superposed_csv=test_paths.superposed,
-                               refine_csv=test_paths.refine,
-                               refinement_summary=test_paths.refinement_summary,
-                               refinement_summary_plot=test_paths.refinement_summary_plot,
-                               script_path=paths.script_dir,
-                               test=test),
-
-            # These will also call/test:
-            #
-            # ResnameToOccLog
-            # OccFromLog
-            # ParseXchemdbToCsv
-            # StateOccupancyToCsv
-            PlotConvergenceHistogram(occ_state_comment_csv=test_paths.occ_state_comment_csv,
-                               log_occ_resname=test_paths.log_occ_resname,
-                               log_occ_csv=test_paths.log_occ_csv,
-                               log_pdb_mtz_csv=test_paths.log_pdb_mtz,
-                               occ_correct_csv=test_paths.occ_correct_csv,
-                               plot_path = test_paths.convergence_histogram,
-                               script_path=paths.script_dir,
-                               test=test),
-
-            PlotOccConvScatter(occ_state_comment_csv=test_paths.occ_state_comment_csv,
-                               log_occ_resname=test_paths.log_occ_resname,
-                               log_occ_csv=test_paths.log_occ_csv,
-                               log_pdb_mtz_csv=test_paths.log_pdb_mtz,
-                               occ_correct_csv=test_paths.occ_correct_csv,
-                               plot_path = test_paths.occ_conv_scatter,
-                               script_path=paths.script_dir,
-                               test=test),
-
-            PlotGroundOccHistogram(occ_state_comment_csv=test_paths.occ_state_comment_csv,
-                               log_occ_resname=test_paths.log_occ_resname,
-                               log_occ_csv=test_paths.log_occ_csv,
-                               log_pdb_mtz_csv=test_paths.log_pdb_mtz,
-                               occ_correct_csv=test_paths.occ_correct_csv,
-                               plot_path=test_paths.ground_occ_histogram,
-                               script_path=paths.script_dir,
-                               test=test),
-
-            PlotBoundOccHistogram(occ_state_comment_csv=test_paths.occ_state_comment_csv,
-                           log_occ_resname=test_paths.log_occ_resname,
-                           log_occ_csv=test_paths.log_occ_csv,
-                           log_pdb_mtz_csv=test_paths.log_pdb_mtz,
-                           occ_correct_csv=test_paths.occ_correct_csv,
-                           plot_path=test_paths.bound_occ_histogram,
-                           script_path=paths.script_dir,
-                           test=test)
-             ],
-            local_scheduler=False, workers=10)
-
-
-# Generate new Superposed refinements REFMAC5
 test_paths.convergence_refinement_failures = os.path.join(out_dir,
                             'convergence_refinement_failures.csv')
 
@@ -133,66 +68,133 @@ test_paths.convergence_bound_hist = os.path.join(out_dir,
 test_paths.convergence_occ_correct =os.path.join(out_dir,
                             'convergence_occ_correct.csv')
 
-luigi.build([
-        # Calls BatchRefinement
-        RefinementFolderToCsv(refinement_csv=test_paths.convergence_refinement,
-                              output_csv=test_paths.convergence_refinement_failures,
-                              out_dir=test_paths.refinement_dir,
-                              tmp_dir=test_paths.tmp_dir,
-                              extra_params="NCYC 3",
-                              log_pdb_mtz_csv=test_paths.log_pdb_mtz,
-                              refinement_type="superposed"),
+test_paths.bound_refinement_dir = os.path.join(out_dir, "bound_refinement")
+test_paths.bound_refinement_batch_csv = os.path.join(out_dir,'bound_refmac.csv')
+test_paths.bound_refinement = os.path.join(out_dir, 'bound_refinement_log_pdb_mtz.csv')
 
-        # These will also call/test:
-        # ResnameToOccLog
-        # OccFromLog
-        # StateOccupancyToCsv
-        PlotConvergenceHistogram(occ_state_comment_csv=test_paths.occ_state_comment_csv,
+test = 10
+
+# Analyse existing refinements
+luigi.build([
+    # This will also call/test:
+    #
+    # ResnameToOccLog,
+    # OccFromLog,
+    # ParseXchemdbToCsv
+    # RefineToCsv
+    # SuperposedToCsv
+    # SummaryRefinement
+     SummaryRefinementPlot(occ_state_comment_csv=test_paths.occ_state_comment_csv,
+                       log_occ_resname=test_paths.log_occ_resname,
+                       log_occ_csv=test_paths.log_occ_csv,
+                       log_pdb_mtz_csv=test_paths.log_pdb_mtz,
+                       superposed_csv=test_paths.superposed,
+                       refine_csv=test_paths.refine,
+                       refinement_summary=test_paths.refinement_summary,
+                       refinement_summary_plot=test_paths.refinement_summary_plot,
+                       script_path=test_paths.script_dir,
+                       test=test),
+
+    # These will also call/test:
+    #
+    # ResnameToOccLog
+    # OccFromLog
+    # ParseXchemdbToCsv
+    # StateOccupancyToCsv
+    PlotConvergenceHistogram(occ_state_comment_csv=test_paths.occ_state_comment_csv,
+                       log_occ_resname=test_paths.log_occ_resname,
+                       log_occ_csv=test_paths.log_occ_csv,
+                       log_pdb_mtz_csv=test_paths.log_pdb_mtz,
+                       occ_correct_csv=test_paths.occ_correct_csv,
+                       plot_path = test_paths.convergence_histogram,
+                       script_path=test_paths.script_dir,
+                       test=test),
+
+    PlotOccConvScatter(occ_state_comment_csv=test_paths.occ_state_comment_csv,
+                       log_occ_resname=test_paths.log_occ_resname,
+                       log_occ_csv=test_paths.log_occ_csv,
+                       log_pdb_mtz_csv=test_paths.log_pdb_mtz,
+                       occ_correct_csv=test_paths.occ_correct_csv,
+                       plot_path = test_paths.occ_conv_scatter,
+                       script_path=test_paths.script_dir,
+                       test=test),
+
+    PlotGroundOccHistogram(occ_state_comment_csv=test_paths.occ_state_comment_csv,
+                       log_occ_resname=test_paths.log_occ_resname,
+                       log_occ_csv=test_paths.log_occ_csv,
+                       log_pdb_mtz_csv=test_paths.log_pdb_mtz,
+                       occ_correct_csv=test_paths.occ_correct_csv,
+                       plot_path=test_paths.ground_occ_histogram,
+                       script_path=test_paths.script_dir,
+                       test=test),
+
+    PlotBoundOccHistogram(occ_state_comment_csv=test_paths.occ_state_comment_csv,
+                   log_occ_resname=test_paths.log_occ_resname,
+                   log_occ_csv=test_paths.log_occ_csv,
+                   log_pdb_mtz_csv=test_paths.log_pdb_mtz,
+                   occ_correct_csv=test_paths.occ_correct_csv,
+                   plot_path=test_paths.bound_occ_histogram,
+                   script_path=test_paths.script_dir,
+                   test=test),
+],
+    local_scheduler=True, workers=10)
+
+    # Generate new Superposed refinements REFMAC5
+luigi.build([
+    # Calls BatchRefinement
+    RefinementFolderToCsv(refinement_csv=test_paths.convergence_refinement,
+                          output_csv=test_paths.convergence_refinement_failures,
+                          out_dir=test_paths.refinement_dir,
+                          tmp_dir=test_paths.tmp_dir,
+                          extra_params="NCYC 3",
+                          log_pdb_mtz_csv=test_paths.log_pdb_mtz,
+                          refinement_type="superposed"),
+
+    # These will also call/test:
+    # ResnameToOccLog
+    # OccFromLog
+    # StateOccupancyToCsv
+    PlotConvergenceHistogram(occ_state_comment_csv=test_paths.occ_state_comment_csv,
                              log_occ_resname=test_paths.convergence_occ_resname,
                              log_occ_csv=test_paths.convergence_occ,
                              log_pdb_mtz_csv=test_paths.convergence_refinement,
                              occ_correct_csv=test_paths.convergence_occ_correct,
                              plot_path=test_paths.convergence_conv_hist,
-                             script_path=paths.script_dir,
+                             script_path=test_paths.script_dir,
                              test=test),
 
-        PlotOccConvScatter(occ_state_comment_csv=test_paths.occ_state_comment_csv,
-                             log_occ_resname=test_paths.convergence_occ_resname,
-                             log_occ_csv=test_paths.convergence_occ,
-                             log_pdb_mtz_csv=test_paths.convergence_refinement,
-                             occ_correct_csv=test_paths.convergence_occ_correct,
-                             plot_path=test_paths.convergence_occ_conv_scatter,
-                             script_path=paths.script_dir,
-                             test=test),
+    PlotOccConvScatter(occ_state_comment_csv=test_paths.occ_state_comment_csv,
+                       log_occ_resname=test_paths.convergence_occ_resname,
+                       log_occ_csv=test_paths.convergence_occ,
+                       log_pdb_mtz_csv=test_paths.convergence_refinement,
+                       occ_correct_csv=test_paths.convergence_occ_correct,
+                       plot_path=test_paths.convergence_occ_conv_scatter,
+                       script_path=test_paths.script_dir,
+                       test=test),
 
-        PlotBoundOccHistogram(occ_state_comment_csv=test_paths.occ_state_comment_csv,
-                             log_occ_resname=test_paths.convergence_occ_resname,
-                             log_occ_csv=test_paths.convergence_occ,
-                             log_pdb_mtz_csv=test_paths.convergence_refinement,
-                             occ_correct_csv=test_paths.convergence_occ_correct,
-                             plot_path=test_paths.convergence_bound_hist,
-                             script_path=paths.script_dir,
-                             test=test),
+    PlotBoundOccHistogram(occ_state_comment_csv=test_paths.occ_state_comment_csv,
+                          log_occ_resname=test_paths.convergence_occ_resname,
+                          log_occ_csv=test_paths.convergence_occ,
+                          log_pdb_mtz_csv=test_paths.convergence_refinement,
+                          occ_correct_csv=test_paths.convergence_occ_correct,
+                          plot_path=test_paths.convergence_bound_hist,
+                          script_path=test_paths.script_dir,
+                          test=test),
 
-        PlotGroundOccHistogram(occ_state_comment_csv=test_paths.occ_state_comment_csv,
-                              log_occ_resname=test_paths.convergence_occ_resname,
-                              log_occ_csv=test_paths.convergence_occ,
-                              log_pdb_mtz_csv=test_paths.convergence_refinement,
-                              occ_correct_csv=test_paths.convergence_occ_correct,
-                              plot_path=test_paths.convergence_ground_hist,
-                              script_path=paths.script_dir,
-                              test=test)
+    PlotGroundOccHistogram(occ_state_comment_csv=test_paths.occ_state_comment_csv,
+                           log_occ_resname=test_paths.convergence_occ_resname,
+                           log_occ_csv=test_paths.convergence_occ,
+                           log_pdb_mtz_csv=test_paths.convergence_refinement,
+                           occ_correct_csv=test_paths.convergence_occ_correct,
+                           plot_path=test_paths.convergence_ground_hist,
+                           script_path=test_paths.script_dir,
+                           test=test),
+],
+local_scheduler = True, workers = 10)
 
-        ],
-    local_scheduler=False, workers=20)
-
-# Generate new unconstrained refinements REFMAC5
-
-test_paths.bound_refinement_dir = os.path.join(out_dir, "bound_refinement")
-test_paths.bound_refinement_batch_csv = os.path.join(out_dir,'bound_refmac.csv')
-test_paths.bound_refinement = os.path.join(out_dir, 'bound_refinement_log_pdb_mtz.csv')
 
 luigi.build([
+    # Generate new unconstrained refinements REFMAC5
     # Calls BatchRefinement
     RefinementFolderToCsv(refinement_csv=test_paths.bound_refinement,
                           output_csv=test_paths.bound_refinement_batch_csv,
@@ -201,29 +203,28 @@ luigi.build([
                           log_pdb_mtz_csv=test_paths.log_pdb_mtz,
                           ncyc=3,
                           refinement_type="bound")
-],
-    local_scheduler=True, workers=20)
+    ],
+    local_scheduler=True, workers=10)
 
 
 # Generate new Superposed refinements phenix
-raise Exception
 
-luigi.build([
-        # Calls BatchRefinement
-        RefinementFolderToCsv(refinement_csv=os.path.join(out_dir,
-                                "phenix_superposed_log_pdb_mtz.csv"),
-                              output_csv=os.path.join(out_dir,
-                               "phenix_superposed_batch.csv"),
-                              out_dir=os.path.join(out_dir,
-                                    "phenix_superposed"),
-                              extra_params=None,
-                              tmp_dir=test_paths.tmp_dir,
-                              log_pdb_mtz_csv=os.path.join(out_dir,
-                                                "log_pdb_mtz.csv"),
-                              refinement_program = "phenix",
-                              refinement_type="superposed")
-                              ],
-    local_scheduler=False, workers=10)
+# luigi.build([
+#         # Calls BatchRefinement
+#         RefinementFolderToCsv(refinement_csv=os.path.join(out_dir,
+#                                 "phenix_superposed_log_pdb_mtz.csv"),
+#                               output_csv=os.path.join(out_dir,
+#                                "phenix_superposed_batch.csv"),
+#                               out_dir=os.path.join(out_dir,
+#                                     "phenix_superposed"),
+#                               extra_params=None,
+#                               tmp_dir=test_paths.tmp_dir,
+#                               log_pdb_mtz_csv=os.path.join(out_dir,
+#                                                 "log_pdb_mtz.csv"),
+#                               refinement_program = "phenix",
+#                               refinement_type="superposed")
+#                               ],
+#     local_scheduler=False, workers=10)
 
 # Generate new unconstrained refinements phenix
 

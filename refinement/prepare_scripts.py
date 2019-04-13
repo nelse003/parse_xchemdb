@@ -1,12 +1,12 @@
 import os
 
 from utils.smiles import smiles_from_crystal
-from refinement.call_ccp4 import get_occ_groups
+from refinement.call_ccp4 import get_incomplete_occ_groups
 from utils.filesystem import check_inputs
 from refinement.check_refienement_failure import check_restraints
 from refinement.check_refienement_failure import check_refinement_for_cif_error
 from utils.smiles import smiles_to_cif_acedrg
-from utils.symlink import make_symlinks
+from utils.symlink import make_copies_and_symlinks
 
 from path_config import Path
 
@@ -41,9 +41,8 @@ def write_refmac_csh(pdb,
                      refinement_script_dir,
                      script_dir,
                      ncyc=50,
-                     refinement_type=None,
                      ccp4_path="/dls/science/groups/i04-1/" \
-                               "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/"\
+                               "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/" \
                                "ccp4.setup-sh"):
 
     """
@@ -66,8 +65,10 @@ def write_refmac_csh(pdb,
         path to output directory
     refinement_script_dir: str
         path to directory where csh files will be written
-    refinement_type: str
-        type of refinement
+    script_dir: str
+        path to this script
+    ccp4_path: str
+        path to ccp4 script
 
     Returns
     -------
@@ -78,105 +79,54 @@ def write_refmac_csh(pdb,
     -------
 
     """
-    # Qsub specific line
-    pbs_line = '#PBS -joe -N \n'
-
+    # get name of pdb after giant.split_conformations
+    pdb_dir = os.path.dirname(pdb)
     if "bound" in pdb:
+        pdb = os.path.join(pdb_dir, "input.split.bound-state.pdb")
         refinement_type = "bound"
     elif "ground" in pdb:
+        pdb = os.path.join(pdb_dir, "input.split.ground-state.pdb")
         refinement_type = "ground"
     else:
         refinement_type = ""
 
-    # get name of pdb after giant.split_conformations
-    if refinement_type == "bound":
-        pdb_dir = os.path.dirname(pdb)
-        pdb = os.path.join(pdb_dir, "input.split.bound-state.pdb")
-    elif refinement_type == "ground":
-        pdb_dir = os.path.dirname(pdb)
-        pdb = os.path.join(pdb_dir, "input.split.ground-state.pdb")
 
     # Parse PDB to get ligand as occupancy groups as string
-    occ_group = get_occ_groups(tmp_dir=refinement_script_dir,
-                               crystal=crystal,
-                               pdb=pdb,
-                               script_dir=script_dir,
-                               ccp4_path=ccp4_path)
+    occ_group = get_incomplete_occ_groups(tmp_dir=refinement_script_dir,
+                                          crystal=crystal,
+                                          pdb=pdb,
+                                          script_dir=script_dir,
+                                          ccp4_path=ccp4_path)
 
+    # define output paths
     out_mtz = os.path.join(out_dir, "refine.mtz")
     out_pdb = os.path.join(out_dir, "refine.pdb")
     out_cif = os.path.join(out_dir, "refine.cif")
     log = os.path.join(out_dir, "refmac.log")
 
-    source = "source {}".format(ccp4_path)
+    with open(os.path.join(script_dir, "refmac_template.csh")) as f:
+        cmd = f.read()
 
-    Cmds = (
-            '#!' + os.getenv('SHELL') + '\n'
-            + pbs_line +
-            '\n'
-            + source +
-            '\n'
-            +
-            "refmac5 HKLIN {} \\".format(mtz) + '\n' +
-            "HKLOUT {} \\".format(out_mtz) + '\n' +
-            "XYZIN {} \\".format(pdb) + '\n' +
-            "XYZOUT {} \\".format(out_pdb) + '\n' +
-            "LIBIN {} \\".format(cif) + '\n' +
-            "LIBOUT {} \\".format(out_cif) + '\n' +
-
-             "<< EOF > {}".format(log) + '\n' +
-"""
-make -
-    hydrogen ALL -
-    hout NO -
-    peptide NO -
-    cispeptide YES -
-    ssbridge YES -
-    symmetry YES -
-    sugar YES -
-    connectivity NO -
-    link NO
-refi -
-    type REST -
-    resi MLKF -
-    meth CGMAT -
-    bref ISOT""" + "\n"
-
-    "ncyc {}".format(ncyc) + "\n" +
-
-    """scal -
-    type SIMP -
-    LSSC -
-    ANISO -
-    EXPE
-weight matrix 0.25
-solvent YES
-monitor MEDIUM -
-    torsion 10.0 -
-    distance 10.0 -
-    angle 10.0 -
-    plane 10.0 -
-    chiral 10.0 -
-    bfactor 10.0 -
-    bsphere 10.0 -
-    rbond 10.0 -
-    ncsr 10.0
-labin  FP=F SIGFP=SIGF FREE=FreeR_flag
-labout  FC=FC FWT=FWT PHIC=PHIC PHWT=PHWT DELFWT=DELFWT PHDELWT=PHDELWT FOM=FOM"""
-            + "\n" +
-            occ_group +
-            "DNAME {}".format(crystal) + '\n' +
-            "END\nEOF"
-
-            )
+    cmd.format(ccp4_path=ccp4_path,
+               mtz=mtz,
+               out_mtz=out_mtz,
+               pdb=pdb,
+               out_pdb=out_pdb,
+               cif=cif,
+               out_cif=out_cif,
+               log=log,
+               ncyc=ncyc,
+               occ_group=occ_group,
+               crystal=crystal)
 
     # File location and name
-    csh_file = os.path.join(refinement_script_dir, "{}_{}.csh".format(crystal, refinement_type))
+    csh_file = os.path.join(refinement_script_dir,
+                            "{}_{}.csh".format(crystal, refinement_type))
 
     # Write file
-    cmd = open(csh_file, 'w')
-    cmd.write(Cmds)
-    cmd.close()
+    with open(csh_file, 'w') as csh_f:
+        csh_f.write(cmd)
+
 
 
 def write_quick_refine_csh(refine_pdb,
@@ -351,22 +301,14 @@ def prepare_refinement(pdb,
     input_cif, \
     input_pdb, \
     input_params, \
-    input_mtz = make_symlinks(input_dir=input_dir,
-                              cif=cif,
-                              pdb=pdb,
-                              params=None,
-                              free_mtz=mtz)
+    input_mtz = make_copies_and_symlinks(input_dir=input_dir,
+                                         cif=cif,
+                                         pdb=pdb,
+                                         params=None,
+                                         free_mtz=mtz)
 
-    write_refmac_csh(pdb=input_pdb,
-                     crystal=crystal,
-                     cif=input_cif,
-                     mtz=input_mtz,
-                     out_dir=input_dir,
-                     refinement_script_dir=refinement_script_dir,
-                     ncyc=ncyc,
-                     script_dir=script_dir,
-                     refinement_type=refinement_type,
-                     ccp4_path=ccp4_path)
+    write_refmac_csh(pdb=input_pdb, crystal=crystal, cif=input_cif, mtz=input_mtz, out_dir=input_dir,
+                     refinement_script_dir=refinement_script_dir, script_dir=script_dir, ncyc=ncyc, ccp4_path=ccp4_path)
 
 
 def prepare_superposed_refinement(crystal,
@@ -526,11 +468,11 @@ def prepare_superposed_refinement(crystal,
     input_cif, \
     input_pdb, \
     input_params, \
-    input_mtz = make_symlinks(input_dir=input_dir,
-                              cif=cif,
-                              pdb=pdb,
-                              params=params,
-                              free_mtz=free_mtz)
+    input_mtz = make_copies_and_symlinks(input_dir=input_dir,
+                                         cif=cif,
+                                         pdb=pdb,
+                                         params=params,
+                                         free_mtz=free_mtz)
 
     # Check for failed refinement due to restraint error
     # Run giant.make_restraints in this case

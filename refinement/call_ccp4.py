@@ -4,11 +4,11 @@ import os
 from refinement.parameters import lig_pos_to_occupancy_refinement_string
 
 
-def get_occ_groups(tmp_dir,
-                   crystal,
-                   pdb,
-                   script_dir,
-                   ccp4_path):
+def get_incomplete_occ_groups(tmp_dir,
+                              crystal,
+                              pdb,
+                              script_dir,
+                              ccp4_path):
     """
     Get occupancy groups from pdb by calling ligand.py
 
