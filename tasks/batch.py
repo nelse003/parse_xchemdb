@@ -39,7 +39,7 @@ class BatchRefinement(luigi.Task):
 
     log_pdb_mtz_csv: luigi.Parameter()
         summary csv contianing at least path to pdb, mtz
-        and refinement log file.
+        and refinement log file from original refinement/ Database.
         This needs to exist before the batch refinement,
         not be written by it
 
@@ -67,6 +67,7 @@ class BatchRefinement(luigi.Task):
     out_dir = luigi.Parameter()
     tmp_dir = luigi.Parameter(default=Path().tmp_dir)
     script_dir = luigi.Parameter(default=Path().script_dir)
+    refinement_program = luigi.Parameter(default="refmac")
 
     extra_params = luigi.Parameter(default="NCYC=50", significant=False)
     ncyc = luigi.Parameter(default=50, significant=False)
@@ -134,7 +135,8 @@ class BatchRefinement(luigi.Task):
                             refinement_script=refinement_script,
                             refinement_script_dir=self.tmp_dir,
                             extra_params=self.extra_params,
-                            out_dir=Path().refinement_dir,
+                            out_dir=self.out_dir,
+                            refinement_program = self.refinement_program,
                             refinement_type="superposed",
                             output_csv=self.output_csv)
 

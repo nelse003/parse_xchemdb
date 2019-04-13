@@ -1,8 +1,8 @@
-import os
-import pandas as pd
 import luigi
 from luigi.util import requires
-from utils.filesystem import get_most_recent_quick_refine
+
+from utils.filesystem import parse_refinement_folder
+
 import tasks.batch
 
 
@@ -12,16 +12,44 @@ class RefinementFolderToCsv(luigi.Task):
     """Convert refinement folders to CSV
 
     Parse a refinement folder to get a csv with minimally:
-        refine_log: path to refmac log
+        refine_log: path to refinement log
         crystal_name: crystal name
         pdb_latest: path to
         mtz_latest: path to latest mtz
 
+    The folder structure to be parsed is:
+        ./<crystal>/refine.pdb
+        ./<crystal>/refine.mtz
+        ./<crystal>/refmac.log or ./<crystal>/refine_XXXX/*quick.refine.log
+
     Methods
     ----------
 
+
     Attributes
     -----------
+    refinement_csv: luigi.Parameter
+        path to csv to store refinement information
+
+    refinement type: luigi.Parameter()
+        "ground", "bound" or "superposed" to separate out different
+        refinement types
+
+    log_pdb_mtz_csv: luigi.Parameter()
+        summary csv contianing at least path to pdb, mtz
+        and refinement log file from original refinement/ Database.
+        This needs to exist before the batch refinement,
+        not be written by it
+
+    out_dir: luigi.Parameter()
+        output directory
+
+    tmp_dir: luigi.Parameter()
+        temporary directory to hold scripts
+
+    extra_params: luigi.Parameter()
+        extra parameters to provide to superposed refinement
+
 
     """
     refinement_csv = luigi.Parameter()
@@ -30,44 +58,6 @@ class RefinementFolderToCsv(luigi.Task):
         return luigi.LocalTarget(self.refinement_csv)
 
     def run(self):
-
-        pdb_mtz_log_dict = {}
-
-        for crystal in os.listdir(self.out_dir):
-
-            pdb_latest = None
-            mtz_latest = None
-            refinement_log = None
-
-            crystal_dir = os.path.join(self.out_dir, crystal)
-
-            for f in os.listdir(crystal_dir):
-                if f == "refine.pdb":
-                    pdb_latest = os.path.join(self.out_dir, crystal, f)
-                elif f == "refine.mtz":
-                    mtz_latest = os.path.join(self.out_dir, crystal, f)
-
-
-            if self.refinement_type == "superposed":
-                try:
-                    refinement_log = get_most_recent_quick_refine(crystal_dir)
-                except FileNotFoundError:
-                    continue
-            elif self.refinement_type == "bound":
-                for f in os.listdir(crystal_dir):
-                    if f == "refmac.log":
-                        refinement_log = os.path.join(self.out_dir, crystal, f)
-
-
-            if None not in [pdb_latest, mtz_latest, refinement_log]:
-                pdb_mtz_log_dict[crystal] = (pdb_latest,
-                                             mtz_latest,
-                                             refinement_log)
-
-        df = pd.DataFrame.from_dict(data=pdb_mtz_log_dict,
-                                    columns=['pdb_latest',
-                                             'mtz_latest',
-                                             'refine_log'],
-                                    orient='index')
-        df.index.name = 'crystal_name'
-        df.to_csv(self.refinement_csv)
+        parse_refinement_folder(refinement_dir=self.out_dir,
+                                refinement_csv=self.refinement_csv,
+                                refinement_type=self.refinement_type)

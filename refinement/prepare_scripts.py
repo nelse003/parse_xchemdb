@@ -8,6 +8,7 @@ from refinement.check_refienement_failure import check_refinement_for_cif_error
 from utils.smiles import smiles_to_cif_acedrg
 from utils.symlink import make_symlinks
 
+from path_config import Path
 
 def update_refinement_params(params, extra_params):
     """
@@ -24,6 +25,8 @@ def update_refinement_params(params, extra_params):
     -------
     None
     """
+    if extra_params is None:
+        return
 
     params = open(params,'a')
     params.write('\n' + extra_params)
@@ -367,14 +370,15 @@ def prepare_refinement(pdb,
 
 
 def prepare_superposed_refinement(crystal,
-                              pdb,
-                              cif,
-                              out_dir,
-                              refinement_script_dir,
-                              refinement_type="superposed",
-                              extra_params="NCYC=50",
-                              free_mtz='',
-                              params=''):
+                                  pdb,
+                                  cif,
+                                  out_dir,
+                                  refinement_script_dir,
+                                  refinement_type="superposed",
+                                  extra_params="NCYC=50",
+                                  free_mtz='',
+                                  params='',
+                                  refinement_program="refmac"):
 
     """
     Prepare files and write csh script to run giant.quick_refine
@@ -390,6 +394,7 @@ def prepare_superposed_refinement(crystal,
 
     Parameters
     -----------
+    refinement_program
     crystal: str
         crystal name
     cif: str
@@ -513,13 +518,8 @@ def prepare_superposed_refinement(crystal,
 
     # Check and replace inputs with existing files,
     # or regenerate if necessary
-    cif, params, free_mtz = check_inputs(cif=cif,
-                                         pdb=pdb,
-                                         params=params,
-                                         free_mtz=free_mtz,
-                                         refinement_program="refmac",
-                                         input_dir=input_dir,
-                                         crystal=crystal)
+    cif, params, free_mtz = check_inputs(cif=cif, pdb=pdb, params=params, free_mtz=free_mtz,
+                                         refinement_program=refinement_program, input_dir=input_dir, crystal=crystal)
 
 
     # generate symlinks to refinement files
@@ -535,23 +535,10 @@ def prepare_superposed_refinement(crystal,
     # Check for failed refinement due to restraint error
     # Run giant.make_restraints in this case
     if check_restraints(input_dir):
-
-        # TODO Move source to a parameter
-        os.system("source /dls/science/groups/i04-1/software/"
-                  "pandda_0.2.12/ccp4/ccp4-7.0/bin/ccp4.setup-sh")
-
-        os.chdir(input_dir)
-        os.system("giant.make_restraints {}".format(input_pdb))
-
-        link_pdb = os.path.join(input_dir,"input.link.pdb")
-        new_refmac_restraints = os.path.join(input_dir,
-                        'multi-state-restraints.refmac.params')
-
-        if os.path.isfile(link_pdb):
-            input_pdb = link_pdb
-
-        if os.path.isfile(new_refmac_restraints):
-            input_params = new_refmac_restraints
+        params, _ = make_restraints(pdb=pdb,
+                                    ccp4=Path().ccp4,
+                                    refinement_program=refinement_program,
+                                    working_dir=input_dir)
 
     # Check that refinement is failing due to a cif file missing
     if check_refinement_for_cif_error(input_dir):
@@ -570,7 +557,7 @@ def prepare_superposed_refinement(crystal,
                            refinement_params=input_params,
                            out_dir=input_dir,
                            refinement_script_dir=refinement_script_dir,
-                           refinement_program='refmac',
+                           refinement_program=refinement_program,
                            refinement_type=refinement_type,
                            out_prefix="refine_1",
                            dir_prefix="refine_")

@@ -13,7 +13,6 @@ class QsubTask(luigi.Task):
 
     """ Base class for single job on cluster submitted by qsub
 
-
     Attributes
     -----------
 
@@ -40,6 +39,7 @@ class QsubTask(luigi.Task):
 
     """
     refinement_script = luigi.Parameter()
+    submitted = False
 
     def output(self):
 
@@ -48,6 +48,19 @@ class QsubTask(luigi.Task):
 
         return luigi.LocalTarget(out_pdb), luigi.LocalTarget(out_mtz)
 
+    def get_queue_jobs(self):
+
+        # run 'qstat -r'
+        output_queue = run_qstat()
+
+        queue_jobs = []
+        # Turn qstat output into list of jobs
+        for line in output_queue:
+            if 'Full jobname' in line:
+                jobname = line.split()[-1]
+                queue_jobs.append(jobname)
+
+        return queue_jobs
 
     def run(self):
         """
@@ -72,16 +85,8 @@ class QsubTask(luigi.Task):
 
         # Only run if the pdb and mtz are not present
         if not (os.path.isfile(out_pdb) and os.path.isfile(out_mtz)):
-            queue_jobs = []
 
-            # run 'qstat -r'
-            output_queue = run_qstat()
-
-            # Turn qstat output into list of jobs
-            for line in output_queue:
-                if 'Full jobname' in line:
-                    jobname = line.split()[-1]
-                    queue_jobs.append(jobname)
+            queue_jobs = self.get_queue_jobs()
 
             # Get <crystal_name>_<refinement_type>.csh
             job = self.refinement_script
@@ -89,28 +94,21 @@ class QsubTask(luigi.Task):
 
             # Check whether <crystal_name>.csh is running in queue,
             # If not submit job to queue
-            if job_file not in queue_jobs:
+            if job_file not in queue_jobs and not self.submitted:
                 submit_job(job_directory=Path().tmp_dir,
                            job_script=job_file)
 
-                print('The job had no output, and was not found to be running ' 
-                      'in the queue. The job has been resubmitted. ' 
-                      'Will check again later!')
+                # If the job has already been submitted then change flag
+                # This means recursion only loops until job is finished
+                # and does not resubmit
+                self.submitted = True
 
-            elif not queue_jobs:
-                raise RuntimeError('Something went wrong or job is still running')
+                print('The job had no output, and was not found to be running ' 
+                      'in the queue. The job has been submitted. ')
 
             # Run until job complete
             time.sleep(5)
-            queue_jobs = []
-            output_queue = run_qstat()
-
-            # Turn qstat output into list of jobs
-            for line in output_queue:
-                if 'Full jobname' in line:
-                    jobname = line.split()[-1]
-                    queue_jobs.append(jobname)
-
+            queue_jobs = self.get_queue_jobs()
             if job_file in queue_jobs:
                 time.sleep(30)
                 self.run()

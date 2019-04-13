@@ -1,7 +1,7 @@
 import os
 import luigi
 
-from refinement.split_conformations import split_conformations
+from refinement.giant_scripts import split_conformations
 from refinement.prepare_scripts import prepare_refinement
 
 

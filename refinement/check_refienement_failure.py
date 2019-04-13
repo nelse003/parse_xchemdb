@@ -18,7 +18,7 @@ def check_restraints(input_dir):
     Returns
     -------
     Bool:
-        True if the error is
+        True if the error is associated with restraints
         False if error is not in quick-refine file,
         or refinement has not yet occured in this folder
 
@@ -27,9 +27,11 @@ def check_restraints(input_dir):
         quick_refine_log = get_most_recent_quick_refine(input_dir)
     except FileNotFoundError:
         return False
-    return check_file_for_string(quick_refine_log,
+
+    if check_file_for_string(quick_refine_log,
                                  "Error: At least one of the atoms from"
-                                 " the restraints could not be found")
+                                 " the restraints could not be found"):
+        return True
 
 
 def check_refinement_for_cif_error(input_dir):
@@ -47,7 +49,7 @@ def check_refinement_for_cif_error(input_dir):
     Returns
     -------
         Bool:
-        True if the error is
+        True if the error is asscoiated with cif file
         False if error is not in quick-refine file,
         or refinement has not yet occured in this folder
     """
@@ -60,5 +62,23 @@ def check_refinement_for_cif_error(input_dir):
     except FileNotFoundError:
         return False
 
-    return check_file_for_string(quick_refine_log,
-                                 "Refmac:  New ligand has been encountered. Stopping now")
+    if check_file_for_string(quick_refine_log,
+        "Refmac:  New ligand has been encountered. Stopping now"):
+        return True
+
+    # phenix error, could be fixed with new cif.
+    # First found in HAO1A-x0592
+    if check_file_for_string(quick_refine_log,
+                             "KeyError: 'HCR'"):
+        return True
+
+    # phenix error, Found in PaFen_c3-x0443.
+    # Might be cif related, orignally assumed
+    # to be an issue with BP3 not being defined
+    # in monomer library, but this is not the case.
+    # It is unlikely just a LIG cif will fix,
+    # but should be tried before more complex solutions enacted
+
+    if check_file_for_string(quick_refine_log,
+        "Sorry: Fatal problems interpreting model file"):
+        return True

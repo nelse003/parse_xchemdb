@@ -1,9 +1,95 @@
 import glob
 import os
 import shutil
+import pandas as pd
 
 from utils.smiles import smiles_from_crystal
 from utils.smiles import smiles_to_cif_acedrg
+from refinement.giant_scripts import make_restraints
+
+from path_config import Path
+
+def parse_refinement_folder(refinement_dir, refinement_csv, refinement_type):
+
+    """
+    Parse folder for refinements
+
+    Parse a refinement folder to get a csv with minimally:
+        refine_log: path to refinement log
+        crystal_name: crystal name
+        pdb_latest: path to
+        mtz_latest: path to latest mtz
+
+    The folder structure to be parsed is:
+        ./<crystal>/refine.pdb
+        ./<crystal>/refine.mtz
+        ./<crystal>/refmac.log or ./<crystal>/refine_XXXX/*quick.refine.log
+
+    Parameters
+    ----------
+    refinement_dir: str
+        path to refienement directory
+    refinement_csv: str
+        path to refinement csv file
+    refinement_type: str
+        "superposed" or "bound"
+
+    Returns
+    -------
+    None
+    """
+
+    pdb_mtz_log_dict = {}
+
+    # Loop over folders
+    for crystal in os.listdir(refinement_dir):
+
+        pdb_latest = None
+        mtz_latest = None
+        refinement_log = None
+
+        crystal_dir = os.path.join(refinement_dir, crystal)
+
+        if not os.path.isdir(crystal_dir):
+            continue
+
+        # Check for existence of refine.pdb and refine.mtz
+        for f in os.listdir(crystal_dir):
+
+            if f == "refine.pdb":
+                pdb_latest = os.path.join(crystal_dir, f)
+            elif f == "refine.mtz":
+                mtz_latest = os.path.join(crystal_dir, f)
+
+        # When giant.quick.refine has been used
+        if refinement_type == "superposed":
+            try:
+                refinement_log = get_most_recent_quick_refine(crystal_dir)
+            except FileNotFoundError:
+                continue
+
+        # When refmac refinement of bound state has been performed
+        elif refinement_type == "bound":
+            for f in os.listdir(crystal_dir):
+                if f == "refmac.log":
+                    refinement_log = os.path.join(refinement_dir, crystal, f)
+
+        # Add row if pdb, mtz and log have been found for this crystal
+        if None not in [pdb_latest, mtz_latest, refinement_log]:
+            pdb_mtz_log_dict[crystal] = (pdb_latest,
+                                         mtz_latest,
+                                         refinement_log)
+
+    # Write dictionary of pdb, mtz and logs to dataframe
+    df = pd.DataFrame.from_dict(data=pdb_mtz_log_dict,
+                                columns=['pdb_latest',
+                                         'mtz_latest',
+                                         'refine_log'],
+                                orient='index')
+    # Name the index
+    df.index.name = 'crystal_name'
+    # Write dataframe to csv file
+    df.to_csv(refinement_csv)
 
 
 def find_program_from_parameter_file(file):
@@ -66,23 +152,21 @@ def parameter_from_refine_pdb(pdb, glob_string, refinement_program):
     files_list = glob.glob(os.path.join(path, glob_string))
 
     # If only a single parameter file is present use that
-    if len(files_list) == 1:
-        return files_list[0]
+    for f in files_list:
+        if find_program_from_parameter_file(f) == refinement_program:
+            if len(files_list) == 1:
+                return files_list[0]
 
-    # If multiple paramter files are present
-    elif len(files_list) >= 1:
-        for file in files_list:
+            # If multiple paramter files are present
+            elif len(files_list) >= 1:
 
-            # If the name of the refinement program
-            # appears in the file string
-            if refinement_program in file:
-                return file
+                    # If the name of the refinement program
+                    # appears in the file string
+                    if refinement_program in f:
+                        return f
 
-            # Otherwise check the file contents
-            elif find_program_from_parameter_file(file) == refinement_program:
-                return file
 
-    elif path == "/":
+    if path == "/":
         return
 
     return parameter_from_refine_pdb(path,
@@ -195,13 +279,8 @@ def cif_path(cif='', pdb='', input_dir=None, crystal=None):
     return cif_p
 
 
-def check_inputs(cif,
-                 pdb,
-                 params,
-                 free_mtz,
-                 refinement_program,
-                 input_dir,
-                 crystal):
+def check_inputs(cif, pdb, params, free_mtz, refinement_program,
+                 input_dir, crystal, ccp4=Path().ccp4):
     """
     Check whether refinement input files are valid, replace if not and possible
 
@@ -214,6 +293,7 @@ def check_inputs(cif,
 
     Parameters
     ----------
+    ccp4
     cif: str
         path to cif file
     pdb: str
@@ -280,7 +360,20 @@ def check_inputs(cif,
     # If parameter file is not provided,
     # search the relative_path for the pdb file
     # First look for a file in the folder
-    if params is '':
+    if params is '' or params is None:
+        params = parameter_from_refine_pdb(pdb,
+                                           glob_string="*params",
+                                           refinement_program=refinement_program)
+
+    if params is None:
+        params, _ = make_restraints(pdb=pdb,
+                                    ccp4=ccp4,
+                                    refinement_program=refinement_program,
+                                    working_dir=input_dir)
+
+    # If the refinement program does not match the parameter file,
+    # search for one that does in relative_path for the pdb file
+    if find_program_from_parameter_file(params) != refinement_program:
         params = parameter_from_refine_pdb(pdb,
                                            glob_string="*params",
                                            refinement_program=refinement_program)
@@ -331,11 +424,15 @@ def get_most_recent_quick_refine(input_dir):
     # Search for highest number, and thus most recent folder
     max_num = 0
     recent_refinement = None
+
     for folder in subfolders:
 
         # TMP fodlers to be ignored
         if 'TMP' in folder:
             shutil.rmtree(os.path.join(input_dir, folder))
+            continue
+
+        if 'refine' not in folder:
             continue
 
         num = int(folder.split('_')[1])
@@ -345,9 +442,16 @@ def get_most_recent_quick_refine(input_dir):
     # Get folder path with highest number in
     for folder in subfolders:
         if str(max_num) in folder:
-            recent_refinement = folder
-            recent_refinement_path = os.path.join(input_dir, recent_refinement)
-            quick_refine_log = os.path.join(recent_refinement_path, "refine_1.quick-refine.log")
+            recent_refinement_path = os.path.join(input_dir, folder)
+
+            refine_folder_file_names = [f.name
+                                        for f in os.scandir(recent_refinement_path)
+                                        if f.is_file()]
+
+            for refine_folder_file in refine_folder_file_names:
+
+                if "quick-refine.log" in refine_folder_file:
+                    quick_refine_log = os.path.join(recent_refinement_path, refine_folder_file)
 
     # Return if file exists, otehrwise raise error
     if quick_refine_log is None:
