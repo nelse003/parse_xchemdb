@@ -34,7 +34,7 @@ paths.ground_occ_histogram = os.path.join(out_dir, 'occ_ground_histogram.png')
 paths.bound_occ_histogram = os.path.join(out_dir, 'occ_bound_histogram.png')
 
 paths.tmp_dir = os.path.join(out_dir, "tmp")
-
+paths.script_dir = "/dls/science/groups/i04-1/elliot-dev/parse_xchemdb"
 
 # Analyse existing refinements
 luigi.build([
@@ -54,7 +54,7 @@ luigi.build([
                                    refine_csv=paths.refine,
                                    refinement_summary=paths.refinement_summary,
                                    refinement_summary_plot=paths.refinement_summary_plot,
-                                   test=test),
+                                   script_path=paths.script_dir),
 
             # These will also call/test:
             #
@@ -68,7 +68,7 @@ luigi.build([
                                      log_pdb_mtz_csv=paths.log_pdb_mtz,
                                      occ_correct_csv=paths.occ_correct_csv,
                                      plot_path = paths.convergence_histogram,
-                                     test=test),
+                                     script_path=paths.script_dir),
 
             PlotOccConvScatter(occ_state_comment_csv=paths.occ_state_comment_csv,
                                log_occ_resname=paths.log_occ_resname,
@@ -76,7 +76,7 @@ luigi.build([
                                log_pdb_mtz_csv=paths.log_pdb_mtz,
                                occ_correct_csv=paths.occ_correct_csv,
                                plot_path = paths.occ_conv_scatter,
-                               test=test),
+                               script_path=paths.script_dir),
 
             PlotGroundOccHistogram(occ_state_comment_csv=paths.occ_state_comment_csv,
                                    log_occ_resname=paths.log_occ_resname,
@@ -84,7 +84,7 @@ luigi.build([
                                    log_pdb_mtz_csv=paths.log_pdb_mtz,
                                    occ_correct_csv=paths.occ_correct_csv,
                                    plot_path=paths.ground_occ_histogram,
-                                   test=test),
+                                   script_path=paths.script_dir),
 
             PlotBoundOccHistogram(occ_state_comment_csv=paths.occ_state_comment_csv,
                                   log_occ_resname=paths.log_occ_resname,
@@ -92,7 +92,7 @@ luigi.build([
                                   log_pdb_mtz_csv=paths.log_pdb_mtz,
                                   occ_correct_csv=paths.occ_correct_csv,
                                   plot_path=paths.bound_occ_histogram,
-                                  test=test)
+                                  script_path=paths.script_dir)
              ],
             local_scheduler=True, workers=10)
 
@@ -147,28 +147,31 @@ luigi.build([
                                  log_pdb_mtz_csv=paths.convergence_refinement,
                                  occ_correct_csv=paths.convergence_occ_correct,
                                  plot_path=paths.convergence_conv_hist,
-                                 test=5),
+                                 script_path=paths.script_dir),
+
         PlotOccConvScatter(occ_state_comment_csv=paths.occ_state_comment_csv,
                            log_occ_resname=paths.convergence_occ_resname,
                            log_occ_csv=paths.convergence_occ,
                            log_pdb_mtz_csv=paths.convergence_refinement,
                            occ_correct_csv=paths.convergence_occ_correct,
                            plot_path=paths.convergence_occ_conv_scatter,
-                           test=5),
+                           script_path=paths.script_dir),
+
         PlotBoundOccHistogram(occ_state_comment_csv=paths.occ_state_comment_csv,
                               log_occ_resname=paths.convergence_occ_resname,
                               log_occ_csv=paths.convergence_occ,
                               log_pdb_mtz_csv=paths.convergence_refinement,
                               occ_correct_csv=paths.convergence_occ_correct,
                               plot_path=paths.convergence_bound_hist,
-                              test=5),
+                              script_path=paths.script_dir),
+
         PlotGroundOccHistogram(occ_state_comment_csv=paths.occ_state_comment_csv,
                                log_occ_resname=paths.convergence_occ_resname,
                                log_occ_csv=paths.convergence_occ,
                                log_pdb_mtz_csv=paths.convergence_refinement,
                                occ_correct_csv=paths.convergence_occ_correct,
                                plot_path=paths.convergence_ground_hist,
-                               test=5)
+                               script_path=paths.script_dir)
 
         ],
     local_scheduler=False, workers=20)

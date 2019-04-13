@@ -50,12 +50,16 @@ def parse_refinement_folder(refinement_dir, refinement_csv, refinement_type):
 
         crystal_dir = os.path.join(refinement_dir, crystal)
 
+        if not os.path.isdir(crystal_dir):
+            continue
+
         # Check for existence of refine.pdb and refine.mtz
         for f in os.listdir(crystal_dir):
+
             if f == "refine.pdb":
-                pdb_latest = os.path.join(refinement_dir, crystal, f)
+                pdb_latest = os.path.join(crystal_dir, f)
             elif f == "refine.mtz":
-                mtz_latest = os.path.join(refinement_dir, crystal, f)
+                mtz_latest = os.path.join(crystal_dir, f)
 
         # When giant.quick.refine has been used
         if refinement_type == "superposed":
@@ -438,9 +442,16 @@ def get_most_recent_quick_refine(input_dir):
     # Get folder path with highest number in
     for folder in subfolders:
         if str(max_num) in folder:
-            recent_refinement = folder
-            recent_refinement_path = os.path.join(input_dir, recent_refinement)
-            quick_refine_log = os.path.join(recent_refinement_path, "refine_1.quick-refine.log")
+            recent_refinement_path = os.path.join(input_dir, folder)
+
+            refine_folder_file_names = [f.name
+                                        for f in os.scandir(recent_refinement_path)
+                                        if f.is_file()]
+
+            for refine_folder_file in refine_folder_file_names:
+
+                if "quick-refine.log" in refine_folder_file:
+                    quick_refine_log = os.path.join(recent_refinement_path, refine_folder_file)
 
     # Return if file exists, otehrwise raise error
     if quick_refine_log is None:

@@ -63,19 +63,42 @@ class ResnameToOccLog(luigi.Task):
     run()
         resnames_using_ccp4 using ccp4-python
 
+    Attributes
+    ----------
+    log_occ_resname: luigi.Parameter()
+         path to csv annotate with residue names for
+         residues involved in complete refinment groups,
+         as parsed from the REFMAC5 Log file
+
+    log_occ_csv: luigi.Parameter()
+        path to csv file where occupancies have
+        been obtained from REFMAC logs
+
+    log_pdb_mtz_csv: luigi.Parameter()
+        path to summary csv containing at least path to pdb, mtz
+        and refinement log file
+
+    test: luigi.Parameter(), optional
+        integer representing number of rows to extract when
+        used as test
+
+    script_dir: luigi.Parameter()
+        path to script directory for use of ccp4 scripts
+
     Notes
     ------
     Requires ccp4-python
     """
     log_occ_resname = luigi.Parameter()
+    script_path = luigi.Parameter()
 
     def output(self):
         return luigi.LocalTarget(self.log_occ_resname)
 
-
     def run(self):
         os.system("source {}".format(Path().ccp4))
-        os.system("ccp4-python ccp4/get_resname_b.py {} {}".format(
+        os.system("ccp4-python {}/ccp4/get_resname_b.py {} {}".format(
+                    self.script_path,
                     self.log_occ_csv,
                     self.log_occ_resname))
 
@@ -125,6 +148,9 @@ class OccStateComment(luigi.Task):
     test: luigi.Parameter(), optional
         integer representing number of rows to extract when
         used as test
+
+    script_dir: luigi.Parameter()
+        path to script directory for use of ccp4 scripts
 
     TODO Add a progress bar and/or parallelise task
     """
@@ -204,6 +230,9 @@ class SummaryRefinement(luigi.Task):
 
     refinement_sumamry: luigi.Parameter()
         path to csv file summarising refinement
+
+    script_dir: luigi.Parameter()
+        path to script directory for use of ccp4 scripts
     """
     refinement_summary = luigi.Parameter()
 
@@ -268,7 +297,8 @@ class StateOccupancyToCsv(luigi.Task):
         integer representing number of rows to extract when
         used as test
 
-    New
+    script_dir: luigi.Parameter()
+        path to script directory for use of ccp4 scripts
 
     occ_correct_csv: luigi.paramter()
         path to csv with convergence information,
