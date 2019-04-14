@@ -62,8 +62,12 @@ def make_copies_and_symlinks(input_dir, cif, pdb, params, free_mtz):
                              link_dir=input_dir,
                              link_name="input.pdb")
 
-    input_params = shutil.copyfile(src=params,
-                             dst=os.path.join(input_dir,"input.params"))
+    if params is not None:
+        if os.path.isfile(params):
+            input_params = shutil.copyfile(src=params,
+                                     dst=os.path.join(input_dir,"input.params"))
+    else:
+        input_params = None
 
     input_mtz = make_symlink(file=free_mtz,
                              link_dir=input_dir,

@@ -128,7 +128,6 @@ def write_refmac_csh(pdb,
         csh_f.write(cmd)
 
 
-
 def write_quick_refine_csh(refine_pdb,
                            cif,
                            free_mtz,
@@ -151,7 +150,8 @@ def write_quick_refine_csh(refine_pdb,
 
     Parameters
     ----------
-    ccp4_path
+    ccp4_path: str
+        path to ccp4 step script to be sourced
     refine_pdb: str
         path to pdb file
     cif:
@@ -192,13 +192,16 @@ def write_quick_refine_csh(refine_pdb,
 
     source = "source {}".format(ccp4_path)
 
+    if not os.path.isdir(refinement_script_dir):
+        os.makedirs(refinement_script_dir)
+
     # Shell suitable string for csh file
     Cmds = (
             '#!' + os.getenv('SHELL') + '\n'
             + pbs_line +
             '\n'
-            + module_load +
-            '\n'
+            # + module_load +
+            # '\n'
             + source +
             '\n' +
             'cd {}\n'.format(out_dir) +

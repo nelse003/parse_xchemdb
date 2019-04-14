@@ -3,7 +3,7 @@ import pytest
 import shutil
 
 from refinement.prepare_scripts import write_refmac_csh
-
+from refinement.prepare_scripts import write_quick_refine_csh
 
 class InputFiles:
     """
@@ -25,6 +25,13 @@ class InputFiles:
         self.ccp4_path = "/dls/science/groups/i04-1/" \
                          "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/" \
                          "ccp4.setup-sh"
+
+        # for quick_refine
+        self.pdb = os.path.join(self.resources_dir, "refine.pdb")
+        self.params = os.path.join(self.resources_dir, "input.params")
+        self.crystal_dir = os.path.join(self.out_dir, self.crystal)
+        self.out_prefix = "refine_"
+        self.dir_prefix = "refine_"
 
 @pytest.fixture
 def setup_input_files():
@@ -75,6 +82,56 @@ def test_write_refmac_ground(setup_input_files):
                            "{}_ground.csh".format(setup_input_files.crystal))
 
     assert os.path.isfile(out_csh)
+
+    with open(out_csh) as f:
+        lines = f.readlines()
+
+    assert lines[3] == "source {}\n".format(setup_input_files.ccp4_path)
+
+
+def test_refmac_write_quick_refine(setup_input_files):
+    """Test whether a quick_refine csh file is produced"""
+
+    write_quick_refine_csh(refine_pdb=setup_input_files.pdb,
+                           cif=setup_input_files.cif,
+                           free_mtz=setup_input_files.free_mtz,
+                           crystal=setup_input_files.crystal,
+                           refinement_params=setup_input_files.params,
+                           out_dir=setup_input_files.crystal_dir,
+                           refinement_script_dir=setup_input_files.refinement_script_dir,
+                           refinement_program = 'refmac',
+                           refinement_type = "superposed",
+                           out_prefix = setup_input_files.out_prefix,
+                           dir_prefix = setup_input_files.dir_prefix,
+                           ccp4_path = setup_input_files.ccp4_path)
+
+    out_csh = os.path.join(setup_input_files.refinement_script_dir,
+                           "{}_superposed.csh".format(setup_input_files.crystal))
+
+    with open(out_csh) as f:
+        lines = f.readlines()
+
+    assert lines[3] == "source {}\n".format(setup_input_files.ccp4_path)
+
+
+def test_phenix_write_quick_refine(setup_input_files):
+    """Test whether a quick_refine csh file is produced"""
+
+    write_quick_refine_csh(refine_pdb=setup_input_files.pdb,
+                           cif=setup_input_files.cif,
+                           free_mtz=setup_input_files.free_mtz,
+                           crystal=setup_input_files.crystal,
+                           refinement_params=setup_input_files.params,
+                           out_dir=setup_input_files.crystal_dir,
+                           refinement_script_dir=setup_input_files.refinement_script_dir,
+                           refinement_program = 'phenix',
+                           refinement_type = "superposed",
+                           out_prefix = setup_input_files.out_prefix,
+                           dir_prefix = setup_input_files.dir_prefix,
+                           ccp4_path = setup_input_files.ccp4_path)
+
+    out_csh = os.path.join(setup_input_files.refinement_script_dir,
+                           "{}_superposed.csh".format(setup_input_files.crystal))
 
     with open(out_csh) as f:
         lines = f.readlines()

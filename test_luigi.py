@@ -204,7 +204,7 @@ luigi.build([
                           ncyc=3,
                           refinement_type="bound")
     ],
-    local_scheduler=True, workers=10)
+    local_scheduler=False, workers=10)
 
 
 # Generate new Superposed refinements phenix
