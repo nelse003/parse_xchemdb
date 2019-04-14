@@ -1,0 +1,219 @@
+exte dist first chain A resi  110 alte A atom  N   second chain A resi  110 alte C atom  N   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte A atom  CA  second chain A resi  110 alte C atom  CA  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte A atom  C   second chain A resi  110 alte C atom  C   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte A atom  O   second chain A resi  110 alte C atom  O   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte A atom  CB  second chain A resi  110 alte C atom  CB  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte A atom  CG  second chain A resi  110 alte C atom  CG  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte A atom  CD  second chain A resi  110 alte C atom  CD  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte A atom  OE1 second chain A resi  110 alte C atom  OE1 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte A atom  OE2 second chain A resi  110 alte C atom  OE2 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte A atom  N   second chain A resi  110 alte D atom  N   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte A atom  CA  second chain A resi  110 alte D atom  CA  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte A atom  C   second chain A resi  110 alte D atom  C   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte A atom  O   second chain A resi  110 alte D atom  O   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte A atom  CB  second chain A resi  110 alte D atom  CB  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte A atom  CG  second chain A resi  110 alte D atom  CG  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte A atom  CD  second chain A resi  110 alte D atom  CD  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte A atom  OE1 second chain A resi  110 alte D atom  OE1 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte A atom  OE2 second chain A resi  110 alte D atom  OE2 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte C atom  N   second chain A resi  110 alte D atom  N   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte C atom  CA  second chain A resi  110 alte D atom  CA  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte C atom  C   second chain A resi  110 alte D atom  C   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte C atom  O   second chain A resi  110 alte D atom  O   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte C atom  CB  second chain A resi  110 alte D atom  CB  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte C atom  CG  second chain A resi  110 alte D atom  CG  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte C atom  CD  second chain A resi  110 alte D atom  CD  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte C atom  OE1 second chain A resi  110 alte D atom  OE1 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  110 alte C atom  OE2 second chain A resi  110 alte D atom  OE2 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  121 alte A atom  N   second chain A resi  121 alte B atom  N   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  121 alte A atom  CA  second chain A resi  121 alte B atom  CA  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  121 alte A atom  C   second chain A resi  121 alte B atom  C   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  121 alte A atom  O   second chain A resi  121 alte B atom  O   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  121 alte A atom  CB  second chain A resi  121 alte B atom  CB  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  121 alte A atom  CG  second chain A resi  121 alte B atom  CG  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  121 alte A atom  CD  second chain A resi  121 alte B atom  CD  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  121 alte A atom  CE  second chain A resi  121 alte B atom  CE  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  121 alte A atom  NZ  second chain A resi  121 alte B atom  NZ  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  121 alte C atom  N   second chain A resi  121 alte D atom  N   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  121 alte C atom  CA  second chain A resi  121 alte D atom  CA  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  121 alte C atom  C   second chain A resi  121 alte D atom  C   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  121 alte C atom  O   second chain A resi  121 alte D atom  O   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  121 alte C atom  CB  second chain A resi  121 alte D atom  CB  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  121 alte C atom  CG  second chain A resi  121 alte D atom  CG  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  121 alte C atom  CD  second chain A resi  121 alte D atom  CD  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  121 alte C atom  CE  second chain A resi  121 alte D atom  CE  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  121 alte C atom  NZ  second chain A resi  121 alte D atom  NZ  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  158 alte A atom  N   second chain A resi  158 alte C atom  N   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  158 alte A atom  CA  second chain A resi  158 alte C atom  CA  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  158 alte A atom  C   second chain A resi  158 alte C atom  C   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  158 alte A atom  O   second chain A resi  158 alte C atom  O   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  158 alte A atom  CB  second chain A resi  158 alte C atom  CB  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  158 alte A atom  SG  second chain A resi  158 alte C atom  SG  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  158 alte B atom  N   second chain A resi  158 alte D atom  N   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  158 alte B atom  CA  second chain A resi  158 alte D atom  CA  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  158 alte B atom  C   second chain A resi  158 alte D atom  C   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  158 alte B atom  O   second chain A resi  158 alte D atom  O   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  158 alte B atom  CB  second chain A resi  158 alte D atom  CB  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  158 alte B atom  SG  second chain A resi  158 alte D atom  SG  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  190 alte A atom  N   second chain A resi  190 alte C atom  N   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  190 alte A atom  CA  second chain A resi  190 alte C atom  CA  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  190 alte A atom  C   second chain A resi  190 alte C atom  C   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  190 alte A atom  O   second chain A resi  190 alte C atom  O   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  190 alte A atom  CB  second chain A resi  190 alte C atom  CB  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  190 alte A atom  OG1 second chain A resi  190 alte C atom  OG1 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  190 alte A atom  CG2 second chain A resi  190 alte C atom  CG2 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  190 alte B atom  N   second chain A resi  190 alte D atom  N   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  190 alte B atom  CA  second chain A resi  190 alte D atom  CA  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  190 alte B atom  C   second chain A resi  190 alte D atom  C   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  190 alte B atom  O   second chain A resi  190 alte D atom  O   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  190 alte B atom  CB  second chain A resi  190 alte D atom  CB  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  190 alte B atom  OG1 second chain A resi  190 alte D atom  OG1 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  190 alte B atom  CG2 second chain A resi  190 alte D atom  CG2 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  191 alte B atom  N   second chain A resi  191 alte D atom  N   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  191 alte B atom  CA  second chain A resi  191 alte D atom  CA  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  191 alte B atom  C   second chain A resi  191 alte D atom  C   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  191 alte B atom  O   second chain A resi  191 alte D atom  O   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  191 alte B atom  CB  second chain A resi  191 alte D atom  CB  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  191 alte B atom  CG  second chain A resi  191 alte D atom  CG  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  191 alte B atom  CD  second chain A resi  191 alte D atom  CD  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  191 alte B atom  NE  second chain A resi  191 alte D atom  NE  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  191 alte B atom  CZ  second chain A resi  191 alte D atom  CZ  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  191 alte B atom  NH1 second chain A resi  191 alte D atom  NH1 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  191 alte B atom  NH2 second chain A resi  191 alte D atom  NH2 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  209 alte A atom  N   second chain A resi  209 alte C atom  N   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  209 alte A atom  CA  second chain A resi  209 alte C atom  CA  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  209 alte A atom  C   second chain A resi  209 alte C atom  C   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  209 alte A atom  O   second chain A resi  209 alte C atom  O   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  209 alte A atom  CB  second chain A resi  209 alte C atom  CB  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  209 alte A atom  CG  second chain A resi  209 alte C atom  CG  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  209 alte A atom  CD  second chain A resi  209 alte C atom  CD  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  209 alte A atom  NE  second chain A resi  209 alte C atom  NE  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  209 alte A atom  CZ  second chain A resi  209 alte C atom  CZ  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  209 alte A atom  NH1 second chain A resi  209 alte C atom  NH1 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  209 alte A atom  NH2 second chain A resi  209 alte C atom  NH2 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  209 alte B atom  N   second chain A resi  209 alte D atom  N   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  209 alte B atom  CA  second chain A resi  209 alte D atom  CA  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  209 alte B atom  C   second chain A resi  209 alte D atom  C   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  209 alte B atom  O   second chain A resi  209 alte D atom  O   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  209 alte B atom  CB  second chain A resi  209 alte D atom  CB  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  209 alte B atom  CG  second chain A resi  209 alte D atom  CG  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  209 alte B atom  CD  second chain A resi  209 alte D atom  CD  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  209 alte B atom  NE  second chain A resi  209 alte D atom  NE  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  209 alte B atom  CZ  second chain A resi  209 alte D atom  CZ  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  209 alte B atom  NH1 second chain A resi  209 alte D atom  NH1 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  209 alte B atom  NH2 second chain A resi  209 alte D atom  NH2 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  226 alte A atom  N   second chain A resi  226 alte C atom  N   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  226 alte A atom  CA  second chain A resi  226 alte C atom  CA  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  226 alte A atom  C   second chain A resi  226 alte C atom  C   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  226 alte A atom  O   second chain A resi  226 alte C atom  O   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  226 alte A atom  CB  second chain A resi  226 alte C atom  CB  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  226 alte A atom  CG  second chain A resi  226 alte C atom  CG  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  226 alte A atom  CD1 second chain A resi  226 alte C atom  CD1 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  226 alte A atom  CD2 second chain A resi  226 alte C atom  CD2 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  226 alte A atom  CE1 second chain A resi  226 alte C atom  CE1 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  226 alte A atom  CE2 second chain A resi  226 alte C atom  CE2 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  226 alte A atom  CZ  second chain A resi  226 alte C atom  CZ  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  226 alte B atom  N   second chain A resi  226 alte D atom  N   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  226 alte B atom  CA  second chain A resi  226 alte D atom  CA  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  226 alte B atom  C   second chain A resi  226 alte D atom  C   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  226 alte B atom  O   second chain A resi  226 alte D atom  O   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  226 alte B atom  CB  second chain A resi  226 alte D atom  CB  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  226 alte B atom  CG  second chain A resi  226 alte D atom  CG  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  226 alte B atom  CD1 second chain A resi  226 alte D atom  CD1 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  226 alte B atom  CD2 second chain A resi  226 alte D atom  CD2 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  226 alte B atom  CE1 second chain A resi  226 alte D atom  CE1 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  226 alte B atom  CE2 second chain A resi  226 alte D atom  CE2 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  226 alte B atom  CZ  second chain A resi  226 alte D atom  CZ  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte A atom  N   second chain A resi  242 alte C atom  N   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte A atom  CA  second chain A resi  242 alte C atom  CA  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte A atom  C   second chain A resi  242 alte C atom  C   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte A atom  O   second chain A resi  242 alte C atom  O   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte A atom  CB  second chain A resi  242 alte C atom  CB  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte A atom  CG  second chain A resi  242 alte C atom  CG  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte A atom  CD  second chain A resi  242 alte C atom  CD  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte A atom  NE  second chain A resi  242 alte C atom  NE  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte A atom  CZ  second chain A resi  242 alte C atom  CZ  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte A atom  NH1 second chain A resi  242 alte C atom  NH1 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte A atom  NH2 second chain A resi  242 alte C atom  NH2 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte A atom  N   second chain A resi  242 alte D atom  N   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte A atom  CA  second chain A resi  242 alte D atom  CA  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte A atom  C   second chain A resi  242 alte D atom  C   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte A atom  O   second chain A resi  242 alte D atom  O   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte A atom  CB  second chain A resi  242 alte D atom  CB  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte A atom  CG  second chain A resi  242 alte D atom  CG  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte A atom  CD  second chain A resi  242 alte D atom  CD  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte A atom  NE  second chain A resi  242 alte D atom  NE  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte A atom  CZ  second chain A resi  242 alte D atom  CZ  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte A atom  NH1 second chain A resi  242 alte D atom  NH1 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte A atom  NH2 second chain A resi  242 alte D atom  NH2 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte C atom  N   second chain A resi  242 alte D atom  N   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte C atom  CA  second chain A resi  242 alte D atom  CA  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte C atom  C   second chain A resi  242 alte D atom  C   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte C atom  O   second chain A resi  242 alte D atom  O   value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte C atom  CB  second chain A resi  242 alte D atom  CB  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte C atom  CG  second chain A resi  242 alte D atom  CG  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte C atom  CD  second chain A resi  242 alte D atom  CD  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte C atom  NE  second chain A resi  242 alte D atom  NE  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte C atom  CZ  second chain A resi  242 alte D atom  CZ  value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte C atom  NH1 second chain A resi  242 alte D atom  NH1 value 0.0 sigma 0.02 type 1
+exte dist first chain A resi  242 alte C atom  NH2 second chain A resi  242 alte D atom  NH2 value 0.0 sigma 0.02 type 1
+exte dist first chain W resi   64 alte A atom  O   second chain W resi   64 alte B atom  O   value 0.0 sigma 0.02 type 1
+exte dist first chain W resi   81 alte A atom  O   second chain W resi   81 alte B atom  O   value 0.0 sigma 0.02 type 1
+exte dist first chain W resi   87 alte A atom  O   second chain W resi   87 alte B atom  O   value 0.0 sigma 0.02 type 1
+exte dist first chain W resi  109 alte A atom  O   second chain W resi  109 alte B atom  O   value 0.0 sigma 0.02 type 1
+exte dist first chain W resi  110 alte C atom  O   second chain W resi  110 alte D atom  O   value 0.0 sigma 0.02 type 1
+exte dist first chain W resi  111 alte C atom  O   second chain W resi  111 alte D atom  O   value 0.0 sigma 0.02 type 1
+exte dist first chain E resi    1 alte A atom  C1  second chain E resi    1 alte B atom  C1  value 0.0 sigma 0.02 type 1
+exte dist first chain E resi    1 alte A atom  C2  second chain E resi    1 alte B atom  C2  value 0.0 sigma 0.02 type 1
+exte dist first chain E resi    1 alte A atom  C3  second chain E resi    1 alte B atom  C3  value 0.0 sigma 0.02 type 1
+exte dist first chain E resi    1 alte A atom  C4  second chain E resi    1 alte B atom  C4  value 0.0 sigma 0.02 type 1
+exte dist first chain E resi    1 alte A atom  O1  second chain E resi    1 alte B atom  O1  value 0.0 sigma 0.02 type 1
+exte dist first chain E resi    1 alte A atom  O2  second chain E resi    1 alte B atom  O2  value 0.0 sigma 0.02 type 1
+exte dist first chain E resi    1 alte A atom  O4  second chain E resi    1 alte B atom  O4  value 0.0 sigma 0.02 type 1
+exte dist first chain F resi    1 alte C atom  C1  second chain F resi    1 alte D atom  C1  value 0.0 sigma 0.02 type 1
+exte dist first chain F resi    1 alte C atom  C10 second chain F resi    1 alte D atom  C10 value 0.0 sigma 0.02 type 1
+exte dist first chain F resi    1 alte C atom  C11 second chain F resi    1 alte D atom  C11 value 0.0 sigma 0.02 type 1
+exte dist first chain F resi    1 alte C atom  C12 second chain F resi    1 alte D atom  C12 value 0.0 sigma 0.02 type 1
+exte dist first chain F resi    1 alte C atom  C13 second chain F resi    1 alte D atom  C13 value 0.0 sigma 0.02 type 1
+exte dist first chain F resi    1 alte C atom  C14 second chain F resi    1 alte D atom  C14 value 0.0 sigma 0.02 type 1
+exte dist first chain F resi    1 alte C atom  C2  second chain F resi    1 alte D atom  C2  value 0.0 sigma 0.02 type 1
+exte dist first chain F resi    1 alte C atom  C3  second chain F resi    1 alte D atom  C3  value 0.0 sigma 0.02 type 1
+exte dist first chain F resi    1 alte C atom  C4  second chain F resi    1 alte D atom  C4  value 0.0 sigma 0.02 type 1
+exte dist first chain F resi    1 alte C atom  C5  second chain F resi    1 alte D atom  C5  value 0.0 sigma 0.02 type 1
+exte dist first chain F resi    1 alte C atom  C6  second chain F resi    1 alte D atom  C6  value 0.0 sigma 0.02 type 1
+exte dist first chain F resi    1 alte C atom  C7  second chain F resi    1 alte D atom  C7  value 0.0 sigma 0.02 type 1
+exte dist first chain F resi    1 alte C atom  C8  second chain F resi    1 alte D atom  C8  value 0.0 sigma 0.02 type 1
+exte dist first chain F resi    1 alte C atom  C9  second chain F resi    1 alte D atom  C9  value 0.0 sigma 0.02 type 1
+exte dist first chain F resi    1 alte C atom  N1  second chain F resi    1 alte D atom  N1  value 0.0 sigma 0.02 type 1
+exte dist first chain F resi    1 alte C atom  O1  second chain F resi    1 alte D atom  O1  value 0.0 sigma 0.02 type 1
+exte dist first chain F resi    1 alte C atom  O2  second chain F resi    1 alte D atom  O2  value 0.0 sigma 0.02 type 1
+exte dist first chain F resi    1 alte C atom  O3  second chain F resi    1 alte D atom  O3  value 0.0 sigma 0.02 type 1
+occupancy group id 1 chain A resi  121 alte A
+occupancy group id 1 chain A resi  209 alte A
+occupancy group id 1 chain A resi  226 alte A
+occupancy group id 1 chain E resi    1 alte A
+occupancy group id 2 chain A resi  121 alte B
+occupancy group id 2 chain A resi  209 alte B
+occupancy group id 2 chain A resi  226 alte B
+occupancy group id 2 chain E resi    1 alte B
+occupancy group id 3 chain A resi  121 alte C
+occupancy group id 3 chain A resi  209 alte C
+occupancy group id 3 chain A resi  226 alte C
+occupancy group id 3 chain F resi    1 alte C
+occupancy group id 3 chain W resi  110 alte C
+occupancy group id 3 chain W resi  111 alte C
+occupancy group id 4 chain A resi  121 alte D
+occupancy group id 4 chain A resi  209 alte D
+occupancy group id 4 chain A resi  226 alte D
+occupancy group id 4 chain F resi    1 alte D
+occupancy group id 4 chain W resi  110 alte D
+occupancy group id 4 chain W resi  111 alte D
+occupancy group alts complete 1 2 3 4
+occupancy refine
+    bref ISOT
+
+
+
+ncyc 10
+weight AUTO
+

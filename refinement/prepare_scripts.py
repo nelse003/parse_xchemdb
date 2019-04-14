@@ -127,6 +127,36 @@ def write_refmac_csh(pdb,
     with open(csh_file, 'w') as csh_f:
         csh_f.write(cmd)
 
+def write_exhaustive_csh(pdb,
+                         mtz,
+                         script_dir,
+                         refinement_script_dir,
+                         out_dir,
+                         crystal,
+                         exhaustive_multiple_sampling,
+                         ccp4_path):
+
+    crystal_dir = os.path.join(out_dir, crystal)
+
+    with open(os.path.join(script_dir,"refinement", "exhaustive_template.csh")) as f:
+        cmd = f.read()
+
+    cmd = cmd.format(ccp4_path=ccp4_path,
+                     out_dir=out_dir,
+                     crystal_dir=crystal_dir,
+                     exhaustive_multiple_sampling=exhaustive_multiple_sampling,
+                     pdb=pdb,
+                     mtz=mtz)
+
+    if not os.path.isdir(refinement_script_dir):
+        os.makedirs(refinement_script_dir)
+
+    # File location and name
+    csh_file = os.path.join(refinement_script_dir,
+                            "{}_{}.csh".format(crystal,"exhaustive"))
+
+    with open(csh_file, 'w') as csh_f:
+        csh_f.write(cmd)
 
 def write_quick_refine_csh(refine_pdb,
                            cif,

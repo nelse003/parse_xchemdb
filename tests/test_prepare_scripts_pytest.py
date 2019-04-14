@@ -4,6 +4,7 @@ import shutil
 
 from refinement.prepare_scripts import write_refmac_csh
 from refinement.prepare_scripts import write_quick_refine_csh
+from refinement.prepare_scripts import write_exhaustive_csh
 
 class InputFiles:
     """
@@ -33,12 +34,40 @@ class InputFiles:
         self.out_prefix = "refine_"
         self.dir_prefix = "refine_"
 
+        # for exhaustive
+        self.exhaustive_multiple_sampling = "/dls/science/groups/i04-1/elliot-dev/" \
+                                            "work/exhaustive_search/run_exhaustive_multiple_sampling.py"
+
 @pytest.fixture
 def setup_input_files():
 
     yield InputFiles()
 
     shutil.rmtree(InputFiles().out_dir)
+
+
+def test_write_exhaustive_search(setup_input_files):
+    """Test whether exhaustive search csv is produced"""
+
+    write_exhaustive_csh(pdb=setup_input_files.pdb,
+                         mtz=setup_input_files.free_mtz,
+                         refinement_script_dir= setup_input_files.refinement_script_dir,
+                         out_dir=setup_input_files.out_dir,
+                         crystal=setup_input_files.crystal,
+                         script_dir=setup_input_files.script_dir,
+                         exhaustive_multiple_sampling=setup_input_files.exhaustive_multiple_sampling,
+                         ccp4_path=setup_input_files.ccp4_path)
+
+    out_csh = os.path.join(setup_input_files.refinement_script_dir,
+                         "{}_exhaustive.csh".format(setup_input_files.crystal))
+
+    assert os.path.isfile(out_csh)
+
+    with open(out_csh) as f:
+        lines = f.readlines()
+
+    assert lines[3] == "source {}\n".format(setup_input_files.ccp4_path)
+
 
 
 def test_write_refmac_bound(setup_input_files):
