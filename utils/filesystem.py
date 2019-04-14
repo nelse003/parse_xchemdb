@@ -326,10 +326,14 @@ def check_inputs(cif, pdb, params, free_mtz, refinement_program,
         trying alternative location/ regenerating in the case of cif file
     """
 
+    if not os.path.exists(input_dir):
+        os.makedirs(input_dir)
+
     # If Cif file is not found at supplied location (due to error in database),
     # or it is not supplied, it's implicit location:
     # (same folder as refine.pdb symlink) is checked.
     # If that doesn't work try generating from smiles string
+
     cif = cif_path(cif=cif,
                    pdb=pdb,
                    input_dir=input_dir,
@@ -377,6 +381,12 @@ def check_inputs(cif, pdb, params, free_mtz, refinement_program,
         params = parameter_from_refine_pdb(pdb,
                                            glob_string="*params",
                                            refinement_program=refinement_program)
+
+    if params is None:
+        params, _ = make_restraints(pdb=pdb,
+                                    ccp4=ccp4,
+                                    refinement_program=refinement_program,
+                                    working_dir=input_dir)
 
     # Check that the source files for the symlinks exist
     if not os.path.isfile(cif):
