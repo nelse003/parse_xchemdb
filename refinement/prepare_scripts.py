@@ -82,14 +82,14 @@ def write_refmac_csh(pdb,
     # get name of pdb after giant.split_conformations
     pdb_dir = os.path.dirname(pdb)
     if "bound" in pdb:
-        pdb = os.path.join(pdb_dir, "input.split.bound-state.pdb")
         refinement_type = "bound"
     elif "ground" in pdb:
-        pdb = os.path.join(pdb_dir, "input.split.ground-state.pdb")
         refinement_type = "ground"
     else:
         refinement_type = ""
 
+    if not os.path.isdir(refinement_script_dir):
+        os.makedirs(refinement_script_dir)
 
     # Parse PDB to get ligand as occupancy groups as string
     occ_group = get_incomplete_occ_groups(tmp_dir=refinement_script_dir,
@@ -104,10 +104,10 @@ def write_refmac_csh(pdb,
     out_cif = os.path.join(out_dir, "refine.cif")
     log = os.path.join(out_dir, "refmac.log")
 
-    with open(os.path.join(script_dir, "refmac_template.csh")) as f:
+    with open(os.path.join(script_dir,"refinement", "refmac_template.csh")) as f:
         cmd = f.read()
 
-    cmd.format(ccp4_path=ccp4_path,
+    cmd = cmd.format(ccp4_path=ccp4_path,
                mtz=mtz,
                out_mtz=out_mtz,
                pdb=pdb,

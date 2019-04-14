@@ -5,7 +5,10 @@ from utils.filesystem import check_inputs
 from utils.filesystem import find_program_from_parameter_file
 
 
-class InputFiles():
+class InputFiles:
+    """
+    Test parameters for check_input
+    """
     def __init__(self):
         self.resources_dir = "/dls/science/groups/i04-1/elliot-dev/parse_xchemdb/tests/resources/DCP2B-x0146"
         self.input_dir = "/dls/science/groups/i04-1/elliot-dev/parse_xchemdb/tests/output"
