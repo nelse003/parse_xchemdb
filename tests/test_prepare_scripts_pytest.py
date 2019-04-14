@@ -1,5 +1,6 @@
 import os
 import pytest
+import shutil
 
 from refinement.prepare_scripts import write_refmac_csh
 
@@ -30,7 +31,7 @@ def setup_input_files():
 
     yield InputFiles()
 
-    # shutil.rmtree(InputFiles().input_dir)
+    shutil.rmtree(InputFiles().out_dir)
 
 
 def test_write_refmac_bound(setup_input_files):
