@@ -135,10 +135,38 @@ def write_exhaustive_csh(pdb,
                          crystal,
                          exhaustive_multiple_sampling,
                          ccp4_path):
+    """
+    Write .csh script to run exhaustive search
+    
+    Parameters
+    ----------
+    pdb: pdb
+        path to pdb file
+    mtz: str
+        path to mtz file
+    script_dir:
+        path to directory with input scripts (parse_xchemdb)
+    refinement_script_dir: str
+        path to directory for csh script
+    out_dir: str
+        path for output files
+    crystal: str
+        name of crystal
+    exhaustive_multiple_sampling: str
+        path to exhaustive search multiple sampling. py file
+    ccp4_path: str
+        path to ccp4 setup script to be sourced
+
+    Returns
+    -------
+    None
+    """
 
     crystal_dir = os.path.join(out_dir, crystal)
 
-    with open(os.path.join(script_dir,"refinement", "exhaustive_template.csh")) as f:
+    with open(os.path.join(script_dir,
+                           "refinement",
+                           "exhaustive_template.csh")) as f:
         cmd = f.read()
 
     cmd = cmd.format(ccp4_path=ccp4_path,
@@ -181,7 +209,7 @@ def write_quick_refine_csh(refine_pdb,
     Parameters
     ----------
     ccp4_path: str
-        path to ccp4 step script to be sourced
+        path to ccp4 setup script to be sourced
     refine_pdb: str
         path to pdb file
     cif:
