@@ -33,14 +33,10 @@ def parse_args():
 
     args = parser.parse_args()
 
-    # TODO Not sure whether this is needed
     # Make output directories if not used
     if not os.path.exists(args.output):
-        try:
-            os.mkdir(args.output)
-        except:
-            rmtree(args.output)
-            os.mkdir(args.output)
+         os.mkdir(args.output)
+
 
     return args
 
