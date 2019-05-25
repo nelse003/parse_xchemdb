@@ -1,5 +1,6 @@
 import os
 
+
 def split_conformations(pdb, working_dir=None):
     """Run giant.split conformations preserving occupancies
 
@@ -16,13 +17,14 @@ def split_conformations(pdb, working_dir=None):
     if working_dir is not None:
         os.chdir(working_dir)
 
-    cmd =(
-    'giant.split_conformations' +
-    " input.pdb='{}'".format(pdb) +
-    ' reset_occupancies=False' +
-    ' suffix_prefix=split'
+    cmd = (
+        "giant.split_conformations"
+        + " input.pdb='{}'".format(pdb)
+        + " reset_occupancies=False"
+        + " suffix_prefix=split"
     )
     os.system(cmd)
+
 
 def make_restraints(pdb, ccp4, refinement_program, working_dir=None):
 
@@ -38,10 +40,12 @@ def make_restraints(pdb, ccp4, refinement_program, working_dir=None):
     os.system("giant.make_restraints {}".format(pdb))
 
     link_pdb = os.path.join(working_dir, "input.link.pdb")
-    new_refmac_restraints = os.path.join(working_dir,
-                                         'multi-state-restraints.refmac.params')
-    new_phenix_restraints = os.path.join(working_dir,
-                                         'multi-state-restraints.phenix.params')
+    new_refmac_restraints = os.path.join(
+        working_dir, "multi-state-restraints.refmac.params"
+    )
+    new_phenix_restraints = os.path.join(
+        working_dir, "multi-state-restraints.phenix.params"
+    )
 
     if refinement_program == "refmac":
 
@@ -55,6 +59,4 @@ def make_restraints(pdb, ccp4, refinement_program, working_dir=None):
         if os.path.isfile(new_phenix_restraints):
             input_params = new_phenix_restraints
 
-
     return input_params, pdb
-

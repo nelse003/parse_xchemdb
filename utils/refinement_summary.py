@@ -1,10 +1,9 @@
 import pandas as pd
 
-def refinement_summary(occ_state_comment_csv,
-                       refine_csv,
-                       superposed_csv,
-                       log_pdb_mtz_csv,
-                       out_csv):
+
+def refinement_summary(
+    occ_state_comment_csv, refine_csv, superposed_csv, log_pdb_mtz_csv, out_csv
+):
     """
     Summarise refinement information for plotting
 
@@ -37,19 +36,19 @@ def refinement_summary(occ_state_comment_csv,
     pdb_df = refine_df[refine_df.pdb_latest.notnull()]
 
     # Pull out comments from occupancy convergence csv
-    comments = occ_conv_df[['comment','crystal','complete group']]
+    comments = occ_conv_df[["comment", "crystal", "complete group"]]
 
     # Drop duplicates to get unique rows,
     # this reduces down to one row per complete group
     comments = comments.drop_duplicates()
 
     # Get number of crystals with coment
-    summary = comments['comment'].value_counts()
+    summary = comments["comment"].value_counts()
 
     # Make dict to add in further details to summary df
     summary_dict = {}
-    summary_dict['Refinement latest is dimple'] = len(pdb_df)-len(superposed_df)
-    summary_dict['Refinement log is missing'] = len(superposed_df) - len(log_pdb_mtz_df)
+    summary_dict["Refinement latest is dimple"] = len(pdb_df) - len(superposed_df)
+    summary_dict["Refinement log is missing"] = len(superposed_df) - len(log_pdb_mtz_df)
 
     # Append dict to summary df
     summary = summary.append(pd.Series(summary_dict))

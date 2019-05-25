@@ -51,6 +51,7 @@ class PrepareSuperposedRefinement(luigi.Task):
     many times
 
     """
+
     crystal = luigi.Parameter()
     pdb = luigi.Parameter()
     cif = luigi.Parameter()
@@ -66,14 +67,15 @@ class PrepareSuperposedRefinement(luigi.Task):
     def output(self):
         return luigi.LocalTarget(self.refinement_script)
 
-
     def run(self):
-        prepare_superposed_refinement(crystal=self.crystal,
-                                      pdb=self.pdb,
-                                      cif=self.cif,
-                                      out_dir=self.out_dir,
-                                      refinement_script_dir=self.refinement_script_dir,
-                                      refinement_type=self.refinement_type,
-                                      extra_params=self.extra_params,
-                                      free_mtz=self.free_mtz,
-                                      refinement_program=self.refinement_program)
+        prepare_superposed_refinement(
+            crystal=self.crystal,
+            pdb=self.pdb,
+            cif=self.cif,
+            out_dir=self.out_dir,
+            refinement_script_dir=self.refinement_script_dir,
+            refinement_type=self.refinement_type,
+            extra_params=self.extra_params,
+            free_mtz=self.free_mtz,
+            refinement_program=self.refinement_program,
+        )

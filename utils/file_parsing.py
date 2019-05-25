@@ -17,7 +17,7 @@ def check_file_for_string(file, string):
     -----------
     Reads entire file into memory, so would work for very large files
     """
-    file_txt = open(file, 'r').read()
+    file_txt = open(file, "r").read()
     if string in file_txt:
         return True
     else:

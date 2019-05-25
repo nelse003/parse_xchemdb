@@ -38,6 +38,7 @@ class OccFromLog(luigi.Task):
     refinement table for all crystal with pdb_latest
 
     """
+
     log_occ_csv = luigi.Parameter()
     log_pdb_mtz_csv = luigi.Parameter()
 
@@ -45,8 +46,9 @@ class OccFromLog(luigi.Task):
         return luigi.LocalTarget(self.log_occ_csv)
 
     def run(self):
-        get_occ_from_log(log_pdb_mtz_csv=self.log_pdb_mtz_csv,
-                         log_occ_csv=self.log_occ_csv)
+        get_occ_from_log(
+            log_pdb_mtz_csv=self.log_pdb_mtz_csv, log_occ_csv=self.log_occ_csv
+        )
 
 
 @requires(OccFromLog)
@@ -89,6 +91,7 @@ class ResnameToOccLog(luigi.Task):
     ------
     Requires ccp4-python
     """
+
     log_occ_resname = luigi.Parameter()
     script_path = luigi.Parameter()
 
@@ -97,10 +100,11 @@ class ResnameToOccLog(luigi.Task):
 
     def run(self):
         os.system("source {}".format(Path().ccp4))
-        os.system("ccp4-python {}/ccp4/get_resname_b.py {} {}".format(
-                    self.script_path,
-                    self.log_occ_csv,
-                    self.log_occ_resname))
+        os.system(
+            "ccp4-python {}/ccp4/get_resname_b.py {} {}".format(
+                self.script_path, self.log_occ_csv, self.log_occ_resname
+            )
+        )
 
 
 @requires(ResnameToOccLog)
@@ -160,10 +164,10 @@ class OccStateComment(luigi.Task):
     def output(self):
         return luigi.LocalTarget(self.occ_state_comment_csv)
 
-
     def run(self):
-        annotate_csv_with_state_comment(self.log_occ_resname,
-                                        self.occ_state_comment_csv)
+        annotate_csv_with_state_comment(
+            self.log_occ_resname, self.occ_state_comment_csv
+        )
 
 
 @requires(OccStateComment, SuperposedToCsv)
@@ -234,17 +238,20 @@ class SummaryRefinement(luigi.Task):
     script_dir: luigi.Parameter()
         path to script directory for use of ccp4 scripts
     """
+
     refinement_summary = luigi.Parameter()
 
     def output(self):
         return luigi.LocalTarget(self.refinement_summary)
 
     def run(self):
-        refinement_summary(occ_state_comment_csv=self.occ_state_comment_csv,
-                           refine_csv=self.refine_csv,
-                           superposed_csv=self.superposed_csv,
-                           log_pdb_mtz_csv=self.log_pdb_mtz_csv,
-                           out_csv=self.refinement_summary)
+        refinement_summary(
+            occ_state_comment_csv=self.occ_state_comment_csv,
+            refine_csv=self.refine_csv,
+            superposed_csv=self.superposed_csv,
+            log_pdb_mtz_csv=self.log_pdb_mtz_csv,
+            out_csv=self.refinement_summary,
+        )
 
 
 @requires(OccStateComment)
@@ -310,10 +317,11 @@ class StateOccupancyToCsv(luigi.Task):
     def output(self):
         return luigi.LocalTarget(self.occ_correct_csv)
 
-
     def run(self):
-        state_occupancies(occ_state_comment_csv=self.occ_state_comment_csv,
-                          occ_correct_csv=self.occ_correct_csv)
+        state_occupancies(
+            occ_state_comment_csv=self.occ_state_comment_csv,
+            occ_correct_csv=self.occ_correct_csv,
+        )
 
 
 class ConvergenceStateByRefinementType(luigi.Task):
@@ -326,10 +334,13 @@ class ConvergenceStateByRefinementType(luigi.Task):
         return luigi.LocalTarget(self.occ_conv_state_csv)
 
     def requires(self):
-        RefinementFolderToCsv(output_csv=self.occ_csv,
-                              input_folder=self.bound_refinement_dir),
+        RefinementFolderToCsv(
+            output_csv=self.occ_csv, input_folder=self.bound_refinement_dir
+        ),
 
     def run(self):
-        convergence_state_by_refinement_type(occ_csv=self.occ_csv,
-                                             occ_conv_state_csv=self.occ_conv_state_csv,
-                                             refinement_type=self.refinement_type)
+        convergence_state_by_refinement_type(
+            occ_csv=self.occ_csv,
+            occ_conv_state_csv=self.occ_conv_state_csv,
+            refinement_type=self.refinement_type,
+        )

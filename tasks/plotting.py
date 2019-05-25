@@ -9,6 +9,7 @@ from plotting import occupancy_histogram
 from plotting import occupancy_vs_convergence
 from plotting import convergence_ratio_histogram
 
+
 @requires(StateOccupancyToCsv)
 class PlotOccCorrect(luigi.Task):
 
@@ -102,9 +103,11 @@ class PlotConvergenceHistogram(PlotOccCorrect):
         path to plot file to be plotted
 
     """
+
     def run(self):
-        convergence_ratio_histogram(occ_state_comment_csv=self.occ_correct_csv,
-                                    plot_path=self.plot_path)
+        convergence_ratio_histogram(
+            occ_state_comment_csv=self.occ_correct_csv, plot_path=self.plot_path
+        )
 
 
 class PlotOccConvScatter(PlotOccCorrect):
@@ -150,9 +153,11 @@ class PlotOccConvScatter(PlotOccCorrect):
 
 
     """
+
     def run(self):
-        occupancy_vs_convergence(occ_correct_csv=self.occ_correct_csv,
-                                    plot_path=self.plot_path)
+        occupancy_vs_convergence(
+            occ_correct_csv=self.occ_correct_csv, plot_path=self.plot_path
+        )
 
 
 class PlotGroundOccHistogram(PlotOccCorrect):
@@ -198,10 +203,13 @@ class PlotGroundOccHistogram(PlotOccCorrect):
 
 
     """
+
     def run(self):
-        occupancy_histogram(occ_correct_csv=self.occ_correct_csv,
-                            plot_path=self.plot_path,
-                            state="ground")
+        occupancy_histogram(
+            occ_correct_csv=self.occ_correct_csv,
+            plot_path=self.plot_path,
+            state="ground",
+        )
 
 
 class PlotBoundOccHistogram(PlotOccCorrect):
@@ -247,10 +255,14 @@ class PlotBoundOccHistogram(PlotOccCorrect):
 
 
     """
+
     def run(self):
-        occupancy_histogram(occ_correct_csv=self.occ_correct_csv,
-                                  plot_path=self.plot_path,
-                                  state="bound")
+        occupancy_histogram(
+            occ_correct_csv=self.occ_correct_csv,
+            plot_path=self.plot_path,
+            state="bound",
+        )
+
 
 @requires(SummaryRefinement)
 class SummaryRefinementPlot(luigi.Task):
@@ -320,12 +332,14 @@ class SummaryRefinementPlot(luigi.Task):
         path to plot file
 
     """
+
     refinement_summary_plot = luigi.Parameter()
 
     def output(self):
         return luigi.LocalTarget(self.refinement_summary_plot)
 
     def run(self):
-        refinement_summary_plot(refinement_csv=self.refinement_summary,
-                                out_file_path=self.refinement_summary_plot)
-
+        refinement_summary_plot(
+            refinement_csv=self.refinement_summary,
+            out_file_path=self.refinement_summary_plot,
+        )

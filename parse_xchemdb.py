@@ -4,6 +4,7 @@ from shutil import rmtree
 import pandas as pd
 import sqlalchemy
 
+
 def parse_args():
     # TODO Refactor into luigi config
     parser = argparse.ArgumentParser()
@@ -13,9 +14,12 @@ def parse_args():
     # default="/dls/labxchem/data/2018/lb19758-9/processing/analysis/panddas_run12_all_onlydmso"
 
     # Output
-    parser.add_argument("-o", "--output",
-                        default="/dls/science/groups/i04-1/elliot-dev/"
-                                "Work/exhaustive_parse_xchem_db")
+    parser.add_argument(
+        "-o",
+        "--output",
+        default="/dls/science/groups/i04-1/elliot-dev/"
+        "Work/exhaustive_parse_xchem_db",
+    )
 
     # Database
     parser.add_argument("-hs", "--host", default="172.23.142.43")
@@ -25,20 +29,19 @@ def parse_args():
     parser.add_argument("-pw", "--password", default="c0n0r")
 
     # Interpeter args
-    #parser.add_argument("-cpy", "--ccp4_python", default="/home/zoh22914/myccp4python")
+    # parser.add_argument("-cpy", "--ccp4_python", default="/home/zoh22914/myccp4python")
 
     # Operation
     parser.add_argument("-b", "--build", default=0)
-
 
     args = parser.parse_args()
 
     # Make output directories if not used
     if not os.path.exists(args.output):
-         os.mkdir(args.output)
-
+        os.mkdir(args.output)
 
     return args
+
 
 def get_databases(args):
 
@@ -58,24 +61,29 @@ def get_databases(args):
     """
 
     # Setup access to postgres table
-    engine = sqlalchemy.create_engine("postgresql://{}:{}@{}:{}/{}".format(
-                                    args.user, args.password, args.host,
-                                    args.port, args.database))
+    engine = sqlalchemy.create_engine(
+        "postgresql://{}:{}@{}:{}/{}".format(
+            args.user, args.password, args.host, args.port, args.database
+        )
+    )
 
     # Use to print all table names
     # print(engine.table_names())
 
     # Pull out DataFrames from postgres table using supplied engine
-    pandda_analysis = pd.read_sql_query("SELECT * FROM pandda_analysis",
-                                        con=engine)
+    pandda_analysis = pd.read_sql_query("SELECT * FROM pandda_analysis", con=engine)
 
     pandda_run = pd.read_sql_query("SELECT * FROM pandda_run", con=engine)
 
     pandda_events = pd.read_sql_query("SELECT * FROM pandda_event", con=engine)
 
-    pandda_events_stats = pd.read_sql_query("SELECT * FROM pandda_event_stats", con=engine)
+    pandda_events_stats = pd.read_sql_query(
+        "SELECT * FROM pandda_event_stats", con=engine
+    )
 
-    statistical_maps = pd.read_sql_query("SELECT * FROM pandda_statistical_map", con=engine)
+    statistical_maps = pd.read_sql_query(
+        "SELECT * FROM pandda_statistical_map", con=engine
+    )
 
     crystals = pd.read_sql_query("SELECT * FROM crystal", con=engine)
 
@@ -85,25 +93,27 @@ def get_databases(args):
 
     data_processing = pd.read_sql_query("SELECT * FROM data_processing", con=engine)
 
-    refinement = pd.read_sql_query("SELECT * FROM refinement",con=engine)
+    refinement = pd.read_sql_query("SELECT * FROM refinement", con=engine)
 
     compounds = pd.read_sql_query("SELECT * FROM compounds", con=engine)
 
     target = pd.read_sql_query("SELECT * FROM target", con=engine)
 
     # Save as dict of databases
-    databases = {"pandda_analyses": pandda_analysis,
-                 "pandda_runs": pandda_run ,
-                 "pandda_events": pandda_events,
-                 "pandda_event_stats": pandda_events_stats,
-                 "statistical_maps": statistical_maps,
-                 "crystals": crystals,
-                 "ligands": ligands,
-                 "ligand_stats": ligand_stats,
-                 "data_processing": data_processing,
-                 "refinement": refinement,
-                 "compounds": compounds,
-                 "target": target}
+    databases = {
+        "pandda_analyses": pandda_analysis,
+        "pandda_runs": pandda_run,
+        "pandda_events": pandda_events,
+        "pandda_event_stats": pandda_events_stats,
+        "statistical_maps": statistical_maps,
+        "crystals": crystals,
+        "ligands": ligands,
+        "ligand_stats": ligand_stats,
+        "data_processing": data_processing,
+        "refinement": refinement,
+        "compounds": compounds,
+        "target": target,
+    }
 
     return databases
 
@@ -166,7 +176,7 @@ def drop_only_dimple_processing(df):
             dimple_is_latest_ids.append(row.id)
 
     # Drop rows where id was flagged as having dimple.pdb in pdb_latest column
-    df = df[~df['id'].isin(dimple_is_latest_ids)]
+    df = df[~df["id"].isin(dimple_is_latest_ids)]
 
     return df
 
@@ -197,7 +207,7 @@ def drop_pdb_not_in_filesystem(df):
             missing_ids.append(row.id)
 
     # Drops rows where id is listed in missing_ids
-    df = df[~df['id'].isin(missing_ids)]
+    df = df[~df["id"].isin(missing_ids)]
 
     return df
 
@@ -229,7 +239,7 @@ def drop_missing_mtz(df):
         else:
             missing_mtz_ids.append(row.id)
 
-    df = df[~df['id'].isin(missing_mtz_ids)]
+    df = df[~df["id"].isin(missing_mtz_ids)]
 
     return df
 
@@ -255,7 +265,7 @@ def drop_pdb_with_missing_logs(df):
 
         dir_name = os.path.dirname(row.pdb_latest)
         base_name = os.path.basename(row.pdb_latest)
-        log_name = base_name.replace('.pdb', '.quick-refine.log')
+        log_name = base_name.replace(".pdb", ".quick-refine.log")
         log_path = os.path.join(dir_name, log_name)
 
         if not os.path.isfile(log_path):
@@ -265,9 +275,9 @@ def drop_pdb_with_missing_logs(df):
             log_names[row.id] = log_path
 
     # drop missing logs
-    df = df[~df['id'].isin(log_not_found_ids)]
+    df = df[~df["id"].isin(log_not_found_ids)]
     # Add log names to df
-    df['refine_log'] = df['id'].map(log_names)
+    df["refine_log"] = df["id"].map(log_names)
 
     return df
 
@@ -291,12 +301,12 @@ def get_crystal_target(args, databases):
     """
 
     # Get crystal and target dataframes from xchemdb postgres database
-    target_df = get_table_df('target', databases=databases, args=args)
-    crystal_df = get_table_df('crystals', databases=databases, args=args)
+    target_df = get_table_df("target", databases=databases, args=args)
+    crystal_df = get_table_df("crystals", databases=databases, args=args)
 
     # Reset index so tables can be joined
-    crystal_df.set_index('target_id',inplace=True)
-    target_df.set_index('id',inplace=True)
+    crystal_df.set_index("target_id", inplace=True)
+    target_df.set_index("id", inplace=True)
 
     # Join crystal and target tables
     crystal_target_df = crystal_df.join(target_df)
@@ -334,20 +344,18 @@ def process_refined_crystals(out_csv, test=None):
     # get required arguments for loading tables
     args = parse_args()
     databases = get_databases(args)
-    refine_df = get_table_df(table_name='refinement',
-                              databases=databases,
-                              args=args)
+    refine_df = get_table_df(table_name="refinement", databases=databases, args=args)
 
-   # Get crystal and target tables combined into df
+    # Get crystal and target tables combined into df
     crystal_target_df = get_crystal_target(args=args, databases=databases)
 
     # Reindex crystal_target_df so it can be joined into refine_df
-    crystal_target_df.set_index('id', inplace=True)
-    crystal_target_df.rename_axis('crystal_name_id', inplace=True)
-    crystal_target_df.drop(['status'],axis=1, inplace=True)
+    crystal_target_df.set_index("id", inplace=True)
+    crystal_target_df.rename_axis("crystal_name_id", inplace=True)
+    crystal_target_df.drop(["status"], axis=1, inplace=True)
 
     # Reindex refine-df so crystal_target_df can be added
-    refine_df.set_index('crystal_name_id', inplace=True)
+    refine_df.set_index("crystal_name_id", inplace=True)
 
     # Join crystal and target information into refine_df
     refine_df = refine_df.join(crystal_target_df)
@@ -378,6 +386,3 @@ def process_refined_crystals(out_csv, test=None):
 
     # Write to csv
     pdb_log_mtz_df.to_csv(out_csv)
-
-
-

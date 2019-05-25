@@ -10,6 +10,7 @@ from utils.symlink import make_copies_and_symlinks
 
 from path_config import Path
 
+
 def update_refinement_params(params, extra_params):
     """
     Append new parameters to the parameter file
@@ -28,22 +29,24 @@ def update_refinement_params(params, extra_params):
     if extra_params is None:
         return
 
-    params = open(params,'a')
-    params.write('\n' + extra_params)
+    params = open(params, "a")
+    params.write("\n" + extra_params)
     params.close()
 
 
-def write_refmac_csh(pdb,
-                     crystal,
-                     cif,
-                     mtz,
-                     out_dir,
-                     refinement_script_dir,
-                     script_dir,
-                     ncyc=50,
-                     ccp4_path="/dls/science/groups/i04-1/" \
-                               "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/" \
-                               "ccp4.setup-sh"):
+def write_refmac_csh(
+    pdb,
+    crystal,
+    cif,
+    mtz,
+    out_dir,
+    refinement_script_dir,
+    script_dir,
+    ncyc=50,
+    ccp4_path="/dls/science/groups/i04-1/"
+    "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/"
+    "ccp4.setup-sh",
+):
 
     """
     Write .csh script to use refmac
@@ -92,11 +95,13 @@ def write_refmac_csh(pdb,
         os.makedirs(refinement_script_dir)
 
     # Parse PDB to get ligand as occupancy groups as string
-    occ_group = get_incomplete_occ_groups(tmp_dir=refinement_script_dir,
-                                          crystal=crystal,
-                                          pdb=pdb,
-                                          script_dir=script_dir,
-                                          ccp4_path=ccp4_path)
+    occ_group = get_incomplete_occ_groups(
+        tmp_dir=refinement_script_dir,
+        crystal=crystal,
+        pdb=pdb,
+        script_dir=script_dir,
+        ccp4_path=ccp4_path,
+    )
 
     # define output paths
     out_mtz = os.path.join(out_dir, "refine.mtz")
@@ -104,37 +109,43 @@ def write_refmac_csh(pdb,
     out_cif = os.path.join(out_dir, "refine.cif")
     log = os.path.join(out_dir, "refmac.log")
 
-    with open(os.path.join(script_dir,"refinement", "refmac_template.csh")) as f:
+    with open(os.path.join(script_dir, "refinement", "refmac_template.csh")) as f:
         cmd = f.read()
 
-    cmd = cmd.format(ccp4_path=ccp4_path,
-               mtz=mtz,
-               out_mtz=out_mtz,
-               pdb=pdb,
-               out_pdb=out_pdb,
-               cif=cif,
-               out_cif=out_cif,
-               log=log,
-               ncyc=ncyc,
-               occ_group=occ_group,
-               crystal=crystal)
+    cmd = cmd.format(
+        ccp4_path=ccp4_path,
+        mtz=mtz,
+        out_mtz=out_mtz,
+        pdb=pdb,
+        out_pdb=out_pdb,
+        cif=cif,
+        out_cif=out_cif,
+        log=log,
+        ncyc=ncyc,
+        occ_group=occ_group,
+        crystal=crystal,
+    )
 
     # File location and name
-    csh_file = os.path.join(refinement_script_dir,
-                            "{}_{}.csh".format(crystal, refinement_type))
+    csh_file = os.path.join(
+        refinement_script_dir, "{}_{}.csh".format(crystal, refinement_type)
+    )
 
     # Write file
-    with open(csh_file, 'w') as csh_f:
+    with open(csh_file, "w") as csh_f:
         csh_f.write(cmd)
 
-def write_exhaustive_csh(pdb,
-                         mtz,
-                         script_dir,
-                         refinement_script_dir,
-                         out_dir,
-                         crystal,
-                         exhaustive_multiple_sampling,
-                         ccp4_path):
+
+def write_exhaustive_csh(
+    pdb,
+    mtz,
+    script_dir,
+    refinement_script_dir,
+    out_dir,
+    crystal,
+    exhaustive_multiple_sampling,
+    ccp4_path,
+):
     """
     Write .csh script to run exhaustive search
     
@@ -164,41 +175,45 @@ def write_exhaustive_csh(pdb,
 
     crystal_dir = os.path.join(out_dir, crystal)
 
-    with open(os.path.join(script_dir,
-                           "refinement",
-                           "exhaustive_template.csh")) as f:
+    with open(os.path.join(script_dir, "refinement", "exhaustive_template.csh")) as f:
         cmd = f.read()
 
-    cmd = cmd.format(ccp4_path=ccp4_path,
-                     out_dir=out_dir,
-                     crystal_dir=crystal_dir,
-                     exhaustive_multiple_sampling=exhaustive_multiple_sampling,
-                     pdb=pdb,
-                     mtz=mtz)
+    cmd = cmd.format(
+        ccp4_path=ccp4_path,
+        out_dir=out_dir,
+        crystal_dir=crystal_dir,
+        exhaustive_multiple_sampling=exhaustive_multiple_sampling,
+        pdb=pdb,
+        mtz=mtz,
+    )
 
     if not os.path.isdir(refinement_script_dir):
         os.makedirs(refinement_script_dir)
 
     # File location and name
-    csh_file = os.path.join(refinement_script_dir,
-                            "{}_{}.csh".format(crystal,"exhaustive"))
+    csh_file = os.path.join(
+        refinement_script_dir, "{}_{}.csh".format(crystal, "exhaustive")
+    )
 
-    with open(csh_file, 'w') as csh_f:
+    with open(csh_file, "w") as csh_f:
         csh_f.write(cmd)
 
-def write_quick_refine_csh(refine_pdb,
-                           cif,
-                           free_mtz,
-                           crystal,
-                           refinement_params,
-                           out_dir,
-                           refinement_script_dir,
-                           refinement_program='refmac',
-                           refinement_type="superposed",
-                           out_prefix="refine_",
-                           dir_prefix="refine_",
-                           ccp4_path="/dls/science/groups/i04-1/"\
-        "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/ccp4.setup-sh"):
+
+def write_quick_refine_csh(
+    refine_pdb,
+    cif,
+    free_mtz,
+    crystal,
+    refinement_params,
+    out_dir,
+    refinement_script_dir,
+    refinement_program="refmac",
+    refinement_type="superposed",
+    out_prefix="refine_",
+    dir_prefix="refine_",
+    ccp4_path="/dls/science/groups/i04-1/"
+    "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/ccp4.setup-sh",
+):
 
     """
     Write .csh script to refine using giant.quick_refine
@@ -240,13 +255,13 @@ def write_quick_refine_csh(refine_pdb,
     """
 
     # Qsub specific line
-    pbs_line = '#PBS -joe -N \n'
+    pbs_line = "#PBS -joe -N \n"
 
     # TODO Test whether this module load is needed,
     #       as there are now no phenix dependent lines
-    module_load = ''
-    if os.getcwd().startswith('/dls'):
-        module_load = 'module load phenix\n'
+    module_load = ""
+    if os.getcwd().startswith("/dls"):
+        module_load = "module load phenix\n"
 
     source = "source {}".format(ccp4_path)
 
@@ -255,59 +270,55 @@ def write_quick_refine_csh(refine_pdb,
 
     # Shell suitable string for csh file
     Cmds = (
-            '#!' + os.getenv('SHELL') + '\n'
-            + pbs_line +
-            '\n'
-            # + module_load +
-            # '\n'
-            + source +
-            '\n' +
-            'cd {}\n'.format(out_dir) +
-            'giant.quick_refine'
-            ' input.pdb=%s' % refine_pdb +
-            ' mtz=%s' % free_mtz +
-            ' cif=%s' % cif +
-            ' program=%s' % refinement_program +
-            ' params=%s' % refinement_params +
-            " dir_prefix='%s'" % dir_prefix +
-            " out_prefix='%s'" % out_prefix  +
-            " split_conformations='False'"
-            '\n'
-            'cd ' + os.path.join(out_dir,dir_prefix + '0001') + '\n'
-            'giant.split_conformations'
-            " input.pdb='%s.pdb'" % out_prefix +
-            ' reset_occupancies=False'
-            ' suffix_prefix=split'
-            '\n'
-            'giant.split_conformations'
-            " input.pdb='%s.pdb'" % out_prefix +
-            ' reset_occupancies=True'
-            ' suffix_prefix=output '
-            '\n'
+        "#!" + os.getenv("SHELL") + "\n" + pbs_line + "\n"
+        # + module_load +
+        # '\n'
+        + source + "\n" + "cd {}\n".format(out_dir) + "giant.quick_refine"
+        " input.pdb=%s" % refine_pdb
+        + " mtz=%s" % free_mtz
+        + " cif=%s" % cif
+        + " program=%s" % refinement_program
+        + " params=%s" % refinement_params
+        + " dir_prefix='%s'" % dir_prefix
+        + " out_prefix='%s'" % out_prefix
+        + " split_conformations='False'"
+        "\n"
+        "cd " + os.path.join(out_dir, dir_prefix + "0001") + "\n"
+        "giant.split_conformations"
+        " input.pdb='%s.pdb'" % out_prefix + " reset_occupancies=False"
+        " suffix_prefix=split"
+        "\n"
+        "giant.split_conformations"
+        " input.pdb='%s.pdb'" % out_prefix + " reset_occupancies=True"
+        " suffix_prefix=output "
+        "\n"
     )
 
     # File location and name
-    csh_file = os.path.join(refinement_script_dir,
-                            "{}_{}.csh".format(crystal,refinement_type))
+    csh_file = os.path.join(
+        refinement_script_dir, "{}_{}.csh".format(crystal, refinement_type)
+    )
 
     # Write file
-    cmd = open(csh_file, 'w')
+    cmd = open(csh_file, "w")
     cmd.write(Cmds)
     cmd.close()
 
 
-def prepare_refinement(pdb,
-                       crystal,
-                       cif,
-                       mtz,
-                       ncyc,
-                       out_dir,
-                       refinement_script_dir,
-                       refinement_type,
-                       script_dir,
-                       ccp4_path="/dls/science/groups/i04-1/" \
-                               "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/" \
-                               "ccp4.setup-sh"):
+def prepare_refinement(
+    pdb,
+    crystal,
+    cif,
+    mtz,
+    ncyc,
+    out_dir,
+    refinement_script_dir,
+    refinement_type,
+    script_dir,
+    ccp4_path="/dls/science/groups/i04-1/"
+    "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/"
+    "ccp4.setup-sh",
+):
 
     """
     Prepare refinement csh for refmac without superposed state
@@ -349,39 +360,46 @@ def prepare_refinement(pdb,
 
     # Check and replace inputs with existing files,
     # or regenerate if necessary
-    cif, params, mtz = check_inputs(cif=cif,
-                                    pdb=pdb,
-                                    params='',
-                                    free_mtz=mtz,
-                                    refinement_program="refmac",
-                                    input_dir=input_dir,
-                                    crystal=crystal)
-
+    cif, params, mtz = check_inputs(
+        cif=cif,
+        pdb=pdb,
+        params="",
+        free_mtz=mtz,
+        refinement_program="refmac",
+        input_dir=input_dir,
+        crystal=crystal,
+    )
 
     # generate symlinks to refinement files
-    input_cif, \
-    input_pdb, \
-    input_params, \
-    input_mtz = make_copies_and_symlinks(input_dir=input_dir,
-                                         cif=cif,
-                                         pdb=pdb,
-                                         params=None,
-                                         free_mtz=mtz)
+    input_cif, input_pdb, input_params, input_mtz = make_copies_and_symlinks(
+        input_dir=input_dir, cif=cif, pdb=pdb, params=None, free_mtz=mtz
+    )
 
-    write_refmac_csh(pdb=input_pdb, crystal=crystal, cif=input_cif, mtz=input_mtz, out_dir=input_dir,
-                     refinement_script_dir=refinement_script_dir, script_dir=script_dir, ncyc=ncyc, ccp4_path=ccp4_path)
+    write_refmac_csh(
+        pdb=input_pdb,
+        crystal=crystal,
+        cif=input_cif,
+        mtz=input_mtz,
+        out_dir=input_dir,
+        refinement_script_dir=refinement_script_dir,
+        script_dir=script_dir,
+        ncyc=ncyc,
+        ccp4_path=ccp4_path,
+    )
 
 
-def prepare_superposed_refinement(crystal,
-                                  pdb,
-                                  cif,
-                                  out_dir,
-                                  refinement_script_dir,
-                                  refinement_type="superposed",
-                                  extra_params="NCYC=50",
-                                  free_mtz='',
-                                  params='',
-                                  refinement_program="refmac"):
+def prepare_superposed_refinement(
+    crystal,
+    pdb,
+    cif,
+    out_dir,
+    refinement_script_dir,
+    refinement_type="superposed",
+    extra_params="NCYC=50",
+    free_mtz="",
+    params="",
+    refinement_program="refmac",
+):
 
     """
     Prepare files and write csh script to run giant.quick_refine
@@ -521,27 +539,30 @@ def prepare_superposed_refinement(crystal,
 
     # Check and replace inputs with existing files,
     # or regenerate if necessary
-    cif, params, free_mtz = check_inputs(cif=cif, pdb=pdb, params=params, free_mtz=free_mtz,
-                                         refinement_program=refinement_program, input_dir=input_dir, crystal=crystal)
-
+    cif, params, free_mtz = check_inputs(
+        cif=cif,
+        pdb=pdb,
+        params=params,
+        free_mtz=free_mtz,
+        refinement_program=refinement_program,
+        input_dir=input_dir,
+        crystal=crystal,
+    )
 
     # generate symlinks to refinement files
-    input_cif, \
-    input_pdb, \
-    input_params, \
-    input_mtz = make_copies_and_symlinks(input_dir=input_dir,
-                                         cif=cif,
-                                         pdb=pdb,
-                                         params=params,
-                                         free_mtz=free_mtz)
+    input_cif, input_pdb, input_params, input_mtz = make_copies_and_symlinks(
+        input_dir=input_dir, cif=cif, pdb=pdb, params=params, free_mtz=free_mtz
+    )
 
     # Check for failed refinement due to restraint error
     # Run giant.make_restraints in this case
     if check_restraints(input_dir):
-        params, _ = make_restraints(pdb=pdb,
-                                    ccp4=Path().ccp4,
-                                    refinement_program=refinement_program,
-                                    working_dir=input_dir)
+        params, _ = make_restraints(
+            pdb=pdb,
+            ccp4=Path().ccp4,
+            refinement_program=refinement_program,
+            working_dir=input_dir,
+        )
 
     # Check that refinement is failing due to a cif file missing
     if check_refinement_for_cif_error(input_dir):
@@ -550,17 +571,18 @@ def prepare_superposed_refinement(crystal,
         os.rename(input_cif, cif_backup)
         smiles_to_cif_acedrg(smiles, input_cif)
 
-
     update_refinement_params(params=input_params, extra_params=extra_params)
 
-    write_quick_refine_csh(refine_pdb=input_pdb,
-                           cif=input_cif,
-                           free_mtz=input_mtz,
-                           crystal=crystal,
-                           refinement_params=input_params,
-                           out_dir=input_dir,
-                           refinement_script_dir=refinement_script_dir,
-                           refinement_program=refinement_program,
-                           refinement_type=refinement_type,
-                           out_prefix="refine_1",
-                           dir_prefix="refine_")
+    write_quick_refine_csh(
+        refine_pdb=input_pdb,
+        cif=input_cif,
+        free_mtz=input_mtz,
+        crystal=crystal,
+        refinement_params=input_params,
+        out_dir=input_dir,
+        refinement_script_dir=refinement_script_dir,
+        refinement_program=refinement_program,
+        refinement_type=refinement_type,
+        out_prefix="refine_1",
+        dir_prefix="refine_",
+    )

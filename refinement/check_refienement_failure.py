@@ -28,9 +28,10 @@ def check_restraints(input_dir):
     except FileNotFoundError:
         return False
 
-    if check_file_for_string(quick_refine_log,
-                                 "Error: At least one of the atoms from"
-                                 " the restraints could not be found"):
+    if check_file_for_string(
+        quick_refine_log,
+        "Error: At least one of the atoms from" " the restraints could not be found",
+    ):
         return True
 
 
@@ -62,14 +63,14 @@ def check_refinement_for_cif_error(input_dir):
     except FileNotFoundError:
         return False
 
-    if check_file_for_string(quick_refine_log,
-        "Refmac:  New ligand has been encountered. Stopping now"):
+    if check_file_for_string(
+        quick_refine_log, "Refmac:  New ligand has been encountered. Stopping now"
+    ):
         return True
 
     # phenix error, could be fixed with new cif.
     # First found in HAO1A-x0592
-    if check_file_for_string(quick_refine_log,
-                             "KeyError: 'HCR'"):
+    if check_file_for_string(quick_refine_log, "KeyError: 'HCR'"):
         return True
 
     # phenix error, Found in PaFen_c3-x0443.
@@ -79,6 +80,7 @@ def check_refinement_for_cif_error(input_dir):
     # It is unlikely just a LIG cif will fix,
     # but should be tried before more complex solutions enacted
 
-    if check_file_for_string(quick_refine_log,
-        "Sorry: Fatal problems interpreting model file"):
+    if check_file_for_string(
+        quick_refine_log, "Sorry: Fatal problems interpreting model file"
+    ):
         return True

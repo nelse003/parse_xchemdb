@@ -3,20 +3,22 @@ import pandas as pd
 import numpy as np
 import matplotlib
 
-matplotlib.use('Agg')
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
 
-def plot_histogram_collection_bin(data,
-                                  file_path,
-                                  max=None,
-                                  min=None,
-                                  bin_size=None,
-                                  bin_num=50,
-                                  title='',
-                                  xlabel='',
-                                  ylabel='Frequency'):
+def plot_histogram_collection_bin(
+    data,
+    file_path,
+    max=None,
+    min=None,
+    bin_size=None,
+    bin_num=50,
+    title="",
+    xlabel="",
+    ylabel="Frequency",
+):
     """
     Histogram with collection bin for high values
 
@@ -49,9 +51,9 @@ def plot_histogram_collection_bin(data,
     bins = np.arange(min, max, bin_size)
 
     fig, ax = plt.subplots(figsize=(9, 5))
-    _, bins, patches = plt.hist(np.clip(data, bins[0], bins[-1]),
-                                density=True,
-                                bins=bins)
+    _, bins, patches = plt.hist(
+        np.clip(data, bins[0], bins[-1]), density=True, bins=bins
+    )
 
     short_bins = np.arange(min, max, (max - min) / 10)
     xlabels = short_bins[1:].astype(str)
@@ -59,7 +61,7 @@ def plot_histogram_collection_bin(data,
 
     x_pos = np.append(short_bins, max)
     x_pos = np.delete(x_pos, 0)
-    final = ("{:.2f}+".format(max))
+    final = "{:.2f}+".format(max)
     xlabels.append(final)
 
     ax.xaxis.set_major_locator(ticker.FixedLocator(x_pos))
@@ -77,26 +79,27 @@ def plot_histogram_collection_bin(data,
 
 def refinement_summary_plot(refinement_csv, out_file_path):
 
-    #TODO Split across complete group/ crystal
+    # TODO Split across complete group/ crystal
 
-    summary = pd.read_csv(refinement_csv, header=None, names=['comment','total'])
+    summary = pd.read_csv(refinement_csv, header=None, names=["comment", "total"])
 
     color_map = {}
-    color_map['Correctly Occupied'] = 'green'
-    color_map['Refinement latest is dimple'] = 'red'
+    color_map["Correctly Occupied"] = "green"
+    color_map["Refinement latest is dimple"] = "red"
 
-    summary['color'] = summary.comment.map(color_map)
-    summary.replace(np.nan, 'orange', regex=True, inplace=True)
+    summary["color"] = summary.comment.map(color_map)
+    summary.replace(np.nan, "orange", regex=True, inplace=True)
 
-    summary.set_index('comment', inplace=True)
+    summary.set_index("comment", inplace=True)
 
     title = "Xchem databse hit refinement: {} crystals".format(summary.total.sum())
-    ax = summary.plot.bar(y='total',color=summary.color, title=title, legend=False)
-    ax.set_ylabel('Number of crystals [complete groups]')
+    ax = summary.plot.bar(y="total", color=summary.color, title=title, legend=False)
+    ax.set_ylabel("Number of crystals [complete groups]")
     fig = ax.get_figure()
     fig.set_size_inches(10, 12)
     fig.subplots_adjust(bottom=0.2)
     fig.savefig(out_file_path, dpi=300)
+
 
 def occupancy_histogram(occ_correct_csv, plot_path, state):
 
@@ -129,9 +132,10 @@ def occupancy_histogram(occ_correct_csv, plot_path, state):
     plt.ylabel("Frequncy")
     plt.title("{} state: {} datasets".format(len(state_df), state.capitalize()))
 
-    plt.hist(state_df['state occupancy'], bins=100)
+    plt.hist(state_df["state occupancy"], bins=100)
     plt.savefig(plot_path, dpi=300)
     plt.close()
+
 
 def get_state_df(occ_correct_df, state):
 
@@ -150,14 +154,14 @@ def get_state_df(occ_correct_df, state):
 
     """
 
-    state_df = occ_correct_df.loc[
-        (occ_correct_df['state'] == state)]
+    state_df = occ_correct_df.loc[(occ_correct_df["state"] == state)]
 
     # Drop to unique occuopancies for each pdb
-    state_df = state_df[['state occupancy', 'pdb_latest']]
+    state_df = state_df[["state occupancy", "pdb_latest"]]
     state_df = state_df.drop_duplicates()
 
     return state_df
+
 
 def occupancy_vs_convergence(occ_correct_csv, plot_path):
     """
@@ -179,11 +183,9 @@ def occupancy_vs_convergence(occ_correct_csv, plot_path):
     occ_correct_df = pd.read_csv(occ_correct_csv)
 
     fig, ax = plt.subplots()
-    plt.scatter(x=occ_correct_df['occupancy'],
-                y=occ_correct_df['converge'])
+    plt.scatter(x=occ_correct_df["occupancy"], y=occ_correct_df["converge"])
     plt.xlabel("Occupancy")
-    plt.ylabel('Convergence ratio between ' \
-               'last two point |x(n)/x(n-1)-1|')
+    plt.ylabel("Convergence ratio between " "last two point |x(n)/x(n-1)-1|")
     plt.savefig(plot_path, dpi=300)
     plt.close()
 
@@ -210,10 +212,9 @@ def convergence_ratio_histogram(occ_state_comment_csv, plot_path):
 
     ground_df = get_state_df(occ_correct_df=occ_correct_df, state="ground")
 
-    plot_histogram_collection_bin(data=occ_correct_df['converge'],
-                                  file_path=plot_path,
-                                  title='Convergence of refinement: ' \
-                                        '{} datasets'.format(
-                                      len(ground_df)),
-                                  xlabel='Convergence ratio between ' \
-                                         'last two point |x(n)/x(n-1)-1|')
+    plot_histogram_collection_bin(
+        data=occ_correct_df["converge"],
+        file_path=plot_path,
+        title="Convergence of refinement: " "{} datasets".format(len(ground_df)),
+        xlabel="Convergence ratio between " "last two point |x(n)/x(n-1)-1|",
+    )

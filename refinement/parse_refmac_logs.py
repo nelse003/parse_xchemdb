@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import re
 
+
 def match_occ(occ_group, complete_groups):
     """
     Match the occ_group to complete group
@@ -57,17 +58,11 @@ def get_occ_from_log(log_pdb_mtz_csv, log_occ_csv):
         # Get occupancy from log
         occ_df = read_occ_group_from_refmac_log(log_path=row.refine_log)
         # Add crystal info
-        occ_df = pd.concat([occ_df],
-                           keys=[row.crystal_name],
-                           names=['crystal'])
+        occ_df = pd.concat([occ_df], keys=[row.crystal_name], names=["crystal"])
         # Add log info
-        occ_df = pd.concat([occ_df],
-                           keys=[row.refine_log],
-                           names=['refine_log'])
+        occ_df = pd.concat([occ_df], keys=[row.refine_log], names=["refine_log"])
         # Add pdb info
-        occ_df = pd.concat([occ_df],
-                           keys=[row.pdb_latest],
-                           names=['pdb_latest'])
+        occ_df = pd.concat([occ_df], keys=[row.pdb_latest], names=["pdb_latest"])
         # Store occ_df
         occ_df_list.append(occ_df)
 
@@ -75,7 +70,9 @@ def get_occ_from_log(log_pdb_mtz_csv, log_occ_csv):
     occ_log_df = pd.concat(occ_df_list)
     occ_log_df.to_csv(log_occ_csv)
 
+
 # TODO Write equivalent function to read group occupancies from phenix log file
+
 
 def read_occ_group_from_refmac_log(log_path):
     """
@@ -122,62 +119,65 @@ def read_occ_group_from_refmac_log(log_path):
     group_occupancies = {}
 
     # Open file and loop over lines
-    with open(log_path, 'r') as log:
+    with open(log_path, "r") as log:
         for line in log:
 
             # Log file is group per cycle, with the CGMAT cycle number
             # identifying the cycle begining
-            if 'CGMAT cycle number =' in line:
+            if "CGMAT cycle number =" in line:
                 cycle_line = line
-                cycle_int = int(cycle_line.split('=')[-1].lstrip(' ').rstrip('\n'))
+                cycle_int = int(cycle_line.split("=")[-1].lstrip(" ").rstrip("\n"))
 
             # Get group occupancies by text in the line
-            elif 'Group occupances' in line:
-                group_occupancies[cycle_int] = [float(group_occ)
-                                                for group_occ
-                                                in line.split()[2:]]
+            elif "Group occupances" in line:
+                group_occupancies[cycle_int] = [
+                    float(group_occ) for group_occ in line.split()[2:]
+                ]
 
             # Get the other information associated with occupancy group,
             # skip lines with 'Data Line' or 'Number' as this is repeated
             # or unnecessary information
             elif "occupancy group" in line:
-                    if "Data line" not in line:
-                        if "Number" not in line:
+                if "Data line" not in line:
+                    if "Number" not in line:
 
-                            # Get complete group that the occupancy group belongs to
-                            if "complete" in line:
-                                complete_groups.append(re.findall(r'\d+', line))
-                            else:
-                                chain = line.split('chain')[1].split()[0]
-                                resid = line.split('resi')[1].split()[0]
-                                alte = line.split('alte')[1].split()[0]
-                                group = line.split('id')[1].split()[0]
-                                occ_group = (chain, resid, alte, group)
-                                lig_occ_groups.append(occ_group)
+                        # Get complete group that the occupancy group belongs to
+                        if "complete" in line:
+                            complete_groups.append(re.findall(r"\d+", line))
+                        else:
+                            chain = line.split("chain")[1].split()[0]
+                            resid = line.split("resi")[1].split()[0]
+                            alte = line.split("alte")[1].split()[0]
+                            group = line.split("id")[1].split()[0]
+                            occ_group = (chain, resid, alte, group)
+                            lig_occ_groups.append(occ_group)
 
             # Skip through lines in file that have no useful information on
             else:
                 continue
 
     # Merging all group occupancy values into a DataFrame
-    df = pd.DataFrame.from_dict(group_occupancies, orient='index')
+    df = pd.DataFrame.from_dict(group_occupancies, orient="index")
     # Label columns with cycle number startign at 1
     df.columns = np.arange(1, len(df.columns) + 1)
     # Transpose so cycles are on rows
     df = df.T
 
     # Create a DataFrame form list of ligand occupancy groups
-    df1 = pd.DataFrame(lig_occ_groups, columns=['chain','resid','alte','occupancy group'])
+    df1 = pd.DataFrame(
+        lig_occ_groups, columns=["chain", "resid", "alte", "occupancy group"]
+    )
     # Add complete group to each occupancy group in df1
-    df1['complete group'] =  df1['occupancy group'].apply(match_occ,
-                                                          complete_groups=complete_groups)
+    df1["complete group"] = df1["occupancy group"].apply(
+        match_occ, complete_groups=complete_groups
+    )
 
     # reindex df and df1 so that the tables can be joined
-    df1.set_index('occupancy group', inplace=True)
+    df1.set_index("occupancy group", inplace=True)
     df1.index = df1.index.astype(np.int64)
-    df.rename_axis('occupancy group',inplace=True)
+    df.rename_axis("occupancy group", inplace=True)
 
     # Join cycle information with residue/ occupancy group information
-    occ_group_df = df.join(df1, how='outer')
+    occ_group_df = df.join(df1, how="outer")
 
     return occ_group_df

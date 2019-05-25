@@ -52,12 +52,15 @@ class RefinementFolderToCsv(luigi.Task):
 
 
     """
+
     refinement_csv = luigi.Parameter()
 
     def output(self):
         return luigi.LocalTarget(self.refinement_csv)
 
     def run(self):
-        parse_refinement_folder(refinement_dir=self.out_dir,
-                                refinement_csv=self.refinement_csv,
-                                refinement_type=self.refinement_type)
+        parse_refinement_folder(
+            refinement_dir=self.out_dir,
+            refinement_csv=self.refinement_csv,
+            refinement_type=self.refinement_type,
+        )

@@ -34,21 +34,25 @@ def smiles_to_cif_acedrg(smiles, out_file):
 
     # Acedrg adds .cif extension,
     # so if it is in the orginbal file name remove it
-    if '.cif' in out_file:
-        out_file = out_file.split('.cif')[0]
+    if ".cif" in out_file:
+        out_file = out_file.split(".cif")[0]
 
     # Wrapping a basic command line implementation of acedrg
-    a = subprocess.run(['acedrg','-i',smiles,'-o',out_file],
-                       stdout=subprocess.PIPE,
-                       stderr=subprocess.PIPE,
-                       encoding='utf-8')
+    a = subprocess.run(
+        ["acedrg", "-i", smiles, "-o", out_file],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        encoding="utf-8",
+    )
 
     # Error specific to cif file not being produced
     smiles_error = "Can not generate a molecule from the input SMILES string!"
 
     # Check the stdout of acedrg for the error
     if smiles_error in a.stdout:
-        raise FileNotFoundError("{}.cif cannot be produced from the smiles using acedrg")
+        raise FileNotFoundError(
+            "{}.cif cannot be produced from the smiles using acedrg"
+        )
 
     # Check whether there is a output file at all
     if not os.path.isfile(out_file):
@@ -87,18 +91,14 @@ def smiles_from_crystal(crystal):
     args = parse_args()
     databases = get_databases(args)
 
-    compounds = get_table_df(table_name='compounds',
-                 databases=databases,
-                 args=args)
+    compounds = get_table_df(table_name="compounds", databases=databases, args=args)
 
-    crystals = get_table_df(table_name='crystals',
-                 databases=databases,
-                 args=args)
+    crystals = get_table_df(table_name="crystals", databases=databases, args=args)
 
     # Use query to get cmpd_id from crystal table
-    cmpd_id = crystals.query('crystal_name==@crystal')['compound_id'].values[0]
+    cmpd_id = crystals.query("crystal_name==@crystal")["compound_id"].values[0]
 
     # Use query to get smiles from cmpd_id
-    smiles = compounds.query('id==@cmpd_id')['smiles'].values[0]
+    smiles = compounds.query("id==@cmpd_id")["smiles"].values[0]
 
     return smiles

@@ -1,6 +1,7 @@
 import os
 import shutil
 
+
 def make_symlink(file, link_dir, link_name):
     """ Generate symlink
 
@@ -54,23 +55,18 @@ def make_copies_and_symlinks(input_dir, cif, pdb, params, free_mtz):
     """
 
     # Generate symlinks if they do not exist
-    input_cif = make_symlink(file=cif,
-                             link_dir=input_dir,
-                             link_name="input.cif")
+    input_cif = make_symlink(file=cif, link_dir=input_dir, link_name="input.cif")
 
-    input_pdb = make_symlink(file=pdb,
-                             link_dir=input_dir,
-                             link_name="input.pdb")
+    input_pdb = make_symlink(file=pdb, link_dir=input_dir, link_name="input.pdb")
 
     if params is not None:
         if os.path.isfile(params):
-            input_params = shutil.copyfile(src=params,
-                                     dst=os.path.join(input_dir,"input.params"))
+            input_params = shutil.copyfile(
+                src=params, dst=os.path.join(input_dir, "input.params")
+            )
     else:
         input_params = None
 
-    input_mtz = make_symlink(file=free_mtz,
-                             link_dir=input_dir,
-                             link_name="input.mtz")
+    input_mtz = make_symlink(file=free_mtz, link_dir=input_dir, link_name="input.mtz")
 
     return input_cif, input_pdb, input_params, input_mtz

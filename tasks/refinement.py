@@ -28,18 +28,21 @@ class SplitConformations(luigi.Task):
     run()
         wrapped version of giant.split_conformations
     """
+
     pdb = luigi.Parameter()
     working_dir = luigi.Parameter()
 
     def output(self):
 
         pdb = self.pdb
-        base_pdb = pdb.split('.')[0]
-        out_ground_pdb = os.path.join(self.working_dir,
-                                      "{}.split.bound-state.pdb".format(base_pdb))
+        base_pdb = pdb.split(".")[0]
+        out_ground_pdb = os.path.join(
+            self.working_dir, "{}.split.bound-state.pdb".format(base_pdb)
+        )
 
-        out_bound_pdb = os.path.join(self.working_dir,
-                                     "{}.split.ground-state.pdb".format(base_pdb))
+        out_bound_pdb = os.path.join(
+            self.working_dir, "{}.split.ground-state.pdb".format(base_pdb)
+        )
 
         return luigi.LocalTarget(out_bound_pdb), luigi.LocalTarget(out_ground_pdb)
 
@@ -126,21 +129,25 @@ class PrepareRefinement(luigi.Task):
 
     def output(self):
 
-        refinement_script = os.path.join(self.refinement_script_dir,
-                     '{}_{}.csh'.format(self.crystal, self.refinement_type))
+        refinement_script = os.path.join(
+            self.refinement_script_dir,
+            "{}_{}.csh".format(self.crystal, self.refinement_type),
+        )
 
         return luigi.LocalTarget(refinement_script)
 
     def run(self):
-        prepare_refinement(pdb=self.pdb,
-                           crystal=self.crystal,
-                           cif=self.cif,
-                           mtz=self.free_mtz,
-                           ncyc=self.ncyc,
-                           out_dir=self.out_dir,
-                           refinement_type=self.refinement_type,
-                           script_dir=self.script_dir,
-                           refinement_script_dir=self.refinement_script_dir,
-                           ccp4_path="/dls/science/groups/i04-1/" \
-                             "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/" \
-                             "ccp4.setup-sh")
+        prepare_refinement(
+            pdb=self.pdb,
+            crystal=self.crystal,
+            cif=self.cif,
+            mtz=self.free_mtz,
+            ncyc=self.ncyc,
+            out_dir=self.out_dir,
+            refinement_type=self.refinement_type,
+            script_dir=self.script_dir,
+            refinement_script_dir=self.refinement_script_dir,
+            ccp4_path="/dls/science/groups/i04-1/"
+            "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/"
+            "ccp4.setup-sh",
+        )

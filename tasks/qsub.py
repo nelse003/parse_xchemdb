@@ -9,6 +9,7 @@ from path_config import Path
 import tasks.refinement
 import tasks.superposed_refinement
 
+
 class QsubTask(luigi.Task):
 
     """ Base class for single job on cluster submitted by qsub
@@ -38,6 +39,7 @@ class QsubTask(luigi.Task):
     https://github.com/xchem/formulatrix_pipe/blob/master/run_ranker.py
 
     """
+
     refinement_script = luigi.Parameter()
     submitted = False
 
@@ -56,7 +58,7 @@ class QsubTask(luigi.Task):
         queue_jobs = []
         # Turn qstat output into list of jobs
         for line in output_queue:
-            if 'Full jobname' in line:
+            if "Full jobname" in line:
                 jobname = line.split()[-1]
                 queue_jobs.append(jobname)
 
@@ -95,16 +97,17 @@ class QsubTask(luigi.Task):
             # Check whether <crystal_name>.csh is running in queue,
             # If not submit job to queue
             if job_file not in queue_jobs and not self.submitted:
-                submit_job(job_directory=Path().tmp_dir,
-                           job_script=job_file)
+                submit_job(job_directory=Path().tmp_dir, job_script=job_file)
 
                 # If the job has already been submitted then change flag
                 # This means recursion only loops until job is finished
                 # and does not resubmit
                 self.submitted = True
 
-                print('The job had no output, and was not found to be running ' 
-                      'in the queue. The job has been submitted. ')
+                print(
+                    "The job had no output, and was not found to be running "
+                    "in the queue. The job has been submitted. "
+                )
 
             # Run until job complete
             time.sleep(5)

@@ -11,20 +11,19 @@ def run_qstat():
 
     """
 
-    submission_string = 'qstat -r'
+    submission_string = "qstat -r"
 
-    submission = subprocess.Popen(submission_string,
-                                  shell=True,
-                                  stdout=subprocess.PIPE,
-                                  stderr=subprocess.PIPE)
+    submission = subprocess.Popen(
+        submission_string, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
     out, err = submission.communicate()
 
-    output_queue = (out.decode('ascii').split('\n'))
+    output_queue = out.decode("ascii").split("\n")
 
     return output_queue
 
-def submit_job(job_directory,
-               job_script):
+
+def submit_job(job_directory, job_script):
     """
 
     Parameters
@@ -49,29 +48,30 @@ def submit_job(job_directory,
     TODO Check whether removal of ssh from submit job is going to cause issues
     """
 
-    submission_string = ' '.join([
-        'cd',
-        job_directory,
-        ';',
-        'module load global/cluster >>/dev/null 2>&1; qsub -q low.q ',
-        job_script,
-    ])
+    submission_string = " ".join(
+        [
+            "cd",
+            job_directory,
+            ";",
+            "module load global/cluster >>/dev/null 2>&1; qsub -q low.q ",
+            job_script,
+        ]
+    )
 
     print(submission_string)
 
-    submission = subprocess.Popen(submission_string,
-                                  shell=True,
-                                  stdout=subprocess.PIPE,
-                                  stderr=subprocess.PIPE)
+    submission = subprocess.Popen(
+        submission_string, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
 
     out, err = submission.communicate()
 
-    out = out.decode('ascii')
-    print('\n')
+    out = out.decode("ascii")
+    print("\n")
     print(out)
-    print('\n')
+    print("\n")
     if err:
-        err = err.decode('ascii')
-        print('\n')
+        err = err.decode("ascii")
+        print("\n")
         print(err)
-        print('\n')
+        print("\n")

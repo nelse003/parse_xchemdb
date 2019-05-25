@@ -11,6 +11,7 @@ import tasks.refinement
 import tasks.superposed_refinement
 import tasks.qsub
 
+
 class BatchRefinement(luigi.Task):
 
     """Run a Batch of refinement jobs
@@ -61,6 +62,7 @@ class BatchRefinement(luigi.Task):
 
     https://github.com/xchem/formulatrix_pipe/blob/master/run_ranker.py
     """
+
     output_csv = luigi.Parameter()
     log_pdb_mtz_csv = luigi.Parameter(default=Path().log_pdb_mtz)
     refinement_type = luigi.Parameter()
@@ -91,54 +93,56 @@ class BatchRefinement(luigi.Task):
 
         # Replace Nans with empty strings,
         # used to allow luigi.Parameters
-        df = df.replace(np.nan, '', regex=True)
+        df = df.replace(np.nan, "", regex=True)
 
         # Loop over crystal/refinement table csv
         refinement_tasks = []
         for i in df.index:
-            cif = df.at[i, 'cif']
-            pdb = df.at[i, 'pdb_latest']
-            mtz = df.at[i, 'mtz_free']
-            crystal = df.at[i, 'crystal_name']
+            cif = df.at[i, "cif"]
+            pdb = df.at[i, "pdb_latest"]
+            mtz = df.at[i, "mtz_free"]
+            crystal = df.at[i, "crystal_name"]
 
             # Cheat to allow run on single folder
             # if crystal != "FIH-x0439":
             #     continue
 
-            refinement_script = os.path.join(self.tmp_dir,
-                                             '{}_{}.csh'.format(crystal,
-                                                                self.refinement_type))
+            refinement_script = os.path.join(
+                self.tmp_dir, "{}_{}.csh".format(crystal, self.refinement_type)
+            )
 
             # Setup a refinement task
-            if self.refinement_type in ["bound","ground"]:
+            if self.refinement_type in ["bound", "ground"]:
 
                 ref_task = tasks.qsub.QsubRefinement(
-                                crystal=crystal,
-                                pdb=pdb,
-                                cif=cif,
-                                free_mtz=mtz,
-                                refinement_script=refinement_script,
-                                refinement_script_dir=self.tmp_dir,
-                                out_dir=self.out_dir,
-                                script_dir=self.script_dir,
-                                refinement_type=self.refinement_type,
-                                output_csv=self.output_csv,
-                                ncyc=self.ncyc)
+                    crystal=crystal,
+                    pdb=pdb,
+                    cif=cif,
+                    free_mtz=mtz,
+                    refinement_script=refinement_script,
+                    refinement_script_dir=self.tmp_dir,
+                    out_dir=self.out_dir,
+                    script_dir=self.script_dir,
+                    refinement_type=self.refinement_type,
+                    output_csv=self.output_csv,
+                    ncyc=self.ncyc,
+                )
 
             elif self.refinement_type == "superposed":
 
                 ref_task = tasks.qsub.QsubSuperposedRefinement(
-                            crystal=crystal,
-                            pdb=pdb,
-                            cif=cif,
-                            free_mtz=mtz,
-                            refinement_script=refinement_script,
-                            refinement_script_dir=self.tmp_dir,
-                            extra_params=self.extra_params,
-                            out_dir=self.out_dir,
-                            refinement_program = self.refinement_program,
-                            refinement_type="superposed",
-                            output_csv=self.output_csv)
+                    crystal=crystal,
+                    pdb=pdb,
+                    cif=cif,
+                    free_mtz=mtz,
+                    refinement_script=refinement_script,
+                    refinement_script_dir=self.tmp_dir,
+                    extra_params=self.extra_params,
+                    out_dir=self.out_dir,
+                    refinement_program=self.refinement_program,
+                    refinement_type="superposed",
+                    output_csv=self.output_csv,
+                )
 
             # add to list of refienement tasks
             refinement_tasks.append(ref_task)
@@ -146,7 +150,9 @@ class BatchRefinement(luigi.Task):
         return refinement_tasks
 
 
-@tasks.superposed_refinement.PrepareSuperposedRefinement.event_handler(luigi.Event.FAILURE)
+@tasks.superposed_refinement.PrepareSuperposedRefinement.event_handler(
+    luigi.Event.FAILURE
+)
 @tasks.qsub.QsubSuperposedRefinement.event_handler(luigi.Event.FAILURE)
 @tasks.refinement.PrepareRefinement.event_handler(luigi.Event.FAILURE)
 @tasks.qsub.QsubRefinement.event_handler(luigi.Event.FAILURE)
@@ -164,12 +170,14 @@ def failure_write_to_csv(task, exception):
     None
     """
 
-    with open(task.output_csv, 'a') as task_csv:
-        task_csv_writer = csv.writer(task_csv, delimiter=',')
+    with open(task.output_csv, "a") as task_csv:
+        task_csv_writer = csv.writer(task_csv, delimiter=",")
         task_csv_writer.writerow(["Failure", task.crystal, type(exception), exception])
 
 
-@tasks.superposed_refinement.PrepareSuperposedRefinement.event_handler(luigi.Event.SUCCESS)
+@tasks.superposed_refinement.PrepareSuperposedRefinement.event_handler(
+    luigi.Event.SUCCESS
+)
 @tasks.qsub.QsubSuperposedRefinement.event_handler(luigi.Event.SUCCESS)
 @tasks.refinement.PrepareRefinement.event_handler(luigi.Event.SUCCESS)
 @tasks.qsub.QsubRefinement.event_handler(luigi.Event.SUCCESS)
@@ -187,6 +195,6 @@ def success_write_to_csv(task):
     None
     """
 
-    with open(task.output_csv, 'a') as task_csv:
-        task_csv_writer = csv.writer(task_csv, delimiter=',')
+    with open(task.output_csv, "a") as task_csv:
+        task_csv_writer = csv.writer(task_csv, delimiter=",")
         task_csv_writer.writerow(["Sucesss", task.crystal])

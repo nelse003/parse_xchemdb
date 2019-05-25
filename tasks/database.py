@@ -4,8 +4,12 @@ import os
 
 from luigi.util import requires
 
-from parse_xchemdb import process_refined_crystals, get_table_df, drop_pdb_not_in_filesystem, \
-    drop_only_dimple_processing
+from parse_xchemdb import (
+    process_refined_crystals,
+    get_table_df,
+    drop_pdb_not_in_filesystem,
+    drop_only_dimple_processing,
+)
 from path_config import Path
 
 
@@ -32,16 +36,15 @@ class ParseXchemdbToCsv(luigi.Task):
         integer representing number of rows to extract when
         used as test
     """
+
     log_pdb_mtz_csv = luigi.Parameter()
     test = luigi.Parameter(default=None, significant=False)
 
     def requires(self):
         return None
 
-
     def output(self):
         return luigi.LocalTarget(self.log_pdb_mtz_csv)
-
 
     def run(self):
         process_refined_crystals(self.log_pdb_mtz_csv, self.test)
@@ -66,6 +69,7 @@ class RefineToCsv(luigi.Task):
         gets table from postgres database
 
     """
+
     refine_csv = luigi.Parameter(default=Path().refine)
 
     def requires(self):
@@ -75,7 +79,7 @@ class RefineToCsv(luigi.Task):
         return luigi.LocalTarget(self.refine_csv)
 
     def run(self):
-        refine_df = get_table_df('refinement')
+        refine_df = get_table_df("refinement")
 
         folder = os.path.dirname(self.refine_csv)
         if not os.path.isdir(folder):
@@ -108,15 +112,15 @@ class SuperposedToCsv(luigi.Task):
         gets table from postgres database, and drops rows
         without superposed pdb files
     """
+
     superposed_csv = luigi.Parameter(default=Path().superposed)
     refine_csv = luigi.Parameter(default=Path().refine)
 
     def output(self):
         return luigi.LocalTarget(self.superposed_csv)
 
-
     def run(self):
-        #Read in refined data
+        # Read in refined data
         refine_df = pd.read_csv(self.refine_csv)
 
         # Remove rows without a value in pdb column
@@ -128,5 +132,5 @@ class SuperposedToCsv(luigi.Task):
         # Remove rows where pdb file is "dimple.pdb"
         superposed_df = drop_only_dimple_processing(pdb_df)
 
-        #Write output table
+        # Write output table
         superposed_df.to_csv(self.superposed_csv)
