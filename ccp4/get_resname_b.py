@@ -106,7 +106,7 @@ def update_from_pdb(pdb_df):
     return pdb_df.T
 
 
-def get_occ_b(pdb, chain, resid, altloc=''):
+def get_occ_b(pdb, chain, resid, altloc=""):
 
     """
     Get occupancy and b factor of a single residue
