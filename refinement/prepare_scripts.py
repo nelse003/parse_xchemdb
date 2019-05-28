@@ -5,6 +5,7 @@ from refinement.call_ccp4 import get_incomplete_occ_groups
 from utils.filesystem import check_inputs
 from refinement.check_refienement_failure import check_restraints
 from refinement.check_refienement_failure import check_refinement_for_cif_error
+from refinement.parameters import lig_pos_to_occupancy_refinement_string
 from utils.smiles import smiles_to_cif_acedrg
 from utils.symlink import make_copies_and_symlinks
 
@@ -94,14 +95,16 @@ def write_refmac_csh(
     if not os.path.isdir(refinement_script_dir):
         os.makedirs(refinement_script_dir)
 
-    # Parse PDB to get ligand as occupancy groups as string
-    occ_group = get_incomplete_occ_groups(
+    # Parse PDB to get ligand as occupancy groups
+    lig_pos = get_incomplete_occ_groups(
         tmp_dir=refinement_script_dir,
         crystal=crystal,
         pdb=pdb,
         script_dir=script_dir,
         ccp4_path=ccp4_path,
     )
+    # Turn into string
+    occ_group = lig_pos_to_occupancy_refinement_string(list(lig_pos))
 
     # define output paths
     out_mtz = os.path.join(out_dir, "refine.mtz")
@@ -193,6 +196,135 @@ def write_exhaustive_csh(
     # File location and name
     csh_file = os.path.join(
         refinement_script_dir, "{}_{}.csh".format(crystal, "exhaustive")
+    )
+
+    with open(csh_file, "w") as csh_f:
+        csh_f.write(cmd)
+
+
+def write_phenix_csh(
+        pdb,
+        mtz,
+        cif,
+        script_dir,
+        refinement_script_dir,
+        out_dir,
+        crystal,
+        ncyc,
+):
+    """
+    Write .csh script to run phenix
+
+    Parameters
+    ----------
+    pdb: pdb
+        path to pdb file
+    mtz: str
+        path to mtz file
+    script_dir:
+        path to directory with input scripts (parse_xchemdb)
+    refinement_script_dir: str
+        path to directory for csh script
+    out_dir: str
+        path for output files
+    crystal: str
+        name of crystal
+    ncyc: int
+        number of macrocycles to apply to phenix
+
+    Returns
+    -------
+    None
+    """
+
+    crystal_dir = os.path.join(out_dir, crystal)
+
+    with open(os.path.join(script_dir, "refinement", "phenix_template.csh")) as f:
+        cmd = f.read()
+
+    cmd = cmd.format(
+        out_dir=out_dir,
+        pdb=pdb,
+        mtz=mtz,
+        cif=cif,
+        ncyc=ncyc,
+    )
+
+    if not os.path.isdir(refinement_script_dir):
+        os.makedirs(refinement_script_dir)
+
+    # File location and name
+    csh_file = os.path.join(
+        refinement_script_dir, "{}_{}.csh".format(crystal, "phenix")
+    )
+
+    with open(csh_file, "w") as csh_f:
+        csh_f.write(cmd)
+
+
+def write_buster_csh(
+        pdb,
+        mtz,
+        cif,
+        script_dir,
+        refinement_script_dir,
+        out_dir,
+        crystal,
+        ccp4_path,
+):
+    """
+    Write .csh script to run buster
+
+    Parameters
+    ----------
+    pdb: pdb
+        path to pdb file
+    mtz: str
+        path to mtz file
+    script_dir:
+        path to directory with input scripts (parse_xchemdb)
+    refinement_script_dir: str
+        path to directory for csh script
+    out_dir: str
+        path for output files
+    crystal: str
+        name of crystal
+
+    Returns
+    -------
+    None
+    """
+
+    crystal_dir = os.path.join(out_dir, crystal)
+
+    with open(os.path.join(script_dir, "refinement", "buster_template.csh")) as f:
+        cmd = f.read()
+
+    cmd = cmd.format(
+        out_dir=out_dir,
+        pdb=pdb,
+        mtz=mtz,
+        cif=cif,
+    )
+
+    # Parse PDB to get ligand as occupancy groups
+    lig_pos = get_incomplete_occ_groups(
+        tmp_dir=refinement_script_dir,
+        crystal=crystal,
+        pdb=pdb,
+        script_dir=script_dir,
+        ccp4_path=ccp4_path,
+    )
+
+    # Turn into string
+    occ_group = lig_pos_to_occupancy_refinement_string(list(lig_pos))
+
+    if not os.path.isdir(refinement_script_dir):
+        os.makedirs(refinement_script_dir)
+
+    # File location and name
+    csh_file = os.path.join(
+        refinement_script_dir, "{}_{}.csh".format(crystal, "buster")
     )
 
     with open(csh_file, "w") as csh_f:

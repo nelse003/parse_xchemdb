@@ -1,9 +1,6 @@
 import ast
 import os
 
-from refinement.parameters import lig_pos_to_occupancy_refinement_string
-
-
 def get_incomplete_occ_groups(tmp_dir, crystal, pdb, script_dir, ccp4_path):
     """
     Get occupancy groups from pdb by calling ligand.py
@@ -21,11 +18,8 @@ def get_incomplete_occ_groups(tmp_dir, crystal, pdb, script_dir, ccp4_path):
 
     Returns
     -------
-    occ_group: str
-        A string to be appended to the refinment csh,
-        containing occupancy groups incomplete for each residue
-        which is thought to be a ligand of interest
-
+    lig_pos: str
+        A list of tuples for chain, and resname, resid.
     """
 
     # Read pdb and determine ligand occupancy groups
@@ -40,6 +34,5 @@ def get_incomplete_occ_groups(tmp_dir, crystal, pdb, script_dir, ccp4_path):
 
     # Convert string in file to list
     lig_pos = ast.literal_eval(lig_pos)
-    occ_group = lig_pos_to_occupancy_refinement_string(list(lig_pos))
 
-    return occ_group
+    return lig_pos
