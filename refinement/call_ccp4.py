@@ -18,7 +18,7 @@ def get_incomplete_occ_groups(tmp_dir, crystal, pdb, script_dir, ccp4_path):
 
     Returns
     -------
-    lig_pos: str
+    lig_pos: list
         A list of tuples for chain, and resname, resid.
     """
 

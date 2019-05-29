@@ -4,7 +4,8 @@ def lig_pos_to_occupancy_refinement_string(lig_pos):
 
     Parameters
     ----------
-    lig_pos
+    lig_pos: list
+
 
     Returns
     -------

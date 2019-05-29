@@ -95,6 +95,9 @@ def write_refmac_csh(
     if not os.path.isdir(refinement_script_dir):
         os.makedirs(refinement_script_dir)
 
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+
     # Parse PDB to get ligand as occupancy groups
     lig_pos = get_incomplete_occ_groups(
         tmp_dir=refinement_script_dir,
@@ -176,15 +179,15 @@ def write_exhaustive_csh(
     None
     """
 
-    crystal_dir = os.path.join(out_dir, crystal)
-
     with open(os.path.join(script_dir, "refinement", "exhaustive_template.csh")) as f:
         cmd = f.read()
+
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
 
     cmd = cmd.format(
         ccp4_path=ccp4_path,
         out_dir=out_dir,
-        crystal_dir=crystal_dir,
         exhaustive_multiple_sampling=exhaustive_multiple_sampling,
         pdb=pdb,
         mtz=mtz,
@@ -270,7 +273,6 @@ def write_buster_csh(
         refinement_script_dir,
         out_dir,
         crystal,
-        ccp4_path,
 ):
     """
     Write .csh script to run buster
@@ -300,24 +302,15 @@ def write_buster_csh(
     with open(os.path.join(script_dir, "refinement", "buster_template.csh")) as f:
         cmd = f.read()
 
+    # Runs pdb to occ to generate suitable restraints into occ.gelly,
+    # then used in buster refine
     cmd = cmd.format(
         out_dir=out_dir,
         pdb=pdb,
         mtz=mtz,
         cif=cif,
+        occ_params=os.path.join(os.path.dirname(pdb), "occ.gelly"),
     )
-
-    # Parse PDB to get ligand as occupancy groups
-    lig_pos = get_incomplete_occ_groups(
-        tmp_dir=refinement_script_dir,
-        crystal=crystal,
-        pdb=pdb,
-        script_dir=script_dir,
-        ccp4_path=ccp4_path,
-    )
-
-    # Turn into string
-    occ_group = lig_pos_to_occupancy_refinement_string(list(lig_pos))
 
     if not os.path.isdir(refinement_script_dir):
         os.makedirs(refinement_script_dir)
