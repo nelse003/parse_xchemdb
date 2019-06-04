@@ -256,6 +256,9 @@ def write_phenix_csh(
     if not os.path.isdir(refinement_script_dir):
         os.makedirs(refinement_script_dir)
 
+    if not os.path.isdir(out_dir):
+        os.makedirs(out_dir)
+
     # File location and name
     csh_file = os.path.join(
         refinement_script_dir, "{}_{}.csh".format(crystal, "phenix")
