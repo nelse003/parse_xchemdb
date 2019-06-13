@@ -276,6 +276,7 @@ def write_buster_csh(
         refinement_script_dir,
         out_dir,
         crystal,
+        template_name="buster_template.csh",
 ):
     """
     Write .csh script to run buster
@@ -302,7 +303,7 @@ def write_buster_csh(
 
     crystal_dir = os.path.join(out_dir, crystal)
 
-    with open(os.path.join(script_dir, "refinement", "buster_template.csh")) as f:
+    with open(os.path.join(script_dir, "refinement", template_name)) as f:
         cmd = f.read()
 
     # Runs pdb to occ to generate suitable restraints into occ.gelly,
