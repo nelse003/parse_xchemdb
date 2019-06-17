@@ -151,6 +151,10 @@ def write_exhaustive_csh(
     crystal,
     exhaustive_multiple_sampling,
     ccp4_path,
+    template_name="exhaustive_template.csh",
+    lower_u_iso=0.2,
+    upper_u_iso=1.2,
+    vary_b=False,
 ):
     """
     Write .csh script to run exhaustive search
@@ -173,25 +177,42 @@ def write_exhaustive_csh(
         path to exhaustive search multiple sampling. py file
     ccp4_path: str
         path to ccp4 setup script to be sourced
+    template_name: str
+        name of template csh file
+    lower_u_iso: float
+        minima of b factor to search for
+    upper_u_iso: float
+        maxima of b factor to search for
 
     Returns
     -------
     None
     """
-
-    with open(os.path.join(script_dir, "refinement", "exhaustive_template.csh")) as f:
+    with open(os.path.join(script_dir, "refinement", template_name)) as f:
         cmd = f.read()
 
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    cmd = cmd.format(
-        ccp4_path=ccp4_path,
-        out_dir=out_dir,
-        exhaustive_multiple_sampling=exhaustive_multiple_sampling,
-        pdb=pdb,
-        mtz=mtz,
-    )
+    if template_name == "exhaustive_template.csh":
+        cmd = cmd.format(
+            ccp4_path=ccp4_path,
+            out_dir=out_dir,
+            exhaustive_multiple_sampling=exhaustive_multiple_sampling,
+            pdb=pdb,
+            mtz=mtz,
+        )
+    elif template_name == "exhaustive_b_fix_template.csh":
+        cmd = cmd.format(
+            ccp4_path=ccp4_path,
+            out_dir=out_dir,
+            exhaustive_multiple_sampling=exhaustive_multiple_sampling,
+            pdb=pdb,
+            mtz=mtz,
+            lower_u_iso=lower_u_iso,
+            upper_u_iso=upper_u_iso,
+            vary_b=vary_b,
+        )
 
     if not os.path.isdir(refinement_script_dir):
         os.makedirs(refinement_script_dir)
