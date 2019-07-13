@@ -47,6 +47,7 @@ def write_refmac_csh(
     ccp4_path="/dls/science/groups/i04-1/"
     "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/"
     "ccp4.setup-sh",
+    refinement_type=None
 ):
 
     """
@@ -85,12 +86,13 @@ def write_refmac_csh(
     """
     # get name of pdb after giant.split_conformations
     pdb_dir = os.path.dirname(pdb)
-    if "bound" in pdb:
-        refinement_type = "bound"
-    elif "ground" in pdb:
-        refinement_type = "ground"
-    else:
-        refinement_type = ""
+    if refinement_type is None:
+        if "bound" in pdb:
+            refinement_type = "bound"
+        elif "ground" in pdb:
+            refinement_type = "ground"
+        else:
+            refinement_type = ""
 
     if not os.path.isdir(refinement_script_dir):
         os.makedirs(refinement_script_dir)
@@ -98,6 +100,11 @@ def write_refmac_csh(
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
+    print(refinement_script_dir)
+    print(crystal)
+    print(pdb)
+    print(script_dir)
+    print(ccp4_path)
     # Parse PDB to get ligand as occupancy groups
     lig_pos = get_incomplete_occ_groups(
         tmp_dir=refinement_script_dir,
