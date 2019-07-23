@@ -213,11 +213,12 @@ luigi.build(
     workers=10,
 )
 
-
+print("AWASASAS")
 luigi.build(
     [
         # Generate new unconstrained refinements REFMAC5
         # Calls BatchRefinement
+
         RefinementFolderToCsv(
             refinement_csv=test_paths.bound_refinement,
             output_csv=test_paths.bound_refinement_batch_csv,
@@ -226,6 +227,7 @@ luigi.build(
             log_pdb_mtz_csv=test_paths.log_pdb_mtz,
             ncyc=3,
             refinement_type="bound",
+            refinement_program="refmac",
         )
     ],
     local_scheduler=False,
@@ -236,22 +238,22 @@ luigi.build(
 # Generate new Superposed refinements phenix
 print("AAAAAAAAAAAAAAAAAAAAAAAAA")
 
-luigi.build([
-        # Calls BatchRefinement
-        RefinementFolderToCsv(refinement_csv=os.path.join(out_dir,
-                                "phenix_superposed_log_pdb_mtz.csv"),
-                              output_csv=os.path.join(out_dir,
-                               "phenix_superposed_batch.csv"),
-                              out_dir=os.path.join(out_dir,
-                                    "phenix_superposed"),
-                              extra_params=None,
-                              tmp_dir=test_paths.tmp_dir,
-                              log_pdb_mtz_csv=os.path.join(out_dir,
-                                                "log_pdb_mtz.csv"),
-                              refinement_program = "phenix",
-                              refinement_type="superposed")
-                              ],
-    local_scheduler=False, workers=10)
+# luigi.build([
+#         # Calls BatchRefinement
+#         RefinementFolderToCsv(refinement_csv=os.path.join(out_dir,
+#                                 "phenix_superposed_log_pdb_mtz.csv"),
+#                               output_csv=os.path.join(out_dir,
+#                                "phenix_superposed_batch.csv"),
+#                               out_dir=os.path.join(out_dir,
+#                                     "phenix_superposed"),
+#                               extra_params=None,
+#                               tmp_dir=test_paths.tmp_dir,
+#                               log_pdb_mtz_csv=os.path.join(out_dir,
+#                                                 "log_pdb_mtz.csv"),
+#                               refinement_program = "phenix",
+#                               refinement_type="superposed")
+#                               ],
+#     local_scheduler=False, workers=10)
 
 # Generate new unconstrained refinements phenix
 

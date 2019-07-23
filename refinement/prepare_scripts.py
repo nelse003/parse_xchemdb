@@ -411,6 +411,10 @@ def write_quick_refine_csh(
     if not os.path.isdir(refinement_script_dir):
         os.makedirs(refinement_script_dir)
 
+    if refinement_program == "phenix":
+        args =" args=\"xray_data.labels='IMEAN,SIGIMEAN'\""
+    else:
+        args = " "
     # Shell suitable string for csh file
     Cmds = (
         "#!" + os.getenv("SHELL") + "\n" + pbs_line + "\n"
@@ -425,7 +429,7 @@ def write_quick_refine_csh(
         + " dir_prefix='%s'" % dir_prefix
         + " out_prefix='%s'" % out_prefix
         + " split_conformations='False'"
-        + " args=\"xray_data.labels='IMEAN,SIGIMEAN'\""
+        + args
         +
         "\n"
         "cd " + os.path.join(out_dir, dir_prefix + "0001") + "\n"

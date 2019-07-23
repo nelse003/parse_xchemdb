@@ -69,7 +69,7 @@ class BatchRefinement(luigi.Task):
     out_dir = luigi.Parameter()
     tmp_dir = luigi.Parameter(default=Path().tmp_dir)
     script_dir = luigi.Parameter(default=Path().script_dir)
-    refinement_program = luigi.Parameter(default="refmac")
+    refinement_program = luigi.Parameter(default="refmac", significant=False)
 
     extra_params = luigi.Parameter(default="NCYC=50", significant=False)
     ncyc = luigi.Parameter(default=50, significant=False)
@@ -122,6 +122,7 @@ class BatchRefinement(luigi.Task):
                     out_dir=self.out_dir,
                     script_dir=self.script_dir,
                     refinement_type=self.refinement_type,
+                    refinement_program=self.refinement_program,
                     output_csv=self.output_csv,
                     ncyc=self.ncyc,
                 )
