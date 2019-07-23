@@ -74,6 +74,9 @@ class PrepareRefinement(luigi.Task):
     free_mtz: luigi.Parameter
         path to free mtz
 
+    refinement_program: luigi.Parameter
+        refinement program: exhaustive, refmac, phenix, buster
+
     refinement_type: luigi.Parameter
         type of refinement "bound" or "ground"
 
@@ -106,6 +109,7 @@ class PrepareRefinement(luigi.Task):
     refinement_script_dir = luigi.Parameter()
     free_mtz = luigi.Parameter()
     refinement_type = luigi.Parameter()
+    refinement_program = luigi.Parameter()
     output_csv = luigi.Parameter()
     script_dir = luigi.Parameter()
     ncyc = luigi.Parameter()
@@ -131,7 +135,9 @@ class PrepareRefinement(luigi.Task):
 
         refinement_script = os.path.join(
             self.refinement_script_dir,
-            "{}_{}.csh".format(self.crystal, self.refinement_type),
+            "{}_{}_{}.csh".format(self.crystal,
+                                  self.refinement_program,
+                                  self.refinement_type),
         )
 
         return luigi.LocalTarget(refinement_script)

@@ -10,10 +10,11 @@ from tasks.plotting import PlotBoundOccHistogram
 from tasks.batch import BatchRefinement
 from tasks.filesystem import RefinementFolderToCsv
 from tasks.update_csv import OccFromLog
+from tasks.database import ParseXchemdbToCsv
 
 from path_config import Path
 
-out_dir = "/dls/science/groups/i04-1/elliot-dev/Work/" "exhaustive_parse_xchem_db/test/"
+out_dir = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/test_23_07_19/"
 
 # Paths for analysing original refinements
 test_paths = Path()
@@ -74,7 +75,7 @@ test_paths.bound_refinement_dir = os.path.join(out_dir, "bound_refinement")
 test_paths.bound_refinement_batch_csv = os.path.join(out_dir, "bound_refmac.csv")
 test_paths.bound_refinement = os.path.join(out_dir, "bound_refinement_log_pdb_mtz.csv")
 
-test = 10
+test = 1
 
 # Analyse existing refinements
 luigi.build(
@@ -146,7 +147,7 @@ luigi.build(
             test=test,
         ),
     ],
-    local_scheduler=True,
+    local_scheduler=False,
     workers=10,
 )
 
@@ -208,7 +209,7 @@ luigi.build(
             test=test,
         ),
     ],
-    local_scheduler=True,
+    local_scheduler=False,
     workers=10,
 )
 
@@ -233,23 +234,24 @@ luigi.build(
 
 
 # Generate new Superposed refinements phenix
+print("AAAAAAAAAAAAAAAAAAAAAAAAA")
 
-# luigi.build([
-#         # Calls BatchRefinement
-#         RefinementFolderToCsv(refinement_csv=os.path.join(out_dir,
-#                                 "phenix_superposed_log_pdb_mtz.csv"),
-#                               output_csv=os.path.join(out_dir,
-#                                "phenix_superposed_batch.csv"),
-#                               out_dir=os.path.join(out_dir,
-#                                     "phenix_superposed"),
-#                               extra_params=None,
-#                               tmp_dir=test_paths.tmp_dir,
-#                               log_pdb_mtz_csv=os.path.join(out_dir,
-#                                                 "log_pdb_mtz.csv"),
-#                               refinement_program = "phenix",
-#                               refinement_type="superposed")
-#                               ],
-#     local_scheduler=False, workers=10)
+luigi.build([
+        # Calls BatchRefinement
+        RefinementFolderToCsv(refinement_csv=os.path.join(out_dir,
+                                "phenix_superposed_log_pdb_mtz.csv"),
+                              output_csv=os.path.join(out_dir,
+                               "phenix_superposed_batch.csv"),
+                              out_dir=os.path.join(out_dir,
+                                    "phenix_superposed"),
+                              extra_params=None,
+                              tmp_dir=test_paths.tmp_dir,
+                              log_pdb_mtz_csv=os.path.join(out_dir,
+                                                "log_pdb_mtz.csv"),
+                              refinement_program = "phenix",
+                              refinement_type="superposed")
+                              ],
+    local_scheduler=False, workers=10)
 
 # Generate new unconstrained refinements phenix
 

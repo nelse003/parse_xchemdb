@@ -1,6 +1,7 @@
 import ast
 import os
 
+
 def get_incomplete_occ_groups(tmp_dir, crystal, pdb, script_dir, ccp4_path):
     """
     Get occupancy groups from pdb by calling ligand.py

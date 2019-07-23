@@ -47,7 +47,8 @@ def write_refmac_csh(
     ccp4_path="/dls/science/groups/i04-1/"
     "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/"
     "ccp4.setup-sh",
-    refinement_type=None
+    refinement_type=None,
+    refinement_program="refmac",
 ):
 
     """
@@ -141,7 +142,9 @@ def write_refmac_csh(
 
     # File location and name
     csh_file = os.path.join(
-        refinement_script_dir, "{}_{}.csh".format(crystal, refinement_type)
+        refinement_script_dir, "{}_{}_{}.csh".format(crystal,
+                                                     refinement_program,
+                                                     refinement_type)
     )
 
     # Write file
@@ -158,6 +161,7 @@ def write_exhaustive_csh(
     crystal,
     exhaustive_multiple_sampling,
     ccp4_path,
+    refinement_type="superposed"
 ):
     """
     Write .csh script to run exhaustive search
@@ -180,7 +184,8 @@ def write_exhaustive_csh(
         path to exhaustive search multiple sampling. py file
     ccp4_path: str
         path to ccp4 setup script to be sourced
-
+    refinement_type: str
+        type of refinement
     Returns
     -------
     None
@@ -205,7 +210,7 @@ def write_exhaustive_csh(
 
     # File location and name
     csh_file = os.path.join(
-        refinement_script_dir, "{}_{}.csh".format(crystal, "exhaustive")
+        refinement_script_dir, "{}_{}_{}.csh".format(crystal, "exhaustive", refinement_type)
     )
 
     with open(csh_file, "w") as csh_f:
@@ -213,14 +218,15 @@ def write_exhaustive_csh(
 
 
 def write_phenix_csh(
-        pdb,
-        mtz,
-        cif,
-        script_dir,
-        refinement_script_dir,
-        out_dir,
-        crystal,
-        ncyc,
+    pdb,
+    mtz,
+    cif,
+    script_dir,
+    refinement_script_dir,
+    out_dir,
+    crystal,
+    ncyc,
+    refinement_type="bound",
 ):
     """
     Write .csh script to run phenix
@@ -241,7 +247,8 @@ def write_phenix_csh(
         name of crystal
     ncyc: int
         number of macrocycles to apply to phenix
-
+    refinement_type: str
+        refinement type; bound, ground or superposed
     Returns
     -------
     None
@@ -252,13 +259,7 @@ def write_phenix_csh(
     with open(os.path.join(script_dir, "refinement", "phenix_template.csh")) as f:
         cmd = f.read()
 
-    cmd = cmd.format(
-        out_dir=out_dir,
-        pdb=pdb,
-        mtz=mtz,
-        cif=cif,
-        ncyc=ncyc,
-    )
+    cmd = cmd.format(out_dir=out_dir, pdb=pdb, mtz=mtz, cif=cif, ncyc=ncyc)
 
     if not os.path.isdir(refinement_script_dir):
         os.makedirs(refinement_script_dir)
@@ -268,7 +269,9 @@ def write_phenix_csh(
 
     # File location and name
     csh_file = os.path.join(
-        refinement_script_dir, "{}_{}.csh".format(crystal, "phenix")
+        refinement_script_dir, "{}_{}_{}.csh".format(crystal,
+                                                     "phenix",
+                                                     refinement_type)
     )
 
     with open(csh_file, "w") as csh_f:
@@ -276,14 +279,16 @@ def write_phenix_csh(
 
 
 def write_buster_csh(
-        pdb,
-        mtz,
-        cif,
-        script_dir,
-        refinement_script_dir,
-        out_dir,
-        crystal,
-        template_name="buster_template.csh",
+    pdb,
+    mtz,
+    cif,
+    script_dir,
+    refinement_script_dir,
+    out_dir,
+    crystal,
+    refinement_type="superposed",
+    refinement_program="buster",
+    template_name="buster_template.csh",
 ):
     """
     Write .csh script to run buster
@@ -328,7 +333,9 @@ def write_buster_csh(
 
     # File location and name
     csh_file = os.path.join(
-        refinement_script_dir, "{}_{}.csh".format(crystal, "buster")
+        refinement_script_dir, "{}_{}_{}.csh".format(crystal,
+                                                     refinement_program,
+                                                     refinement_type)
     )
 
     with open(csh_file, "w") as csh_f:
@@ -407,8 +414,8 @@ def write_quick_refine_csh(
     # Shell suitable string for csh file
     Cmds = (
         "#!" + os.getenv("SHELL") + "\n" + pbs_line + "\n"
-        # + module_load +
-        # '\n'
+         + module_load +
+         '\n'
         + source + "\n" + "cd {}\n".format(out_dir) + "giant.quick_refine"
         " input.pdb=%s" % refine_pdb
         + " mtz=%s" % free_mtz
@@ -418,6 +425,8 @@ def write_quick_refine_csh(
         + " dir_prefix='%s'" % dir_prefix
         + " out_prefix='%s'" % out_prefix
         + " split_conformations='False'"
+        + " args=\"xray_data.labels='IMEAN,SIGIMEAN'\""
+        +
         "\n"
         "cd " + os.path.join(out_dir, dir_prefix + "0001") + "\n"
         "giant.split_conformations"
@@ -432,7 +441,9 @@ def write_quick_refine_csh(
 
     # File location and name
     csh_file = os.path.join(
-        refinement_script_dir, "{}_{}.csh".format(crystal, refinement_type)
+        refinement_script_dir, "{}_{}_{}.csh".format(crystal,
+                                                     refinement_program,
+                                                     refinement_type)
     )
 
     # Write file

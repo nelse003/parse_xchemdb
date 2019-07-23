@@ -103,12 +103,10 @@ class BatchRefinement(luigi.Task):
             mtz = df.at[i, "mtz_free"]
             crystal = df.at[i, "crystal_name"]
 
-            # Cheat to allow run on single folder
-            # if crystal != "FIH-x0439":
-            #     continue
-
             refinement_script = os.path.join(
-                self.tmp_dir, "{}_{}.csh".format(crystal, self.refinement_type)
+                self.tmp_dir, "{}_{}_{}.csh".format(crystal,
+                                                    self.refinement_program,
+                                                    self.refinement_type)
             )
 
             # Setup a refinement task

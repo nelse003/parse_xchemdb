@@ -13,7 +13,7 @@ from tasks.update_csv import OccFromLog
 
 from path_config import Path
 
-out_dir = "/dls/science/groups/i04-1/elliot-dev/Work/" "exhaustive_parse_xchem_db/"
+out_dir = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/23_07_19"
 
 # Paths for analysing original refinements
 paths = Path()
@@ -100,8 +100,8 @@ luigi.build(
             script_path=paths.script_dir,
         ),
     ],
-    local_scheduler=True,
-    workers=10,
+    local_scheduler=False,
+    workers=20,
 )
 
 
@@ -202,19 +202,20 @@ luigi.build(
             refinement_csv=paths.bound_refinement,
             output_csv=paths.bound_refinement_batch_csv,
             out_dir=paths.bound_refinement_dir,
-            tmp_dir=paths.tmp_dir,
+            tmp_dir=os.path.join(paths.tmp_dir,"phenix"),
             log_pdb_mtz_csv=paths.log_pdb_mtz,
             ncyc=3,
             refinement_type="bound",
         )
     ],
-    local_scheduler=True,
+    local_scheduler=False,
     workers=20,
 )
 
-raise Exception
-
 # Generate new Superposed refinements phenix
+# Seems to not recognise superposed csh as new file, and resubmits refmac one.
+# Change to use a different tmp folder
+
 
 luigi.build(
     [
@@ -230,6 +231,6 @@ luigi.build(
             refinement_type="superposed",
         )
     ],
-    local_scheduler=True,
+    local_scheduler=False,
     workers=10,
 )
