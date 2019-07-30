@@ -383,24 +383,28 @@ def check_inputs(
 
     # If the refinement program does not match the parameter file,
     # search for one that does in relative_path for the pdb file
-    if find_program_from_parameter_file(params) != refinement_program:
-        params = parameter_from_refine_pdb(
-            pdb, glob_string="*params", refinement_program=refinement_program
-        )
-
-    if params is None:
-        params, _ = make_restraints(
-            pdb=pdb,
-            ccp4=ccp4,
-            refinement_program=refinement_program,
-            working_dir=input_dir,
-        )
+    if refinement_program != "exhaustive":
+        if find_program_from_parameter_file(params) != refinement_program:
+            params = parameter_from_refine_pdb(
+                pdb, glob_string="*params", refinement_program=refinement_program
+            )
+    if refinement_program != "exhaustive":
+        if params is None:
+            params, _ = make_restraints(
+                pdb=pdb,
+                ccp4=ccp4,
+                refinement_program=refinement_program,
+                working_dir=input_dir,
+            )
 
     # Check that the source files for the symlinks exist
     if not os.path.isfile(cif):
         raise FileNotFoundError("{}: cif Not found".format(cif))
-    if not os.path.isfile(params):
-        raise FileNotFoundError("{}: parameter file Not found".format(params))
+
+    if refinement_program != "exhaustive":
+        if not os.path.isfile(params):
+            raise FileNotFoundError("{}: parameter file Not found".format(params))
+
     if not os.path.isfile(free_mtz):
         raise FileNotFoundError("{}: mtz Not found".format(free_mtz))
 

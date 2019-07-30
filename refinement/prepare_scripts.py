@@ -360,6 +360,7 @@ def write_quick_refine_csh(
     refinement_params,
     out_dir,
     refinement_script_dir,
+    column_labels=None,
     refinement_program="refmac",
     refinement_type="superposed",
     out_prefix="refine_",
@@ -420,10 +421,10 @@ def write_quick_refine_csh(
     if not os.path.isdir(refinement_script_dir):
         os.makedirs(refinement_script_dir)
 
-    if refinement_program == "phenix":
-        args =" args=\"xray_data.labels='IMEAN,SIGIMEAN'\""
-    else:
+    if column_labels == None:
         args = " "
+
+
     # Shell suitable string for csh file
     Cmds = (
         "#!" + os.getenv("SHELL") + "\n" + pbs_line + "\n"
@@ -748,6 +749,11 @@ def prepare_superposed_refinement(
         input_dir=input_dir, cif=cif, pdb=pdb, params=params, free_mtz=free_mtz
     )
 
+    # get mtz column labels if there is a choice
+    column_labels = get_col_labels(crystal=crystal,
+                                   mtz=free_mtz,
+                                   out_dir=out_dir)
+
     # Check for failed refinement due to restraint error
     # Run giant.make_restraints in this case
     if check_restraints(input_dir):
@@ -765,18 +771,33 @@ def prepare_superposed_refinement(
         os.rename(input_cif, cif_backup)
         smiles_to_cif_acedrg(smiles, input_cif)
 
-    update_refinement_params(params=input_params, extra_params=extra_params)
+    if refinement_program != "exhaustive":
+        update_refinement_params(params=input_params, extra_params=extra_params)
 
-    write_quick_refine_csh(
-        refine_pdb=input_pdb,
-        cif=input_cif,
-        free_mtz=input_mtz,
-        crystal=crystal,
-        refinement_params=input_params,
-        out_dir=input_dir,
-        refinement_script_dir=refinement_script_dir,
-        refinement_program=refinement_program,
-        refinement_type=refinement_type,
-        out_prefix="refine_1",
-        dir_prefix="refine_",
-    )
+    if refinement_program != "exhaustive":
+        write_quick_refine_csh(
+            refine_pdb=input_pdb,
+            cif=input_cif,
+            free_mtz=input_mtz,
+            crystal=crystal,
+            refinement_params=input_params,
+            out_dir=input_dir,
+            refinement_script_dir=refinement_script_dir,
+            refinement_program=refinement_program,
+            refinement_type=refinement_type,
+            column_labels=column_labels,
+            out_prefix="refine_1",
+            dir_prefix="refine_",
+        )
+    else:
+        write_exhaustive_csh(
+            pdb=input_pdb,
+            mtz=input_mtz,
+            script_dir=Path().script_dir,
+            refinement_script_dir=refinement_script_dir,
+            out_dir=input_dir,
+            crystal=crystal,
+            exhaustive_multiple_sampling=Path().exhaustive_multiple_sampling,
+            ccp4_path=Path().ccp4,
+            refinement_type="superposed"
+        )

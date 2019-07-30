@@ -62,4 +62,7 @@ def make_restraints(pdb, ccp4, refinement_program, working_dir=None):
         if os.path.isfile(new_buster_restraints):
             input_params = new_buster_restraints
 
+    elif refinement_program == "exhaustive":
+        input_params = None
+
     return input_params, pdb

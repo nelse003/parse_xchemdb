@@ -146,3 +146,8 @@ class Path(luigi.Config):
     ccp4 = luigi.Parameter(
         default="/dls/science/groups/i04-1/elliot-dev/ccp4/ccp4-7.0/bin/ccp4.setup-sh"
     )
+    exhaustive_multiple_sampling = luigi.Parameter(
+        default="/dls/science/groups/i04-1/elliot-dev/"
+                "Work/exhaustive_search/exhaustive/"
+                "exhaustive_multiple_sampling.py"
+    )

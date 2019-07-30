@@ -14,7 +14,7 @@ from tasks.database import ParseXchemdbToCsv
 
 from path_config import Path
 
-out_dir = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/test_30_07_19/"
+out_dir = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/test_sample_all_targets_30_07_19/"
 
 # Paths for analysing original refinements
 test_paths = Path()
@@ -77,7 +77,7 @@ test_paths.bound_refinement_dir = os.path.join(out_dir, "bound_refinement")
 test_paths.bound_refinement_batch_csv = os.path.join(out_dir, "bound_refmac.csv")
 test_paths.bound_refinement = os.path.join(out_dir, "bound_refinement_log_pdb_mtz.csv")
 
-test = 1
+test = "sample_all_targets"
 
 luigi.build(
     [
@@ -155,18 +155,6 @@ luigi.build(
 )
 # luigi.build(
 #     [
-#         #################################################
-#         # Generate new Superposed refinements REFMAC5
-#         # Calls BatchRefinement
-#         RefinementFolderToCsv(
-#             refinement_csv=test_paths.convergence_refinement,
-#             output_csv=test_paths.convergence_refinement_failures,
-#             out_dir=test_paths.refinement_dir,
-#             tmp_dir=test_paths.tmp_dir,
-#             extra_params="NCYC 3",
-#             log_pdb_mtz_csv=test_paths.log_pdb_mtz,
-#             refinement_type="superposed",
-#         ),
 #         # These will also call/test:
 #         # ResnameToOccLog
 #         # OccFromLog
@@ -215,123 +203,123 @@ luigi.build(
 #     local_scheduler=False,
 #     workers=20,
 # )
-# luigi.build(
-#     [
-#         #####################################################
-#         # Generate new unconstrained refinements REFMAC5
-#         # Calls BatchRefinement
-#
-#         RefinementFolderToCsv(
-#             refinement_csv=test_paths.bound_refinement,
-#             output_csv=test_paths.bound_refinement_batch_csv,
-#             out_dir=test_paths.bound_refinement_dir,
-#             tmp_dir=test_paths.tmp_dir,
-#             log_pdb_mtz_csv=test_paths.log_pdb_mtz,
-#             ncyc=3,
-#             refinement_type="bound",
-#             refinement_program="refmac",
-#         ),
-#     ],
-#     local_scheduler=False,
-#     workers=20,
-# )
-# luigi.build(
-#     [
-#         ####################################################
-#         # Generate new Superposed refinements phenix
-#         # Calls BatchRefinement
-#         RefinementFolderToCsv(refinement_csv=os.path.join(out_dir,
-#                                                           "phenix_superposed_log_pdb_mtz.csv"),
-#                               output_csv=os.path.join(out_dir,
-#                                                       "phenix_superposed_batch.csv"),
-#                               out_dir=os.path.join(out_dir,
-#                                                    "phenix_superposed"),
-#                               extra_params=None,
-#                               tmp_dir=test_paths.tmp_dir,
-#                               log_pdb_mtz_csv=os.path.join(out_dir,
-#                                                            "log_pdb_mtz.csv"),
-#                               refinement_program="phenix",
-#                               refinement_type="superposed")
-#     ],
-#     local_scheduler=False,
-#     workers=20,
-# )
 
-# luigi.build(
-#     [
-#         # PDK2-x0885
-#         #
-#         # unable to find a dictionary for residue " TF3"!
-#         #
-#         # Works for NUDT5A-x1298
-#         ####################################################
-#         # Generate new refinement buster superposed
-#         # Calls BatchRefinement
-#         RefinementFolderToCsv(refinement_csv=os.path.join(out_dir,
-#                                                           "buster_superposed_log_pdb_mtz.csv"),
-#                               output_csv=os.path.join(out_dir,
-#                                                       "buster_superposed_batch.csv"),
-#                               out_dir=os.path.join(out_dir,
-#                                                    "buster_superposed"),
-#                               extra_params=None,
-#                               tmp_dir=test_paths.tmp_dir,
-#                               log_pdb_mtz_csv=os.path.join(out_dir,
-#                                                            "log_pdb_mtz.csv"),
-#                               refinement_program="buster",
-#                               refinement_type="superposed")
-#     ],
-#     local_scheduler=False,
-#     workers=20,
-# )
+luigi.build(
+    [
+        #################################################
+        # Generate new Superposed refinements REFMAC5
+        # Calls BatchRefinement
+        RefinementFolderToCsv(
+            refinement_csv=test_paths.convergence_refinement,
+            output_csv=test_paths.convergence_refinement_failures,
+            out_dir=test_paths.refinement_dir,
+            tmp_dir=test_paths.tmp_dir,
+            extra_params="NCYC 3",
+            log_pdb_mtz_csv=test_paths.log_pdb_mtz,
+            refinement_program="refmac",
+            refinement_type="superposed",
+        ),
+        ####################################################
+        # Generate new Superposed refinements phenix
+        # Calls BatchRefinement
+        RefinementFolderToCsv(refinement_csv=os.path.join(out_dir,
+                                                          "phenix_superposed_log_pdb_mtz.csv"),
+                              output_csv=os.path.join(out_dir,
+                                                      "phenix_superposed_batch.csv"),
+                              out_dir=os.path.join(out_dir,
+                                                   "phenix_superposed"),
+                              extra_params=None,
+                              tmp_dir=test_paths.tmp_dir,
+                              log_pdb_mtz_csv=os.path.join(out_dir,
+                                                           "log_pdb_mtz.csv"),
+                              refinement_program="phenix",
+                              refinement_type="superposed"),
 
-# Generate new unconstrained refinements phenix
+        #####################################################
+        # Generate new unconstrained refinements REFMAC5
+        # Calls BatchRefinement
 
-# luigi.build(
-#     [
-#         RefinementFolderToCsv(refinement_csv=os.path.join(out_dir,
-#                                                           "phenix_log_pdb_mtz.csv"),
-#                               output_csv=os.path.join(out_dir,
-#                                                       "phenix_batch.csv"),
-#                               out_dir=os.path.join(out_dir,
-#                                                    "phenix"),
-#                               extra_params="",
-#                               ncyc=2,
-#                               tmp_dir=test_paths.tmp_dir,
-#                               log_pdb_mtz_csv=os.path.join(out_dir,
-#                                                            "log_pdb_mtz.csv"),
-#                               refinement_program="phenix",
-#                               refinement_type="bound")
-#     ],
-#     local_scheduler=False,
-#     workers=20,
-# )
+        RefinementFolderToCsv(
+            refinement_csv=test_paths.bound_refinement,
+            output_csv=test_paths.bound_refinement_batch_csv,
+            out_dir=test_paths.bound_refinement_dir,
+            tmp_dir=test_paths.tmp_dir,
+            log_pdb_mtz_csv=test_paths.log_pdb_mtz,
+            ncyc=3,
+            refinement_type="bound",
+            refinement_program="refmac",
+        ),
+        # PDK2-x0885
+        #
+        # unable to find a dictionary for residue " TF3"!
+        #
+        # Works for NUDT5A-x1298
+        ####################################################
+        # Generate new refinement buster superposed
+        RefinementFolderToCsv(refinement_csv=os.path.join(out_dir,
+                                                          "buster_superposed_log_pdb_mtz.csv"),
+                              output_csv=os.path.join(out_dir,
+                                                      "buster_superposed_batch.csv"),
+                              out_dir=os.path.join(out_dir,
+                                                   "buster_superposed"),
+                              extra_params=None,
+                              tmp_dir=test_paths.tmp_dir,
+                              log_pdb_mtz_csv=os.path.join(out_dir,
+                                                           "log_pdb_mtz.csv"),
+                              refinement_program="buster",
+                              refinement_type="superposed"),
 
-# Generate new exhaustive search refinements
+        #Generate new unconstrained refinements phenix
+        RefinementFolderToCsv(refinement_csv=os.path.join(out_dir,
+                                                          "phenix_log_pdb_mtz.csv"),
+                              output_csv=os.path.join(out_dir,
+                                                      "phenix_batch.csv"),
+                              out_dir=os.path.join(out_dir,
+                                                   "phenix"),
+                              extra_params="",
+                              ncyc=2,
+                              tmp_dir=test_paths.tmp_dir,
+                              log_pdb_mtz_csv=os.path.join(out_dir,
+                                                           "log_pdb_mtz.csv"),
+                              refinement_program="phenix",
+                              refinement_type="bound"),
 
-# Generate new unconstrained refinements buster
-# PDK2-x0885
-# unable to find a dictionary for residue " TF3"!
-#
-# Works for NUDT5A-x1298
+        # Generate new exhaustive search refinements
+        RefinementFolderToCsv(refinement_csv=os.path.join(out_dir,
+                                                          "exhaustive_log_pdb_mtz.csv"),
+                              output_csv=os.path.join(out_dir,
+                                                      "exhaustive_batch.csv"),
+                              out_dir=os.path.join(out_dir,
+                                                   "exhaustive"),
+                              extra_params="",
+                              tmp_dir=test_paths.tmp_dir,
+                              log_pdb_mtz_csv=os.path.join(out_dir,
+                                                           "log_pdb_mtz.csv"),
+                              refinement_program="exhaustive",
+                              refinement_type="superposed"),
 
-# luigi.build(
-#     [
-#         RefinementFolderToCsv(refinement_csv=os.path.join(out_dir,
-#                                                           "buster_log_pdb_mtz.csv"),
-#                               output_csv=os.path.join(out_dir,
-#                                                       "buster_batch.csv"),
-#                               out_dir=os.path.join(out_dir,
-#                                                    "buster"),
-#                               extra_params="",
-#                               tmp_dir=test_paths.tmp_dir,
-#                               log_pdb_mtz_csv=os.path.join(out_dir,
-#                                                            "log_pdb_mtz.csv"),
-#                               refinement_program="buster",
-#                               refinement_type="bound")
-#     ],
-#     local_scheduler=False,
-#     workers=20,
-# )
+        # Generate new unconstrained refinements buster
+        # PDK2-x0885
+        # unable to find a dictionary for residue " TF3"!
+        #
+        # Works for NUDT5A-x1298
+        RefinementFolderToCsv(refinement_csv=os.path.join(out_dir,
+                                                          "buster_log_pdb_mtz.csv"),
+                              output_csv=os.path.join(out_dir,
+                                                      "buster_batch.csv"),
+                              out_dir=os.path.join(out_dir,
+                                                   "buster"),
+                              extra_params="",
+                              tmp_dir=test_paths.tmp_dir,
+                              log_pdb_mtz_csv=os.path.join(out_dir,
+                                                           "log_pdb_mtz.csv"),
+                              refinement_program="buster",
+                              refinement_type="bound")
+    ],
+    local_scheduler=False,
+    workers=20,
+)
+
 
 
 

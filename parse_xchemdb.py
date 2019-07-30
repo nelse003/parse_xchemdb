@@ -375,8 +375,16 @@ def process_refined_crystals(out_csv, test=None):
     # Drop rows where log is missing
     pdb_log_mtz_df = drop_pdb_with_missing_logs(pdb_no_dimple_mtz_df)
 
-    # Use a test flag to create a short table for testing purposes
-    if test is not None:
+    # Use a test flag to create a short table with every target for testing purposes
+    if test == "sample_all_targets":
+        targets = pdb_log_mtz_df['target_name'].unique()
+        row_list = []
+        for target in targets:
+            row_list.append(pdb_log_mtz_df[pdb_log_mtz_df.target_name == target].iloc[0])
+        pdb_log_mtz_df = pd.concat(row_list, axis=1).T
+
+    # For number of test rows
+    elif test is not None:
         pdb_log_mtz_df = pdb_log_mtz_df.tail(n=test)
 
     # If the ouptut csv folder does not exist make it
