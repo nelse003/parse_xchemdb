@@ -29,11 +29,7 @@ class InputFiles:
         self.free_mtz = os.path.join(self.resources_dir, "DCP2B-x0146.free.mtz")
         self.crystal = "DCP2B-x0146"
         self.ncyc = 50
-        self.ccp4_path = (
-            "/dls/science/groups/i04-1/"
-            "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/"
-            "ccp4.setup-sh"
-        )
+        self.ccp4_path = Path().ccp4
 
         # for quick_refine
         self.pdb = os.path.join(self.resources_dir, "refine.pdb")

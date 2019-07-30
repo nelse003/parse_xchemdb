@@ -28,16 +28,13 @@ def split_conformations(pdb, working_dir=None):
 
 def make_restraints(pdb, ccp4, refinement_program, working_dir=None):
 
-    source = "source {}".format(ccp4)
-    os.system(source)
-
     if not os.path.isdir(working_dir):
         os.makedirs(working_dir)
 
     if working_dir is not None:
         os.chdir(working_dir)
 
-    os.system("giant.make_restraints {}".format(pdb))
+    os.system("source {};giant.make_restraints {}".format(ccp4, pdb))
 
     link_pdb = os.path.join(working_dir, "input.link.pdb")
     new_refmac_restraints = os.path.join(
@@ -46,6 +43,8 @@ def make_restraints(pdb, ccp4, refinement_program, working_dir=None):
     new_phenix_restraints = os.path.join(
         working_dir, "multi-state-restraints.phenix.params"
     )
+    new_buster_restraints = os.path.join(
+        working_dir, "params.gelly")
 
     if refinement_program == "refmac":
 
@@ -55,8 +54,12 @@ def make_restraints(pdb, ccp4, refinement_program, working_dir=None):
         if os.path.isfile(link_pdb):
             pdb = link_pdb
 
-    if refinement_program == "phenix":
+    elif refinement_program == "phenix":
         if os.path.isfile(new_phenix_restraints):
             input_params = new_phenix_restraints
+
+    elif refinement_program == "buster":
+        if os.path.isfile(new_buster_restraints):
+            input_params = new_buster_restraints
 
     return input_params, pdb

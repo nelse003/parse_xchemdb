@@ -35,6 +35,32 @@ paths.bound_occ_histogram = os.path.join(out_dir, "occ_bound_histogram.png")
 paths.tmp_dir = os.path.join(out_dir, "tmp")
 paths.script_dir = "/dls/science/groups/i04-1/elliot-dev/parse_xchemdb"
 
+
+# Generate new Superposed refinements REFMAC5
+paths.convergence_refinement_failures = os.path.join(
+    out_dir, "convergence_refinement_failures.csv"
+)
+
+paths.refinement_dir = os.path.join(out_dir, "convergence_refinement")
+paths.convergence_refinement = os.path.join(out_dir, "convergence_refinement.csv")
+paths.convergence_occ = os.path.join(out_dir, "convergence_refinement_occ.csv")
+paths.convergence_occ_resname = os.path.join(
+    out_dir, "convergence_refinement_occ_resname.csv"
+)
+
+paths.convergence_conv_hist = os.path.join(out_dir, "convergence_conv_hist.png")
+paths.convergence_occ_conv_scatter = os.path.join(
+    out_dir, "convergence_occ_conv_scatter.png"
+)
+paths.convergence_ground_hist = os.path.join(out_dir, "convergence_ground_occ_hist.png")
+paths.convergence_bound_hist = os.path.join(out_dir, "convergence_bound_occ_hist.png")
+paths.convergence_occ_correct = os.path.join(out_dir, "convergence_occ_correct.csv")
+
+# Paths for bound_refinement
+paths.bound_refinement_dir = os.path.join(out_dir, "bound_refinement")
+paths.bound_refinement_batch_csv = os.path.join(out_dir, "bound_refmac.csv")
+paths.bound_refinement = os.path.join(out_dir, "bound_refinement_log_pdb_mtz.csv")
+
 # Analyse existing refinements
 luigi.build(
     [
@@ -99,41 +125,8 @@ luigi.build(
             plot_path=paths.bound_occ_histogram,
             script_path=paths.script_dir,
         ),
-    ],
-    local_scheduler=False,
-    workers=20,
-)
-
-
-# Generate new Superposed refinements REFMAC5
-paths.convergence_refinement_failures = os.path.join(
-    out_dir, "convergence_refinement_failures.csv"
-)
-
-paths.refinement_dir = os.path.join(out_dir, "convergence_refinement")
-
-paths.convergence_refinement = os.path.join(out_dir, "convergence_refinement.csv")
-
-paths.convergence_occ = os.path.join(out_dir, "convergence_refinement_occ.csv")
-
-paths.convergence_occ_resname = os.path.join(
-    out_dir, "convergence_refinement_occ_resname.csv"
-)
-
-paths.convergence_conv_hist = os.path.join(out_dir, "convergence_conv_hist.png")
-
-paths.convergence_occ_conv_scatter = os.path.join(
-    out_dir, "convergence_occ_conv_scatter.png"
-)
-
-paths.convergence_ground_hist = os.path.join(out_dir, "convergence_ground_occ_hist.png")
-
-paths.convergence_bound_hist = os.path.join(out_dir, "convergence_bound_occ_hist.png")
-
-paths.convergence_occ_correct = os.path.join(out_dir, "convergence_occ_correct.csv")
-
-luigi.build(
-    [
+        #####################################################
+        # Generate new unconstrained refinements REFMAC5
         # Calls BatchRefinement
         RefinementFolderToCsv(
             refinement_csv=paths.convergence_refinement,
@@ -184,41 +177,18 @@ luigi.build(
             plot_path=paths.convergence_ground_hist,
             script_path=paths.script_dir,
         ),
-    ],
-    local_scheduler=False,
-    workers=20,
-)
-
-# Generate new unconstrained refinements REFMAC5
-
-paths.bound_refinement_dir = os.path.join(out_dir, "bound_refinement")
-paths.bound_refinement_batch_csv = os.path.join(out_dir, "bound_refmac.csv")
-paths.bound_refinement = os.path.join(out_dir, "bound_refinement_log_pdb_mtz.csv")
-
-luigi.build(
-    [
         # Calls BatchRefinement
         RefinementFolderToCsv(
             refinement_csv=paths.bound_refinement,
             output_csv=paths.bound_refinement_batch_csv,
             out_dir=paths.bound_refinement_dir,
-            tmp_dir=os.path.join(paths.tmp_dir,"phenix"),
+            tmp_dir=os.path.join(paths.tmp_dir, "phenix"),
             log_pdb_mtz_csv=paths.log_pdb_mtz,
             ncyc=3,
             refinement_type="bound",
-        )
-    ],
-    local_scheduler=False,
-    workers=20,
-)
-
-# Generate new Superposed refinements phenix
-# Seems to not recognise superposed csh as new file, and resubmits refmac one.
-# Change to use a different tmp folder
-
-
-luigi.build(
-    [
+        ),
+        ###############################################
+        # Generate new Superposed refinements phenix
         # Calls BatchRefinement
         RefinementFolderToCsv(
             refinement_csv=os.path.join(out_dir, "phenix_superposed_log_pdb_mtz.csv"),
@@ -229,8 +199,8 @@ luigi.build(
             log_pdb_mtz_csv=os.path.join(out_dir, "log_pdb_mtz.csv"),
             refinement_program="phenix",
             refinement_type="superposed",
-        )
+        ),
     ],
     local_scheduler=False,
-    workers=10,
+    workers=20,
 )

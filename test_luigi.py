@@ -14,7 +14,7 @@ from tasks.database import ParseXchemdbToCsv
 
 from path_config import Path
 
-out_dir = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/test_23_07_19/"
+out_dir = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/test_30_07_19/"
 
 # Paths for analysing original refinements
 test_paths = Path()
@@ -71,15 +71,18 @@ test_paths.convergence_occ_correct = os.path.join(
     out_dir, "convergence_occ_correct.csv"
 )
 
+# Paths for bound refinement
+
 test_paths.bound_refinement_dir = os.path.join(out_dir, "bound_refinement")
 test_paths.bound_refinement_batch_csv = os.path.join(out_dir, "bound_refmac.csv")
 test_paths.bound_refinement = os.path.join(out_dir, "bound_refinement_log_pdb_mtz.csv")
 
 test = 1
 
-# Analyse existing refinements
 luigi.build(
     [
+        # Analyse existing refinements
+        #
         # This will also call/test:
         #
         # ResnameToOccLog,
@@ -148,117 +151,187 @@ luigi.build(
         ),
     ],
     local_scheduler=False,
-    workers=10,
+    workers=20,
 )
-
-# Generate new Superposed refinements REFMAC5
-luigi.build(
-    [
-        # Calls BatchRefinement
-        RefinementFolderToCsv(
-            refinement_csv=test_paths.convergence_refinement,
-            output_csv=test_paths.convergence_refinement_failures,
-            out_dir=test_paths.refinement_dir,
-            tmp_dir=test_paths.tmp_dir,
-            extra_params="NCYC 3",
-            log_pdb_mtz_csv=test_paths.log_pdb_mtz,
-            refinement_type="superposed",
-        ),
-        # These will also call/test:
-        # ResnameToOccLog
-        # OccFromLog
-        # StateOccupancyToCsv
-        PlotConvergenceHistogram(
-            occ_state_comment_csv=test_paths.occ_state_comment_csv,
-            log_occ_resname=test_paths.convergence_occ_resname,
-            log_occ_csv=test_paths.convergence_occ,
-            log_pdb_mtz_csv=test_paths.convergence_refinement,
-            occ_correct_csv=test_paths.convergence_occ_correct,
-            plot_path=test_paths.convergence_conv_hist,
-            script_path=test_paths.script_dir,
-            test=test,
-        ),
-        PlotOccConvScatter(
-            occ_state_comment_csv=test_paths.occ_state_comment_csv,
-            log_occ_resname=test_paths.convergence_occ_resname,
-            log_occ_csv=test_paths.convergence_occ,
-            log_pdb_mtz_csv=test_paths.convergence_refinement,
-            occ_correct_csv=test_paths.convergence_occ_correct,
-            plot_path=test_paths.convergence_occ_conv_scatter,
-            script_path=test_paths.script_dir,
-            test=test,
-        ),
-        PlotBoundOccHistogram(
-            occ_state_comment_csv=test_paths.occ_state_comment_csv,
-            log_occ_resname=test_paths.convergence_occ_resname,
-            log_occ_csv=test_paths.convergence_occ,
-            log_pdb_mtz_csv=test_paths.convergence_refinement,
-            occ_correct_csv=test_paths.convergence_occ_correct,
-            plot_path=test_paths.convergence_bound_hist,
-            script_path=test_paths.script_dir,
-            test=test,
-        ),
-        PlotGroundOccHistogram(
-            occ_state_comment_csv=test_paths.occ_state_comment_csv,
-            log_occ_resname=test_paths.convergence_occ_resname,
-            log_occ_csv=test_paths.convergence_occ,
-            log_pdb_mtz_csv=test_paths.convergence_refinement,
-            occ_correct_csv=test_paths.convergence_occ_correct,
-            plot_path=test_paths.convergence_ground_hist,
-            script_path=test_paths.script_dir,
-            test=test,
-        ),
-    ],
-    local_scheduler=False,
-    workers=10,
-)
-
-print("AWASASAS")
-luigi.build(
-    [
-        # Generate new unconstrained refinements REFMAC5
-        # Calls BatchRefinement
-
-        RefinementFolderToCsv(
-            refinement_csv=test_paths.bound_refinement,
-            output_csv=test_paths.bound_refinement_batch_csv,
-            out_dir=test_paths.bound_refinement_dir,
-            tmp_dir=test_paths.tmp_dir,
-            log_pdb_mtz_csv=test_paths.log_pdb_mtz,
-            ncyc=3,
-            refinement_type="bound",
-            refinement_program="refmac",
-        )
-    ],
-    local_scheduler=False,
-    workers=10,
-)
-
-
-# Generate new Superposed refinements phenix
-print("AAAAAAAAAAAAAAAAAAAAAAAAA")
-
-# luigi.build([
+# luigi.build(
+#     [
+#         #################################################
+#         # Generate new Superposed refinements REFMAC5
+#         # Calls BatchRefinement
+#         RefinementFolderToCsv(
+#             refinement_csv=test_paths.convergence_refinement,
+#             output_csv=test_paths.convergence_refinement_failures,
+#             out_dir=test_paths.refinement_dir,
+#             tmp_dir=test_paths.tmp_dir,
+#             extra_params="NCYC 3",
+#             log_pdb_mtz_csv=test_paths.log_pdb_mtz,
+#             refinement_type="superposed",
+#         ),
+#         # These will also call/test:
+#         # ResnameToOccLog
+#         # OccFromLog
+#         # StateOccupancyToCsv
+#         PlotConvergenceHistogram(
+#             occ_state_comment_csv=test_paths.occ_state_comment_csv,
+#             log_occ_resname=test_paths.convergence_occ_resname,
+#             log_occ_csv=test_paths.convergence_occ,
+#             log_pdb_mtz_csv=test_paths.convergence_refinement,
+#             occ_correct_csv=test_paths.convergence_occ_correct,
+#             plot_path=test_paths.convergence_conv_hist,
+#             script_path=test_paths.script_dir,
+#             test=test,
+#         ),
+#         PlotOccConvScatter(
+#             occ_state_comment_csv=test_paths.occ_state_comment_csv,
+#             log_occ_resname=test_paths.convergence_occ_resname,
+#             log_occ_csv=test_paths.convergence_occ,
+#             log_pdb_mtz_csv=test_paths.convergence_refinement,
+#             occ_correct_csv=test_paths.convergence_occ_correct,
+#             plot_path=test_paths.convergence_occ_conv_scatter,
+#             script_path=test_paths.script_dir,
+#             test=test,
+#         ),
+#         PlotBoundOccHistogram(
+#             occ_state_comment_csv=test_paths.occ_state_comment_csv,
+#             log_occ_resname=test_paths.convergence_occ_resname,
+#             log_occ_csv=test_paths.convergence_occ,
+#             log_pdb_mtz_csv=test_paths.convergence_refinement,
+#             occ_correct_csv=test_paths.convergence_occ_correct,
+#             plot_path=test_paths.convergence_bound_hist,
+#             script_path=test_paths.script_dir,
+#             test=test,
+#         ),
+#         PlotGroundOccHistogram(
+#             occ_state_comment_csv=test_paths.occ_state_comment_csv,
+#             log_occ_resname=test_paths.convergence_occ_resname,
+#             log_occ_csv=test_paths.convergence_occ,
+#             log_pdb_mtz_csv=test_paths.convergence_refinement,
+#             occ_correct_csv=test_paths.convergence_occ_correct,
+#             plot_path=test_paths.convergence_ground_hist,
+#             script_path=test_paths.script_dir,
+#             test=test,
+#         ),
+#     ],
+#     local_scheduler=False,
+#     workers=20,
+# )
+# luigi.build(
+#     [
+#         #####################################################
+#         # Generate new unconstrained refinements REFMAC5
+#         # Calls BatchRefinement
+#
+#         RefinementFolderToCsv(
+#             refinement_csv=test_paths.bound_refinement,
+#             output_csv=test_paths.bound_refinement_batch_csv,
+#             out_dir=test_paths.bound_refinement_dir,
+#             tmp_dir=test_paths.tmp_dir,
+#             log_pdb_mtz_csv=test_paths.log_pdb_mtz,
+#             ncyc=3,
+#             refinement_type="bound",
+#             refinement_program="refmac",
+#         ),
+#     ],
+#     local_scheduler=False,
+#     workers=20,
+# )
+# luigi.build(
+#     [
+#         ####################################################
+#         # Generate new Superposed refinements phenix
 #         # Calls BatchRefinement
 #         RefinementFolderToCsv(refinement_csv=os.path.join(out_dir,
-#                                 "phenix_superposed_log_pdb_mtz.csv"),
+#                                                           "phenix_superposed_log_pdb_mtz.csv"),
 #                               output_csv=os.path.join(out_dir,
-#                                "phenix_superposed_batch.csv"),
+#                                                       "phenix_superposed_batch.csv"),
 #                               out_dir=os.path.join(out_dir,
-#                                     "phenix_superposed"),
+#                                                    "phenix_superposed"),
 #                               extra_params=None,
 #                               tmp_dir=test_paths.tmp_dir,
 #                               log_pdb_mtz_csv=os.path.join(out_dir,
-#                                                 "log_pdb_mtz.csv"),
-#                               refinement_program = "phenix",
+#                                                            "log_pdb_mtz.csv"),
+#                               refinement_program="phenix",
 #                               refinement_type="superposed")
-#                               ],
-#     local_scheduler=False, workers=10)
+#     ],
+#     local_scheduler=False,
+#     workers=20,
+# )
+
+# luigi.build(
+#     [
+#         # PDK2-x0885
+#         #
+#         # unable to find a dictionary for residue " TF3"!
+#         #
+#         # Works for NUDT5A-x1298
+#         ####################################################
+#         # Generate new refinement buster superposed
+#         # Calls BatchRefinement
+#         RefinementFolderToCsv(refinement_csv=os.path.join(out_dir,
+#                                                           "buster_superposed_log_pdb_mtz.csv"),
+#                               output_csv=os.path.join(out_dir,
+#                                                       "buster_superposed_batch.csv"),
+#                               out_dir=os.path.join(out_dir,
+#                                                    "buster_superposed"),
+#                               extra_params=None,
+#                               tmp_dir=test_paths.tmp_dir,
+#                               log_pdb_mtz_csv=os.path.join(out_dir,
+#                                                            "log_pdb_mtz.csv"),
+#                               refinement_program="buster",
+#                               refinement_type="superposed")
+#     ],
+#     local_scheduler=False,
+#     workers=20,
+# )
 
 # Generate new unconstrained refinements phenix
+
+# luigi.build(
+#     [
+#         RefinementFolderToCsv(refinement_csv=os.path.join(out_dir,
+#                                                           "phenix_log_pdb_mtz.csv"),
+#                               output_csv=os.path.join(out_dir,
+#                                                       "phenix_batch.csv"),
+#                               out_dir=os.path.join(out_dir,
+#                                                    "phenix"),
+#                               extra_params="",
+#                               ncyc=2,
+#                               tmp_dir=test_paths.tmp_dir,
+#                               log_pdb_mtz_csv=os.path.join(out_dir,
+#                                                            "log_pdb_mtz.csv"),
+#                               refinement_program="phenix",
+#                               refinement_type="bound")
+#     ],
+#     local_scheduler=False,
+#     workers=20,
+# )
 
 # Generate new exhaustive search refinements
 
 # Generate new unconstrained refinements buster
+# PDK2-x0885
+# unable to find a dictionary for residue " TF3"!
+#
+# Works for NUDT5A-x1298
 
-# Generate new superposed refinements buster
+# luigi.build(
+#     [
+#         RefinementFolderToCsv(refinement_csv=os.path.join(out_dir,
+#                                                           "buster_log_pdb_mtz.csv"),
+#                               output_csv=os.path.join(out_dir,
+#                                                       "buster_batch.csv"),
+#                               out_dir=os.path.join(out_dir,
+#                                                    "buster"),
+#                               extra_params="",
+#                               tmp_dir=test_paths.tmp_dir,
+#                               log_pdb_mtz_csv=os.path.join(out_dir,
+#                                                            "log_pdb_mtz.csv"),
+#                               refinement_program="buster",
+#                               refinement_type="bound")
+#     ],
+#     local_scheduler=False,
+#     workers=20,
+# )
+
+
+

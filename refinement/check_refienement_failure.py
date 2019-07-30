@@ -84,3 +84,9 @@ def check_refinement_for_cif_error(input_dir):
         quick_refine_log, "Sorry: Fatal problems interpreting model file"
     ):
         return True
+
+    if check_file_for_string(
+        quick_refine_log, "unable to find a dictionary for residue"
+    ):
+        print("BUSTER ASJJA")
+        exit()

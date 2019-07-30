@@ -118,6 +118,7 @@ class BatchRefinement(luigi.Task):
                     cif=cif,
                     free_mtz=mtz,
                     refinement_script=refinement_script,
+                    extra_params=self.extra_params,
                     refinement_script_dir=self.tmp_dir,
                     out_dir=self.out_dir,
                     script_dir=self.script_dir,

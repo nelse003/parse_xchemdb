@@ -3,6 +3,7 @@ import os
 from utils.smiles import smiles_from_crystal
 from refinement.call_ccp4 import get_incomplete_occ_groups
 from utils.filesystem import check_inputs
+from utils.filesystem import get_col_labels
 from refinement.check_refienement_failure import check_restraints
 from refinement.check_refienement_failure import check_refinement_for_cif_error
 from refinement.parameters import lig_pos_to_occupancy_refinement_string
@@ -44,9 +45,7 @@ def write_refmac_csh(
     refinement_script_dir,
     script_dir,
     ncyc=50,
-    ccp4_path="/dls/science/groups/i04-1/"
-    "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/"
-    "ccp4.setup-sh",
+    ccp4_path=Path().ccp4,
     refinement_type=None,
     refinement_program="refmac",
 ):
@@ -226,6 +225,7 @@ def write_phenix_csh(
     out_dir,
     crystal,
     ncyc,
+    column_labels=None,
     refinement_type="bound",
 ):
     """
@@ -259,7 +259,17 @@ def write_phenix_csh(
     with open(os.path.join(script_dir, "refinement", "phenix_template.csh")) as f:
         cmd = f.read()
 
-    cmd = cmd.format(out_dir=out_dir, pdb=pdb, mtz=mtz, cif=cif, ncyc=ncyc)
+    if column_labels != None:
+        column_label_text = "xray_data.labels={}".format(column_labels)
+    else:
+        column_label_text = " "
+
+    cmd = cmd.format(out_dir=out_dir,
+                     pdb=pdb,
+                     mtz=mtz,
+                     cif=cif,
+                     ncyc=ncyc,
+                     column_label_text=column_label_text)
 
     if not os.path.isdir(refinement_script_dir):
         os.makedirs(refinement_script_dir)
@@ -354,8 +364,7 @@ def write_quick_refine_csh(
     refinement_type="superposed",
     out_prefix="refine_",
     dir_prefix="refine_",
-    ccp4_path="/dls/science/groups/i04-1/"
-    "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/ccp4.setup-sh",
+    ccp4_path=Path().ccp4,
 ):
 
     """
@@ -464,11 +473,10 @@ def prepare_refinement(
     ncyc,
     out_dir,
     refinement_script_dir,
+    refinement_program,
     refinement_type,
     script_dir,
-    ccp4_path="/dls/science/groups/i04-1/"
-    "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/"
-    "ccp4.setup-sh",
+    ccp4_path=Path().ccp4,
 ):
 
     """
@@ -516,28 +524,62 @@ def prepare_refinement(
         pdb=pdb,
         params="",
         free_mtz=mtz,
-        refinement_program="refmac",
+        refinement_program=refinement_program,
         input_dir=input_dir,
         crystal=crystal,
+        out_dir=out_dir,
     )
+
+    column_labels = get_col_labels(out_dir=out_dir,
+                                   crystal=crystal,
+                                   mtz=mtz)
 
     # generate symlinks to refinement files
     input_cif, input_pdb, input_params, input_mtz = make_copies_and_symlinks(
         input_dir=input_dir, cif=cif, pdb=pdb, params=None, free_mtz=mtz
     )
 
-    write_refmac_csh(
-        pdb=input_pdb,
-        crystal=crystal,
-        cif=input_cif,
-        mtz=input_mtz,
-        out_dir=input_dir,
-        refinement_script_dir=refinement_script_dir,
-        script_dir=script_dir,
-        ncyc=ncyc,
-        ccp4_path=ccp4_path,
-    )
+    if refinement_program == "refmac":
+        write_refmac_csh(
+            pdb=input_pdb,
+            crystal=crystal,
+            cif=input_cif,
+            mtz=input_mtz,
+            out_dir=input_dir,
+            refinement_script_dir=refinement_script_dir,
+            script_dir=script_dir,
+            ncyc=ncyc,
+            ccp4_path=ccp4_path,
+        )
+    elif refinement_program =="buster":
 
+        write_buster_csh(
+            pdb=input_pdb,
+            mtz=input_mtz,
+            cif=input_cif,
+            script_dir=script_dir,
+            refinement_script_dir=refinement_script_dir,
+            out_dir=input_dir,
+            crystal=crystal,
+            refinement_type="bound",
+            refinement_program="buster",
+            template_name="buster_template.csh"
+        )
+
+    elif refinement_program =="phenix":
+
+        write_phenix_csh(
+            pdb=input_pdb,
+            mtz=input_mtz,
+            cif=input_cif,
+            script_dir=script_dir,
+            refinement_script_dir=refinement_script_dir,
+            out_dir=input_dir,
+            crystal=crystal,
+            ncyc=ncyc,
+            column_labels=column_labels,
+            refinement_type="bound",
+        )
 
 def prepare_superposed_refinement(
     crystal,
@@ -698,6 +740,7 @@ def prepare_superposed_refinement(
         refinement_program=refinement_program,
         input_dir=input_dir,
         crystal=crystal,
+        out_dir=out_dir,
     )
 
     # generate symlinks to refinement files

@@ -44,6 +44,7 @@ class TestCheckInputs:
             refinement_program="refmac",
             input_dir=self.input_files.out_dir,
             crystal=self.input_files.crystal,
+            out_dir=self.input_files.out_dir
         )
 
         assert os.path.isfile(cif)

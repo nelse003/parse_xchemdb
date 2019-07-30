@@ -1,9 +1,10 @@
 import os
 import luigi
-
+from luigi.util import requires
 from refinement.giant_scripts import split_conformations
 from refinement.prepare_scripts import prepare_refinement
-
+from tasks.superposed_refinement import CheckRefinementIssues
+from path_config import Path
 
 class SplitConformations(luigi.Task):
     """
@@ -49,7 +50,7 @@ class SplitConformations(luigi.Task):
     def run(self):
         split_conformations(pdb=self.pdb, working_dir=self.working_dir)
 
-
+@requires(CheckRefinementIssues)
 class PrepareRefinement(luigi.Task):
     """
     Task to generate csh for non-superposed refinement
@@ -109,6 +110,7 @@ class PrepareRefinement(luigi.Task):
     refinement_script_dir = luigi.Parameter()
     free_mtz = luigi.Parameter()
     refinement_type = luigi.Parameter()
+    extra_params = luigi.Parameter()
     refinement_program = luigi.Parameter()
     output_csv = luigi.Parameter()
     script_dir = luigi.Parameter()
@@ -150,10 +152,9 @@ class PrepareRefinement(luigi.Task):
             mtz=self.free_mtz,
             ncyc=self.ncyc,
             out_dir=self.out_dir,
+            refinement_program=self.refinement_program,
             refinement_type=self.refinement_type,
             script_dir=self.script_dir,
             refinement_script_dir=self.refinement_script_dir,
-            ccp4_path="/dls/science/groups/i04-1/"
-            "software/pandda_0.2.12/ccp4/ccp4-7.0/bin/"
-            "ccp4.setup-sh",
+            ccp4_path=Path().ccp4,
         )
