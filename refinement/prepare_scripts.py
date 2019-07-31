@@ -423,7 +423,13 @@ def write_quick_refine_csh(
 
     if column_labels == None:
         args = " "
-
+    elif refinement_program == "phenix":
+        args = "input.args='xray_data.labels={}'".format(column_labels)
+    elif refinement_program == "refmac":
+        # Currently refmac doesn't need column labels
+        args = ' '
+    else:
+        args =' '
 
     # Shell suitable string for csh file
     Cmds = (
