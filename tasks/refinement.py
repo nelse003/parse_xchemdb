@@ -6,6 +6,7 @@ from refinement.prepare_scripts import prepare_refinement
 from tasks.superposed_refinement import CheckRefinementIssues
 from path_config import Path
 
+
 class SplitConformations(luigi.Task):
     """
     Task to run giant.split conformations
@@ -49,6 +50,7 @@ class SplitConformations(luigi.Task):
 
     def run(self):
         split_conformations(pdb=self.pdb, working_dir=self.working_dir)
+
 
 @requires(CheckRefinementIssues)
 class PrepareRefinement(luigi.Task):
@@ -137,9 +139,9 @@ class PrepareRefinement(luigi.Task):
 
         refinement_script = os.path.join(
             self.refinement_script_dir,
-            "{}_{}_{}.csh".format(self.crystal,
-                                  self.refinement_program,
-                                  self.refinement_type),
+            "{}_{}_{}.csh".format(
+                self.crystal, self.refinement_program, self.refinement_type
+            ),
         )
 
         return luigi.LocalTarget(refinement_script)

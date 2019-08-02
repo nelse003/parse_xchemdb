@@ -1,8 +1,11 @@
 import luigi
 import os
+import glob
+import shutil
 
 from refinement.prepare_scripts import prepare_superposed_refinement
 from luigi.util import requires
+
 
 class CheckRefinementIssues(luigi.Task):
     """Task to check issues with data supplied for refinement
@@ -41,6 +44,7 @@ class CheckRefinementIssues(luigi.Task):
     ------
     PDK2 cif for buster is missing TF3: Run phenix readyset and change input cif
     """
+
     crystal = luigi.Parameter()
     pdb = luigi.Parameter()
     cif = luigi.Parameter()
@@ -54,17 +58,41 @@ class CheckRefinementIssues(luigi.Task):
     refinement_program = luigi.Parameter()
 
     def output(self):
-        return luigi.LocalTarget(os.path.join(self.out_dir,
-                                              "check_file"))
+        return luigi.LocalTarget(os.path.join(self.out_dir, self.crystal, "check_file"))
 
     def run(self):
 
-        with open(os.path.join(self.out_dir, "check_file"),'w') as f:
-            f.write("{}\n{}\n{}".format(self.crystal,
-                                        type(self.crystal),
-                                        self.out_dir))
+        os.system(
+            "module load phenix;"
+            "mkdir {out_dir};"
+            "cd {out_dir};"
+            "mkdir ./ready_set;"
+            "cd ready_set;"
+            "phenix.ready_set {pdb}".format(
+                out_dir=os.path.join(self.out_dir, self.crystal), pdb=self.pdb
+            )
+        )
 
-#@requires(CheckRefinementIssues)
+        num_cif = len(
+            glob.glob1(os.path.join(self.out_dir, self.crystal, "ready_set"), "*.cif")
+        )
+        print(num_cif)
+
+        if num_cif > 2:
+            new_cif = os.path.join(
+                self.out_dir,
+                self.crystal,
+                "ready_set",
+                (os.path.basename(self.pdb)).replace(".pdb", ".ligands.cif"),
+            )
+            out_cif = os.path.join(self.out_dir, self.crystal, "input.cif")
+            shutil.copy(new_cif, out_cif, follow_symlinks=False)
+
+        with open(os.path.join(self.out_dir, self.crystal, "check_file"), "w") as f:
+            f.write("{}\n{}\n{}".format(self.crystal, type(self.crystal), self.out_dir))
+
+
+@requires(CheckRefinementIssues)
 class PrepareSuperposedRefinement(luigi.Task):
 
     """

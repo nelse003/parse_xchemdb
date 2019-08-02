@@ -104,9 +104,10 @@ class BatchRefinement(luigi.Task):
             crystal = df.at[i, "crystal_name"]
 
             refinement_script = os.path.join(
-                self.tmp_dir, "{}_{}_{}.csh".format(crystal,
-                                                    self.refinement_program,
-                                                    self.refinement_type)
+                self.tmp_dir,
+                "{}_{}_{}.csh".format(
+                    crystal, self.refinement_program, self.refinement_type
+                ),
             )
 
             # Setup a refinement task

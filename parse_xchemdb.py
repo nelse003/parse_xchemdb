@@ -377,12 +377,17 @@ def process_refined_crystals(out_csv, test=None):
 
     # Use a test flag to create a short table with every target for testing purposes
     if test == "sample_all_targets":
-        targets = pdb_log_mtz_df['target_name'].unique()
+        targets = pdb_log_mtz_df["target_name"].unique()
         row_list = []
         for target in targets:
-            row_list.append(pdb_log_mtz_df[pdb_log_mtz_df.target_name == target].iloc[0])
+            row_list.append(
+                pdb_log_mtz_df[pdb_log_mtz_df.target_name == target].iloc[0]
+            )
         pdb_log_mtz_df = pd.concat(row_list, axis=1).T
-
+    elif test == "ACVR1A-x1242":
+        pdb_log_mtz_df = pdb_log_mtz_df.loc[
+            pdb_log_mtz_df["crystal_name"] == "ACVR1A-x1242"
+        ]
     # For number of test rows
     elif test is not None:
         pdb_log_mtz_df = pdb_log_mtz_df.tail(n=test)

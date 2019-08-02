@@ -43,8 +43,7 @@ def make_restraints(pdb, ccp4, refinement_program, working_dir=None):
     new_phenix_restraints = os.path.join(
         working_dir, "multi-state-restraints.phenix.params"
     )
-    new_buster_restraints = os.path.join(
-        working_dir, "params.gelly")
+    new_buster_restraints = os.path.join(working_dir, "params.gelly")
 
     if refinement_program == "refmac":
 

@@ -141,9 +141,8 @@ def write_refmac_csh(
 
     # File location and name
     csh_file = os.path.join(
-        refinement_script_dir, "{}_{}_{}.csh".format(crystal,
-                                                     refinement_program,
-                                                     refinement_type)
+        refinement_script_dir,
+        "{}_{}_{}.csh".format(crystal, refinement_program, refinement_type),
     )
 
     # Write file
@@ -160,7 +159,7 @@ def write_exhaustive_csh(
     crystal,
     exhaustive_multiple_sampling,
     ccp4_path,
-    refinement_type="superposed"
+    refinement_type="superposed",
 ):
     """
     Write .csh script to run exhaustive search
@@ -209,7 +208,8 @@ def write_exhaustive_csh(
 
     # File location and name
     csh_file = os.path.join(
-        refinement_script_dir, "{}_{}_{}.csh".format(crystal, "exhaustive", refinement_type)
+        refinement_script_dir,
+        "{}_{}_{}.csh".format(crystal, "exhaustive", refinement_type),
     )
 
     with open(csh_file, "w") as csh_f:
@@ -264,12 +264,14 @@ def write_phenix_csh(
     else:
         column_label_text = " "
 
-    cmd = cmd.format(out_dir=out_dir,
-                     pdb=pdb,
-                     mtz=mtz,
-                     cif=cif,
-                     ncyc=ncyc,
-                     column_label_text=column_label_text)
+    cmd = cmd.format(
+        out_dir=out_dir,
+        pdb=pdb,
+        mtz=mtz,
+        cif=cif,
+        ncyc=ncyc,
+        column_label_text=column_label_text,
+    )
 
     if not os.path.isdir(refinement_script_dir):
         os.makedirs(refinement_script_dir)
@@ -279,9 +281,7 @@ def write_phenix_csh(
 
     # File location and name
     csh_file = os.path.join(
-        refinement_script_dir, "{}_{}_{}.csh".format(crystal,
-                                                     "phenix",
-                                                     refinement_type)
+        refinement_script_dir, "{}_{}_{}.csh".format(crystal, "phenix", refinement_type)
     )
 
     with open(csh_file, "w") as csh_f:
@@ -343,9 +343,8 @@ def write_buster_csh(
 
     # File location and name
     csh_file = os.path.join(
-        refinement_script_dir, "{}_{}_{}.csh".format(crystal,
-                                                     refinement_program,
-                                                     refinement_type)
+        refinement_script_dir,
+        "{}_{}_{}.csh".format(crystal, refinement_program, refinement_type),
     )
 
     with open(csh_file, "w") as csh_f:
@@ -427,16 +426,23 @@ def write_quick_refine_csh(
         args = "input.args='xray_data.labels={}'".format(column_labels)
     elif refinement_program == "refmac":
         # Currently refmac doesn't need column labels
-        args = ' '
+        args = " "
     else:
-        args =' '
+        args = " "
 
     # Shell suitable string for csh file
     Cmds = (
-        "#!" + os.getenv("SHELL") + "\n" + pbs_line + "\n"
-         + module_load +
-         '\n'
-        + source + "\n" + "cd {}\n".format(out_dir) + "giant.quick_refine"
+        "#!"
+        + os.getenv("SHELL")
+        + "\n"
+        + pbs_line
+        + "\n"
+        + module_load
+        + "\n"
+        + source
+        + "\n"
+        + "cd {}\n".format(out_dir)
+        + "giant.quick_refine"
         " input.pdb=%s" % refine_pdb
         + " mtz=%s" % free_mtz
         + " cif=%s" % cif
@@ -446,8 +452,7 @@ def write_quick_refine_csh(
         + " out_prefix='%s'" % out_prefix
         + " split_conformations='False'"
         + args
-        +
-        "\n"
+        + "\n"
         "cd " + os.path.join(out_dir, dir_prefix + "0001") + "\n"
         "giant.split_conformations"
         " input.pdb='%s.pdb'" % out_prefix + " reset_occupancies=False"
@@ -461,9 +466,8 @@ def write_quick_refine_csh(
 
     # File location and name
     csh_file = os.path.join(
-        refinement_script_dir, "{}_{}_{}.csh".format(crystal,
-                                                     refinement_program,
-                                                     refinement_type)
+        refinement_script_dir,
+        "{}_{}_{}.csh".format(crystal, refinement_program, refinement_type),
     )
 
     # Write file
@@ -537,9 +541,7 @@ def prepare_refinement(
         out_dir=out_dir,
     )
 
-    column_labels = get_col_labels(out_dir=out_dir,
-                                   crystal=crystal,
-                                   mtz=mtz)
+    column_labels = get_col_labels(out_dir=out_dir, crystal=crystal, mtz=mtz)
 
     # generate symlinks to refinement files
     input_cif, input_pdb, input_params, input_mtz = make_copies_and_symlinks(
@@ -558,7 +560,7 @@ def prepare_refinement(
             ncyc=ncyc,
             ccp4_path=ccp4_path,
         )
-    elif refinement_program =="buster":
+    elif refinement_program == "buster":
 
         write_buster_csh(
             pdb=input_pdb,
@@ -570,10 +572,10 @@ def prepare_refinement(
             crystal=crystal,
             refinement_type="bound",
             refinement_program="buster",
-            template_name="buster_template.csh"
+            template_name="buster_template.csh",
         )
 
-    elif refinement_program =="phenix":
+    elif refinement_program == "phenix":
 
         write_phenix_csh(
             pdb=input_pdb,
@@ -587,6 +589,7 @@ def prepare_refinement(
             column_labels=column_labels,
             refinement_type="bound",
         )
+
 
 def prepare_superposed_refinement(
     crystal,
@@ -756,9 +759,7 @@ def prepare_superposed_refinement(
     )
 
     # get mtz column labels if there is a choice
-    column_labels = get_col_labels(crystal=crystal,
-                                   mtz=free_mtz,
-                                   out_dir=out_dir)
+    column_labels = get_col_labels(crystal=crystal, mtz=free_mtz, out_dir=out_dir)
 
     # Check for failed refinement due to restraint error
     # Run giant.make_restraints in this case
@@ -805,5 +806,5 @@ def prepare_superposed_refinement(
             crystal=crystal,
             exhaustive_multiple_sampling=Path().exhaustive_multiple_sampling,
             ccp4_path=Path().ccp4,
-            refinement_type="superposed"
+            refinement_type="superposed",
         )

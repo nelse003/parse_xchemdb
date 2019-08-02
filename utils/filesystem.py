@@ -408,25 +408,36 @@ def check_inputs(
     if not os.path.isfile(free_mtz):
         raise FileNotFoundError("{}: mtz Not found".format(free_mtz))
 
-    if refinement_program=="buster" and "PDK2" in crystal:
-        os.system("module load phenix;"
-                  "phenix.ready_set "
-                  "input.pdb_file_name={} "
-                  "input.output_dir={}".format(pdb,
-                                               os.path.join(out_dir, crystal)))
+    if refinement_program == "buster" and "PDK2" in crystal:
+        os.system(
+            "module load phenix;"
+            "phenix.ready_set "
+            "input.pdb_file_name={} "
+            "input.output_dir={}".format(pdb, os.path.join(out_dir, crystal))
+        )
 
-        cif = os.path.join(out_dir, crystal, "{}.ligands.cif".format(
-            os.path.basename(os.path.realpath(pdb).split('.pdb')[0])))
+        cif = os.path.join(
+            out_dir,
+            crystal,
+            "{}.ligands.cif".format(
+                os.path.basename(os.path.realpath(pdb).split(".pdb")[0])
+            ),
+        )
 
     return cif, params, free_mtz
 
+
 def get_col_labels(out_dir, crystal, mtz):
 
-    os.system("cd {};mtzdmp {}>{}".format(os.path.join(out_dir, crystal),
-                                          mtz,
-                                          os.path.join(out_dir, crystal, "mtzdmp.txt")))
-    column_num=0
-    with open(os.path.join(out_dir, crystal, "mtzdmp.txt"),'r') as mtzdmp_file:
+    os.system(
+        "cd {};mtzdmp {}>{}".format(
+            os.path.join(out_dir, crystal),
+            mtz,
+            os.path.join(out_dir, crystal, "mtzdmp.txt"),
+        )
+    )
+    column_num = 0
+    with open(os.path.join(out_dir, crystal, "mtzdmp.txt"), "r") as mtzdmp_file:
         for line_num, line in enumerate(mtzdmp_file.readlines()):
             if "* Column Labels :" in line:
                 column_num = line_num + 2
@@ -442,6 +453,7 @@ def get_col_labels(out_dir, crystal, mtz):
         column_labels = None
 
     return column_labels
+
 
 def get_most_recent_quick_refine(input_dir):
     """

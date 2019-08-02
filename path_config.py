@@ -148,6 +148,6 @@ class Path(luigi.Config):
     )
     exhaustive_multiple_sampling = luigi.Parameter(
         default="/dls/science/groups/i04-1/elliot-dev/"
-                "Work/exhaustive_search/exhaustive/"
-                "exhaustive_multiple_sampling.py"
+        "Work/exhaustive_search/exhaustive/"
+        "exhaustive_multiple_sampling.py"
     )
