@@ -6,7 +6,7 @@ from refinement.prepare_scripts import prepare_refinement
 from tasks.superposed_refinement import CheckRefinementIssues
 from path_config import Path
 
-
+@requires(CheckRefinementIssues)
 class SplitConformations(luigi.Task):
     """
     Task to run giant.split conformations
@@ -33,6 +33,7 @@ class SplitConformations(luigi.Task):
 
     pdb = luigi.Parameter()
     working_dir = luigi.Parameter()
+    refinement_type = luigi.Parameter()
 
     def output(self):
 
@@ -49,10 +50,10 @@ class SplitConformations(luigi.Task):
         return luigi.LocalTarget(out_bound_pdb), luigi.LocalTarget(out_ground_pdb)
 
     def run(self):
-        split_conformations(pdb=self.pdb, working_dir=self.working_dir)
+        split_conformations(pdb=self.pdb,
+                            working_dir=self.working_dir,
+                            refinement_type=self.refinement_type)
 
-
-@requires(CheckRefinementIssues)
 class PrepareRefinement(luigi.Task):
     """
     Task to generate csh for non-superposed refinement
@@ -130,10 +131,22 @@ class PrepareRefinement(luigi.Task):
                 os.makedirs(working_dir)
 
             input_pdb = os.path.join(working_dir, "input.pdb")
+
             if not os.path.exists(input_pdb):
                 os.symlink(self.pdb, input_pdb)
 
-        return SplitConformations(pdb=input_pdb, working_dir=working_dir)
+        return SplitConformations(pdb=input_pdb,
+                                  working_dir=working_dir,
+                                  crystal=self.crystal,
+                                  cif=self.cif,
+                                  out_dir=self.out_dir,
+                                  refinement_script_dir=self.refinement_script_dir,
+                                  extra_params=self.extra_params,
+                                  free_mtz=self.free_mtz,
+                                  output_csv=self.output_csv,
+                                  refinement_type=self.refinement_type,
+                                  refinement_program=self.refinement_program,
+                                  ),
 
     def output(self):
 

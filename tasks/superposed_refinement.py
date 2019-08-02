@@ -53,7 +53,6 @@ class CheckRefinementIssues(luigi.Task):
     extra_params = luigi.Parameter()
     free_mtz = luigi.Parameter()
     output_csv = luigi.Parameter()
-    refinement_script = luigi.Parameter()
     refinement_type = luigi.Parameter()
     refinement_program = luigi.Parameter()
 

@@ -1,7 +1,7 @@
 import os
+from pathlib import Path
 
-
-def split_conformations(pdb, working_dir=None):
+def split_conformations(pdb, working_dir=None, refinement_type="bound"):
     """Run giant.split conformations preserving occupancies
 
     Parameters
@@ -25,6 +25,12 @@ def split_conformations(pdb, working_dir=None):
     )
     os.system(cmd)
 
+    split_output = os.path.join(working_dir,
+        "{}.split.{}-state.pdb".format(os.path.basename(pdb).strip(".pdb"),
+                                                      refinement_type))
+    p=Path(pdb)
+    p.unlink()
+    os.symlink(src=split_output, dst=pdb)
 
 def make_restraints(pdb, ccp4, refinement_program, working_dir=None):
 
