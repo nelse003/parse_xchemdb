@@ -5,7 +5,8 @@ import shutil
 
 from refinement.prepare_scripts import prepare_superposed_refinement
 from luigi.util import requires
-
+from refinement.giant_scripts import make_restraints
+from path_config import Path
 
 class CheckRefinementIssues(luigi.Task):
     """Task to check issues with data supplied for refinement
@@ -92,6 +93,82 @@ class CheckRefinementIssues(luigi.Task):
 
 
 @requires(CheckRefinementIssues)
+class AddDummyWater(luigi.Task):
+
+    """
+    Task to add water atoms to centroid of ligand
+
+    Check whether occupancy group is just ligand.
+    If the occupancy group contains other stuff,
+    return without changing the files to be refined.
+    Else add a water to the centre of ligand location
+    in the ground state.
+
+    Atrributes
+    ------------
+    crystal: luigi.Parameter
+        crystal name
+
+    pdb: luigi.Parameter
+        path to pdb file
+
+    cif: luigi.Parameter
+        path to cif file
+
+    out_dir: luigi.Parameter
+        path to refinement folder
+
+    refinement_script_dir: luigi.Parameter
+        path to refinement script dir to store '<crystal_name>.csh'
+
+    extra_params: luigi.Parameter
+        parameters to add to refinement.
+        i.e. to run longer till convergence
+
+    free_mtz: luigi.Parameter
+        path to free mtz file
+
+    refinement_type: luigi.Parameter
+        superposed, bound or ground
+
+    refinement_program: luigi.Parameter
+        buster, phenix, refmac, exhaustive
+    """
+
+
+    def output(self):
+        dummy_file = os.path.join(self.out_dir, self.crystal, "dummy_file")
+        return luigi.LocalTarget(dummy_file)
+
+    def run(self):
+
+        params, _ = make_restraints(
+            pdb=self.pdb,
+            ccp4=Path().ccp4,
+            refinement_program=self.refinement_program,
+            working_dir=os.path.join(self.out_dir,self.crystal),
+        )
+        refmac_params = os.path.join(self.out_dir,
+                                     self.crystal,
+                                     "multi-state-restraints.refmac.params")
+        count_occ_group_lines = 0
+        with open(refmac_params,'r') as refmac_param_file:
+            for line in refmac_param_file:
+                if line.startswith("occupancy group"):
+                   count_occ_group_lines += 1
+
+            if count_occ_group_lines < 3:
+                exit()
+
+        dummy_file = os.path.join(self.out_dir, self.crystal, "dummy_file")
+
+        with open(dummy_file,'w') as dummy_f:
+            if count_occ_group_lines < 3:
+                dummy_f.write("dummy atoms added")
+            else:
+                dummy_f.write("No dummy atoms added")
+
+@requires(AddDummyWater)
 class PrepareSuperposedRefinement(luigi.Task):
 
     """

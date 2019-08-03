@@ -224,29 +224,29 @@ luigi.build(
         # ###################################################
         # # Generate new Superposed refinements phenix
         # # Calls BatchRefinement
-        # RefinementFolderToCsv(
-        #     refinement_csv=os.path.join(out_dir, "phenix_superposed_log_pdb_mtz.csv"),
-        #     output_csv=os.path.join(out_dir, "phenix_superposed_batch.csv"),
-        #     out_dir=os.path.join(out_dir, "phenix_superposed"),
-        #     extra_params=None,
-        #     tmp_dir=test_paths.tmp_dir,
-        #     log_pdb_mtz_csv=os.path.join(out_dir, "log_pdb_mtz.csv"),
-        #     refinement_program="phenix",
-        #     refinement_type="superposed",
-        # ),
+        RefinementFolderToCsv(
+            refinement_csv=os.path.join(out_dir, "phenix_superposed_log_pdb_mtz.csv"),
+            output_csv=os.path.join(out_dir, "phenix_superposed_batch.csv"),
+            out_dir=os.path.join(out_dir, "phenix_superposed"),
+            extra_params=None,
+            tmp_dir=test_paths.tmp_dir,
+            log_pdb_mtz_csv=os.path.join(out_dir, "log_pdb_mtz.csv"),
+            refinement_program="phenix",
+            refinement_type="superposed",
+        ),
         #####################################################
         # Generate new unconstrained refinements REFMAC5
         # Calls BatchRefinement
-        RefinementFolderToCsv(
-            refinement_csv=test_paths.bound_refinement,
-            output_csv=test_paths.bound_refinement_batch_csv,
-            out_dir=test_paths.bound_refinement_dir,
-            tmp_dir=test_paths.tmp_dir,
-            log_pdb_mtz_csv=test_paths.log_pdb_mtz,
-            ncyc=3,
-            refinement_type="bound",
-            refinement_program="refmac",
-        ),
+        # RefinementFolderToCsv(
+        #     refinement_csv=test_paths.bound_refinement,
+        #     output_csv=test_paths.bound_refinement_batch_csv,
+        #     out_dir=test_paths.bound_refinement_dir,
+        #     tmp_dir=test_paths.tmp_dir,
+        #     log_pdb_mtz_csv=test_paths.log_pdb_mtz,
+        #     ncyc=3,
+        #     refinement_type="bound",
+        #     refinement_program="refmac",
+        # ),
         # PDK2-x0885
         # unable to find a dictionary for residue " TF3"!
         # Works for NUDT5A-x1298
