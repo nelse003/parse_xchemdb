@@ -1,7 +1,7 @@
 import pandas as pd
 import os
 
-out_dir = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/test_sample_all_31_07_19/"
+out_dir = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/test_06_08_19/"
 
 target_df = pd.read_csv("test.csv")
 
@@ -46,4 +46,4 @@ for folder, refine_name in folders.items():
 
 
 
-target_df.to_csv("sample_all_targets_31.csv")
+target_df.to_csv("sample_all_targets_06_08_19.csv")

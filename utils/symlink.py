@@ -16,9 +16,12 @@ def make_symlink(file, link_dir, link_name):
     """
     if file is not None:
         link = os.path.join(link_dir, link_name)
+        print("A {} {}".format(file, link))
         if not os.path.exists(link):
+            print("B {} {}".format(file, link))
             os.symlink(file, link)
     else:
+        print("C {} {}".format(file, link))
         link = None
 
     return link
@@ -61,11 +64,14 @@ def make_copies_and_symlinks(input_dir, cif, pdb, params, free_mtz):
 
     if params is not None:
         if os.path.isfile(params):
-            input_params = shutil.copyfile(
-                src=params, dst=os.path.join(input_dir, "input.params")
-            )
+            if not os.path.exists(os.path.join(input_dir, "input.params")):
+                input_params = shutil.copyfile(
+                    src=params, dst=os.path.join(input_dir, "input.params")
+                )
+            else:
+                input_params = os.path.join(input_dir, "input.params")
     else:
-        input_params = None
+        input_params = os.path.join(input_dir, "input.params")
 
     input_mtz = make_symlink(file=free_mtz, link_dir=input_dir, link_name="input.mtz")
 

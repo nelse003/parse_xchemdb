@@ -1,8 +1,13 @@
+import os
 import argparse
 from iotbx.pdb import hierarchy
 from scitbx.array_family import flex
 
 if __name__ =="__main__":
+
+    """
+    Copy a water atom into the centroid of ligand.
+    """
 
     # parse path top ground and bound pdb
     parser = argparse.ArgumentParser('copy water atom to ligand centroid')
@@ -19,9 +24,11 @@ if __name__ =="__main__":
     lig_hier = bound_pdb_in.hierarchy.select(lig_sel)
     lig_centroid =lig_hier.atoms().extract_xyz().mean()
 
-
+    # read in ground state pdb
     ground_pdb_in = hierarchy.input(file_name=param.ground_pdb)
     ground_sel_cache = ground_pdb_in.hierarchy.atom_selection_cache()
+
+    # get water selection
     wat_sel = bound_sel_cache.selection("water")
     wat_hier = bound_pdb_in.hierarchy.select(wat_sel)
 
@@ -73,6 +80,9 @@ if __name__ =="__main__":
         chain.append_residue_group(rg)
         break
 
+
     with open(param.output_pdb, 'w') as f:
-        f.write(ground_pdb_in.hierarchy.as_pdb_string())
+        f.write(ground_pdb_in.hierarchy.as_pdb_string(
+            crystal_symmetry=
+            bound_pdb_in.crystal_symmetry()))
 

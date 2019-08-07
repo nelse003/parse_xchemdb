@@ -132,8 +132,11 @@ class PrepareRefinement(luigi.Task):
 
             input_pdb = os.path.join(working_dir, "input.pdb")
 
-            if not os.path.exists(input_pdb):
-                os.symlink(self.pdb, input_pdb)
+            if not os.path.isfile(input_pdb):
+                try:
+                    os.symlink(src=self.pdb, dst=input_pdb)
+                except FileExistsError:
+                    pass
 
         return SplitConformations(pdb=input_pdb,
                                   working_dir=working_dir,

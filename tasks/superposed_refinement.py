@@ -2,6 +2,7 @@ import luigi
 import os
 import glob
 import shutil
+from utils.symlink import make_symlink
 
 from refinement.prepare_scripts import prepare_superposed_refinement
 from luigi.util import requires
@@ -62,31 +63,79 @@ class CheckRefinementIssues(luigi.Task):
 
     def run(self):
 
-        os.system(
-            "module load phenix;"
-            "mkdir {out_dir};"
-            "cd {out_dir};"
-            "mkdir ./ready_set;"
-            "cd ready_set;"
-            "phenix.ready_set {pdb}".format(
-                out_dir=os.path.join(self.out_dir, self.crystal), pdb=self.pdb
-            )
-        )
+        if not os.path.exists(os.path.join(self.out_dir, self.crystal)):
+            os.makedirs(os.path.join(self.out_dir, self.crystal))
 
-        num_cif = len(
-            glob.glob1(os.path.join(self.out_dir, self.crystal, "ready_set"), "*.cif")
-        )
-        print(num_cif)
+        make_symlink(file=self.cif,
+                     link_dir=os.path.join(self.out_dir, self.crystal),
+                     link_name="input.cif")
 
-        if num_cif > 2:
-            new_cif = os.path.join(
-                self.out_dir,
-                self.crystal,
-                "ready_set",
-                (os.path.basename(self.pdb)).replace(".pdb", ".ligands.cif"),
+        output = os.path.join(self.out_dir, self.crystal, "buster_cif_check")
+
+        os.system("{script} {pdb} > {output}".format(script=os.path.join(Path().script_dir,
+                                                            "refinement",
+                                                            "check_if_buster_needs_cif.sh"),
+                                                    pdb=self.pdb,
+                                                    output=output))
+
+        lig_res_names = []
+
+        with open(output, 'r') as f:
+            for line in f.readlines():
+                if  "will need dictionary for residue" in line and "LIG" not in line:
+                    lig_res_names.append(line.split()[-1])
+
+        print(lig_res_names)
+
+        out_cif = os.path.join(self.out_dir,
+                               self.crystal,
+                               "input.cif")
+
+        tmp_cif = os.path.join(self.out_dir,
+                               self.crystal,
+                               "tmp.cif")
+
+        if len(lig_res_names) != 0:
+            os.system(
+                "module load phenix;"
+                "mkdir {out_dir};"
+                "cd {out_dir};"
+                "mkdir ./ready_set;"
+                "cd ready_set;"
+                "phenix.ready_set {pdb}".format(
+                    out_dir=os.path.join(self.out_dir, self.crystal), pdb=self.pdb
+                )
             )
-            out_cif = os.path.join(self.out_dir, self.crystal, "input.cif")
-            shutil.copy(new_cif, out_cif, follow_symlinks=False)
+
+            elbow_join_command = "module load phenix;elbow.join_cif_files {}".format(out_cif)
+
+            for lig_name in lig_res_names:
+                ready_set_dir=os.path.join(self.out_dir, self.crystal, "ready_set")
+                lig_file = os.path.join(ready_set_dir,lig_name + ".cif")
+                if os.path.exists(lig_file):
+                    elbow_join_command += " {} ".format(lig_file)
+
+
+            elbow_join_command += " {}".format(tmp_cif)
+            os.system(elbow_join_command)
+            os.remove(out_cif)
+            shutil.copy(src=tmp_cif, dst=out_cif, follow_symlinks=False)
+
+        #
+        # num_cif = len(
+        #     glob.glob1(os.path.join(self.out_dir, self.crystal, "ready_set"), "*.cif")
+        # )
+        # print(num_cif)
+        #
+        # if num_cif > 2:
+        #     new_cif = os.path.join(
+        #         self.out_dir,
+        #         self.crystal,
+        #         "ready_set",
+        #         (os.path.basename(self.pdb)).replace(".pdb", ".ligands.cif"),
+        #     )
+        #     out_cif = os.path.join(self.out_dir, self.crystal, "input.cif")
+        #     shutil.copy(new_cif, out_cif, follow_symlinks=False)
 
         with open(os.path.join(self.out_dir, self.crystal, "check_file"), "w") as f:
             f.write("{}\n{}\n{}".format(self.crystal, type(self.crystal), self.out_dir))
@@ -137,13 +186,23 @@ class AddDummyWater(luigi.Task):
 
 
     def output(self):
-        dummy_file = os.path.join(self.out_dir, self.crystal, "dummy_file")
+        dummy_file = os.path.join(self.out_dir,
+                                  self.crystal,
+                                  "dummy_file")
+
         return luigi.LocalTarget(dummy_file)
 
     def run(self):
 
+        pdb = os.path.join(self.out_dir,
+                           self.crystal,
+                           "input.pdb")
+
+        os.symlink(src=self.pdb,
+                   dst=pdb)
+
         params, _ = make_restraints(
-            pdb=self.pdb,
+            pdb=pdb,
             ccp4=Path().ccp4,
             refinement_program=self.refinement_program,
             working_dir=os.path.join(self.out_dir,self.crystal),
@@ -151,19 +210,103 @@ class AddDummyWater(luigi.Task):
         refmac_params = os.path.join(self.out_dir,
                                      self.crystal,
                                      "multi-state-restraints.refmac.params")
-        count_occ_group_lines = 0
-        with open(refmac_params,'r') as refmac_param_file:
-            for line in refmac_param_file:
-                if line.startswith("occupancy group"):
-                   count_occ_group_lines += 1
 
-            if count_occ_group_lines < 3:
-                exit()
+        # If occupancy group contains only ligand, then
+        # count_occ_group_lines = 3
+        count_occ_group_lines = 0
+        if os.path.exists(refmac_params):
+            with open(refmac_params,'r') as refmac_param_file:
+                for line in refmac_param_file:
+                    if line.startswith("occupancy group"):
+                       count_occ_group_lines += 1
+
+        # If occupancy group contains only ligand
+        if count_occ_group_lines <= 3:
+
+            # Split the input pdb into bound and ground state
+            os.system("cd {};giant.split_conformations {}".format(
+                os.path.join(self.out_dir,self.crystal),
+                pdb))
+
+            ground_pdb = pdb.replace('.pdb','.split.ground-state.pdb')
+            bound_pdb = pdb.replace('.pdb','.split.bound-state.pdb')
+
+            # Add water atom to input.split.ground-state.pdb
+            os.system("ccp4-python "
+                      "/dls/science/groups/i04-1/elliot-dev/"
+                      "parse_xchemdb/ccp4/copy_water_centroid.py "
+                      "--bound_pdb {} "
+                      "--ground_pdb {} "
+                      "--output_pdb {}".format(bound_pdb, ground_pdb, ground_pdb))
+
+            os.system("cd {};giant.merge_conformations "
+                      "major={} minor={} output.pdb={} "
+                      "options.minor_occupancy=0.9".format(
+                os.path.join(self.out_dir,self.crystal),
+                ground_pdb,
+                bound_pdb,
+                pdb))
+
+        # Remove restraints from non-water case
+        if os.path.exists(os.path.join(self.out_dir,
+                               self.crystal,
+                            "multi-state-restraints.phenix.params")):
+            os.remove(os.path.join(self.out_dir,
+                                   self.crystal,
+                                "multi-state-restraints.phenix.params"))
+
+        if os.path.exists(os.path.join(self.out_dir,
+                               self.crystal,
+                            "multi-state-restraints.refmac.params")):
+            os.remove(os.path.join(self.out_dir,
+                                   self.crystal,
+                                "multi-state-restraints.refmac.params"))
+
+        if os.path.exists(os.path.join(self.out_dir,
+                               self.crystal,
+                            "params.gelly")):
+
+            os.remove(os.path.join(self.out_dir,
+                                   self.crystal,
+                                "params.gelly"))
+
+        # Make restraints now water is added
+        params, _ = make_restraints(
+            pdb=pdb,
+            ccp4=Path().ccp4,
+            refinement_program=self.refinement_program,
+            working_dir=os.path.join(self.out_dir,self.crystal),
+        )
+
+        # Link to new parameters
+        if "phenix" in self.refinement_program:
+            os.symlink(dst=os.path.join(self.out_dir,
+                                   self.crystal,
+                                        "input.params"),
+                       src=os.path.join(self.out_dir,
+                                   self.crystal,
+                                "multi-state-restraints.phenix.params"))
+
+        elif "refmac" in self.refinement_program:
+            os.symlink(dst=os.path.join(self.out_dir,
+                                   self.crystal,
+                                    "input.params"),
+                       src=os.path.join(self.out_dir,
+                                   self.crystal,
+                                "multi-state-restraints.refmac.params"))
+
+        elif "buster" in self.refinement_program:
+            os.symlink(dst=os.path.join(self.out_dir,
+                                   self.crystal,
+                                    "input.params"),
+                       src=os.path.join(self.out_dir,
+                                   self.crystal,
+                                "multi-state-restraints.refmac.params"))
 
         dummy_file = os.path.join(self.out_dir, self.crystal, "dummy_file")
 
         with open(dummy_file,'w') as dummy_f:
-            if count_occ_group_lines < 3:
+            if count_occ_group_lines <= 3:
                 dummy_f.write("dummy atoms added")
             else:
                 dummy_f.write("No dummy atoms added")
