@@ -2,7 +2,7 @@ import os
 import shutil
 
 
-def make_symlink(file, link_dir, link_name):
+def make_symlink(file, link_dir, link_name, overwrite=False):
     """ Generate symlink
 
     Parameters
@@ -16,12 +16,12 @@ def make_symlink(file, link_dir, link_name):
     """
     if file is not None:
         link = os.path.join(link_dir, link_name)
-        print("A {} {}".format(file, link))
-        if not os.path.exists(link):
-            print("B {} {}".format(file, link))
-            os.symlink(file, link)
+        if os.path.exists(file):
+            if not os.path.exists(link):
+                os.symlink(file, link)
+            elif overwrite:
+                os.symlink(file, link)
     else:
-        print("C {} {}".format(file, link))
         link = None
 
     return link

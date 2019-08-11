@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+
 def split_conformations(pdb, working_dir=None, refinement_type="bound"):
     """Run giant.split conformations changing occupancies
 
@@ -17,12 +18,14 @@ def split_conformations(pdb, working_dir=None, refinement_type="bound"):
     if working_dir is not None:
         os.chdir(working_dir)
 
-    bound_state_pdb = os.path.join(working_dir,
-        "{}.split.{}-state.pdb".format(os.path.basename(pdb).strip(".pdb"),
-                                       "bound"))
-    ground_state_pdb = os.path.join(working_dir,
-        "{}.split.{}-state.pdb".format(os.path.basename(pdb).strip(".pdb"),
-                                       "ground"))
+    bound_state_pdb = os.path.join(
+        working_dir,
+        "{}.split.{}-state.pdb".format(os.path.basename(pdb).strip(".pdb"), "bound"),
+    )
+    ground_state_pdb = os.path.join(
+        working_dir,
+        "{}.split.{}-state.pdb".format(os.path.basename(pdb).strip(".pdb"), "ground"),
+    )
     # Split conformations
     cmd = (
         "giant.split_conformations"
@@ -48,6 +51,13 @@ def split_conformations(pdb, working_dir=None, refinement_type="bound"):
     if os.path.exists(bound_state_pdb):
         os.remove(bound_state_pdb)
 
+    p = Path(pdb)
+    p.unlink()
+    os.symlink(
+        src=os.path.join(os.path.dirname(ground_state_pdb), "multi-state-model.pdb"),
+        dst=pdb,
+    )
+
     # Split merged conformations
     cmd = (
         "giant.split_conformations"
@@ -57,13 +67,17 @@ def split_conformations(pdb, working_dir=None, refinement_type="bound"):
     )
     os.system(cmd)
 
-    split_output = os.path.join(working_dir,
-        "{}.split.{}-state.pdb".format(os.path.basename(pdb).strip(".pdb"),
-                                                      refinement_type))
+    split_output = os.path.join(
+        working_dir,
+        "{}.split.{}-state.pdb".format(
+            os.path.basename(pdb).strip(".pdb"), refinement_type
+        ),
+    )
 
-    p=Path(pdb)
+    p = Path(pdb)
     p.unlink()
     os.symlink(src=split_output, dst=pdb)
+
 
 def make_restraints(pdb, ccp4, refinement_program, working_dir=None):
 
@@ -98,7 +112,6 @@ def make_restraints(pdb, ccp4, refinement_program, working_dir=None):
 
     if input_params is not None:
         if not os.path.exists(input_params):
-            os.system("source {};"
-                      "giant.make_restraints {}".format(ccp4, pdb))
+            os.system("source {};" "giant.make_restraints {}".format(ccp4, pdb))
 
     return input_params, pdb

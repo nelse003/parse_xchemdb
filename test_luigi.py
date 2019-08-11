@@ -14,7 +14,9 @@ from tasks.database import ParseXchemdbToCsv
 
 from path_config import Path
 
-out_dir = "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/test_06_08_19/"
+out_dir = (
+    "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/all_10_08_19/"
+)
 
 # Paths for analysing original refinements
 test_paths = Path()
@@ -77,9 +79,11 @@ test_paths.bound_refinement_dir = os.path.join(out_dir, "bound_refinement")
 test_paths.bound_refinement_batch_csv = os.path.join(out_dir, "bound_refmac.csv")
 test_paths.bound_refinement = os.path.join(out_dir, "bound_refinement_log_pdb_mtz.csv")
 
-#test = "sample_all_targets"
-# test = 1
-test = "ACVR1A-x1242"
+#test = None
+# test = "FIH-x0057"
+#test = 1
+# test = "ACVR1A-x1242"
+# test = "TBXTA-x0992"
 
 luigi.build(
     [
@@ -103,7 +107,7 @@ luigi.build(
             refinement_summary=test_paths.refinement_summary,
             refinement_summary_plot=test_paths.refinement_summary_plot,
             script_path=test_paths.script_dir,
-            test=test,
+            #test=test,
         ),
         # These will also call/test:
         #
@@ -150,7 +154,7 @@ luigi.build(
         #     plot_path=test_paths.bound_occ_histogram,
         #     script_path=test_paths.script_dir,
         #     test=test,
-        #),
+        # ),
     ],
     local_scheduler=False,
     workers=100,
@@ -216,7 +220,7 @@ luigi.build(
             output_csv=test_paths.convergence_refinement_failures,
             out_dir=test_paths.refinement_dir,
             tmp_dir=test_paths.tmp_dir,
-            extra_params="NCYC 3",
+            extra_params="NCYC 50",
             log_pdb_mtz_csv=test_paths.log_pdb_mtz,
             refinement_program="refmac",
             refinement_type="superposed",
@@ -228,7 +232,7 @@ luigi.build(
             refinement_csv=os.path.join(out_dir, "phenix_superposed_log_pdb_mtz.csv"),
             output_csv=os.path.join(out_dir, "phenix_superposed_batch.csv"),
             out_dir=os.path.join(out_dir, "phenix_superposed"),
-            extra_params=None,
+            extra_params="refinement.main.number_of_macro_cycles=30",
             tmp_dir=test_paths.tmp_dir,
             log_pdb_mtz_csv=os.path.join(out_dir, "log_pdb_mtz.csv"),
             refinement_program="phenix",
@@ -243,7 +247,7 @@ luigi.build(
             out_dir=test_paths.bound_refinement_dir,
             tmp_dir=test_paths.tmp_dir,
             log_pdb_mtz_csv=test_paths.log_pdb_mtz,
-            ncyc=3,
+            ncyc=50,
             refinement_type="bound",
             refinement_program="refmac",
         ),
@@ -268,7 +272,7 @@ luigi.build(
             output_csv=os.path.join(out_dir, "phenix_batch.csv"),
             out_dir=os.path.join(out_dir, "phenix"),
             extra_params="",
-            ncyc=2,
+            ncyc=30,
             tmp_dir=test_paths.tmp_dir,
             log_pdb_mtz_csv=os.path.join(out_dir, "log_pdb_mtz.csv"),
             refinement_program="phenix",
@@ -288,7 +292,6 @@ luigi.build(
         # Generate new unconstrained refinements buster
         # PDK2-x0885
         # unable to find a dictionary for residue " TF3"!
-        #
         # Works for NUDT5A-x1298
         RefinementFolderToCsv(
             refinement_csv=os.path.join(out_dir, "buster_log_pdb_mtz.csv"),

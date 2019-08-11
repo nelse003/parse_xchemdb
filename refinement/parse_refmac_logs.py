@@ -145,10 +145,22 @@ def read_occ_group_from_refmac_log(log_path):
                         if "complete" in line:
                             complete_groups.append(re.findall(r"\d+", line))
                         else:
-                            chain = line.split("chain")[1].split()[0]
-                            resid = line.split("resi")[1].split()[0]
-                            alte = line.split("alte")[1].split()[0]
-                            group = line.split("id")[1].split()[0]
+                            try:
+                                chain = line.split("chain")[1].split()[0]
+                            except IndexError:
+                                chain = None
+                            try:
+                                resid = line.split("resi")[1].split()[0]
+                            except IndexError:
+                                resid = None
+                            try:
+                                alte = line.split("alte")[1].split()[0]
+                            except IndexError:
+                                alte = None
+                            try:
+                                group = line.split("id")[1].split()[0]
+                            except IndexError:
+                                group = None
                             occ_group = (chain, resid, alte, group)
                             lig_occ_groups.append(occ_group)
 

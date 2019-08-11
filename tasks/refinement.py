@@ -6,6 +6,7 @@ from refinement.prepare_scripts import prepare_refinement
 from tasks.superposed_refinement import CheckRefinementIssues
 from path_config import Path
 
+
 @requires(CheckRefinementIssues)
 class SplitConformations(luigi.Task):
     """
@@ -50,9 +51,12 @@ class SplitConformations(luigi.Task):
         return luigi.LocalTarget(out_bound_pdb), luigi.LocalTarget(out_ground_pdb)
 
     def run(self):
-        split_conformations(pdb=self.pdb,
-                            working_dir=self.working_dir,
-                            refinement_type=self.refinement_type)
+        split_conformations(
+            pdb=self.pdb,
+            working_dir=self.working_dir,
+            refinement_type=self.refinement_type,
+        )
+
 
 class PrepareRefinement(luigi.Task):
     """
@@ -138,18 +142,21 @@ class PrepareRefinement(luigi.Task):
                 except FileExistsError:
                     pass
 
-        return SplitConformations(pdb=input_pdb,
-                                  working_dir=working_dir,
-                                  crystal=self.crystal,
-                                  cif=self.cif,
-                                  out_dir=self.out_dir,
-                                  refinement_script_dir=self.refinement_script_dir,
-                                  extra_params=self.extra_params,
-                                  free_mtz=self.free_mtz,
-                                  output_csv=self.output_csv,
-                                  refinement_type=self.refinement_type,
-                                  refinement_program=self.refinement_program,
-                                  ),
+        return (
+            SplitConformations(
+                pdb=input_pdb,
+                working_dir=working_dir,
+                crystal=self.crystal,
+                cif=self.cif,
+                out_dir=self.out_dir,
+                refinement_script_dir=self.refinement_script_dir,
+                extra_params=self.extra_params,
+                free_mtz=self.free_mtz,
+                output_csv=self.output_csv,
+                refinement_type=self.refinement_type,
+                refinement_program=self.refinement_program,
+            ),
+        )
 
     def output(self):
 

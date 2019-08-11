@@ -376,7 +376,9 @@ def process_refined_crystals(out_csv, test=None):
     pdb_log_mtz_df = drop_pdb_with_missing_logs(pdb_no_dimple_mtz_df)
 
     # Use a test flag to create a short table with every target for testing purposes
-    if test == "sample_all_targets":
+    if test is None:
+        pass
+    elif test == "sample_all_targets":
         targets = pdb_log_mtz_df["target_name"].unique()
         row_list = []
         for target in targets:
@@ -384,10 +386,9 @@ def process_refined_crystals(out_csv, test=None):
                 pdb_log_mtz_df[pdb_log_mtz_df.target_name == target].iloc[0]
             )
         pdb_log_mtz_df = pd.concat(row_list, axis=1).T
-    elif test == "ACVR1A-x1242":
-        pdb_log_mtz_df = pdb_log_mtz_df.loc[
-            pdb_log_mtz_df["crystal_name"] == "ACVR1A-x1242"
-        ]
+    elif isinstance(test, str):
+        if "x" in test:
+            pdb_log_mtz_df = pdb_log_mtz_df.loc[pdb_log_mtz_df["crystal_name"] == test]
     # For number of test rows
     elif test is not None:
         pdb_log_mtz_df = pdb_log_mtz_df.tail(n=test)

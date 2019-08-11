@@ -450,7 +450,7 @@ def write_quick_refine_csh(
         + " params=%s" % refinement_params
         + " dir_prefix='%s'" % dir_prefix
         + " out_prefix='%s'" % out_prefix
-        + " split_conformations='False'"
+        + " split_conformations='False' "
         + args
         + "\n"
         "cd " + os.path.join(out_dir, dir_prefix + "0001") + "\n"
@@ -763,20 +763,22 @@ def prepare_superposed_refinement(
 
     # Check for failed refinement due to restraint error
     # Run giant.make_restraints in this case
-    if check_restraints(input_dir):
-        params, _ = make_restraints(
-            pdb=pdb,
-            ccp4=Path().ccp4,
-            refinement_program=refinement_program,
-            working_dir=input_dir,
-        )
+    if refinement_program != "exhaustive":
+        if check_restraints(input_dir):
+            params, _ = make_restraints(
+                pdb=pdb,
+                ccp4=Path().ccp4,
+                refinement_program=refinement_program,
+                working_dir=input_dir,
+            )
 
     # Check that refinement is failing due to a cif file missing
-    if check_refinement_for_cif_error(input_dir):
-        smiles = smiles_from_crystal(crystal)
-        cif_backup = os.path.join(input_dir, "backup.cif")
-        os.rename(input_cif, cif_backup)
-        smiles_to_cif_acedrg(smiles, input_cif)
+    if refinement_program != "exhaustive":
+        if check_refinement_for_cif_error(input_dir):
+            smiles = smiles_from_crystal(crystal)
+            cif_backup = os.path.join(input_dir, "backup.cif")
+            os.rename(input_cif, cif_backup)
+            smiles_to_cif_acedrg(smiles, input_cif)
 
     if refinement_program != "exhaustive":
         update_refinement_params(params=input_params, extra_params=extra_params)
