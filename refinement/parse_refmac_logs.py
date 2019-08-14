@@ -35,7 +35,7 @@ def match_occ(occ_group, complete_groups):
             return complete_group
 
 
-def get_occ_from_log(log_pdb_mtz_csv, log_occ_csv):
+def get_occ_from_log( log_pdb_mtz_csv, log_occ_csv):
     """
     For all pdbs in supplied csv read refmac log to get occupancies
 

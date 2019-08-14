@@ -347,6 +347,7 @@ def write_buster_csh(
         "{}_{}_{}.csh".format(crystal, refinement_program, refinement_type),
     )
 
+
     with open(csh_file, "w") as csh_f:
         csh_f.write(cmd)
 

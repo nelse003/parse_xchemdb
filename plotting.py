@@ -92,7 +92,7 @@ def refinement_summary_plot(refinement_csv, out_file_path):
 
     summary.set_index("comment", inplace=True)
 
-    title = "Xchem databse hit refinement: {} crystals".format(summary.total.sum())
+    title = "Xchem database hit refinement: {} crystals".format(summary.total.sum())
     ax = summary.plot.bar(y="total", color=summary.color, title=title, legend=False)
     ax.set_ylabel("Number of crystals [complete groups]")
     fig = ax.get_figure()
