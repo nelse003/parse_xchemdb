@@ -96,7 +96,7 @@ def update_from_pdb(pdb_df):
             raise ValueError(
                 "Multiple residues for "
                 "chain {} resid {} altloc {} "
-                "of pdb: {}".format(chain, resid, alte, pdb)
+                "of pdb: {}".format(row.chain, row.resid, row.alte, pdb)
             )
 
     # Append rows
@@ -208,6 +208,11 @@ def get_resname_for_log_occ(log_occ_csv, log_occ_resname_csv):
             # Get resnames, mean B factor and B factor standard deviation for
             # each residue involved in complete groups
             pdb_df = update_from_pdb(pdb_df)
+        # Dummay atoms might cause duplicate atoms whihc triggers issue with reading occupancy.
+        # Need to measure number of issues
+        except ValueError:
+            print("Likeley issue with dummy atoms")
+            continue
         except AssertionError:
             continue
         # Track progress

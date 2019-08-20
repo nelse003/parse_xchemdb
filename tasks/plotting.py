@@ -1,11 +1,12 @@
 import luigi
 from luigi.util import requires
 
+
 from tasks.update_csv import StateOccupancyToCsv
 from tasks.update_csv import SummaryRefinement
 
 from plotting import refinement_summary_plot
-from plotting import occupancy_histogram
+from plotting import occupancy_histogram_from_state_occ
 from plotting import occupancy_vs_convergence
 from plotting import convergence_ratio_histogram
 
@@ -205,7 +206,7 @@ class PlotGroundOccHistogram(PlotOccCorrect):
     """
 
     def run(self):
-        occupancy_histogram(
+        occupancy_histogram_from_state_occ(
             occ_correct_csv=self.occ_correct_csv,
             plot_path=self.plot_path,
             state="ground",
@@ -257,7 +258,7 @@ class PlotBoundOccHistogram(PlotOccCorrect):
     """
 
     def run(self):
-        occupancy_histogram(
+        occupancy_histogram_from_state_occ(
             occ_correct_csv=self.occ_correct_csv,
             plot_path=self.plot_path,
             state="bound",

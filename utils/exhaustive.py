@@ -3,7 +3,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+from plotting import plot_occ_hist
 
 ## TODO Remove duplication of function
 def u_iso_to_b_fac(u_iso):
@@ -81,67 +82,10 @@ def plot_scatter_exhaustive_minima(out_csv, out_file):
     plt.scatter(occ, b_factor)
     plt.savefig(out_file)
 
+
 def plot_hist_exhaustive_minima(out_csv, out_file):
 
     df = pd.read_csv(out_csv)
     occ = df.occupancy
-    b = df.b_factor
-    plt.xlim(0,1)
-    plt.xlabel("Occupancy")
-    plt.ylabel("Freqeuncy")
-
-    min_b = 10
-    max_b = 101
-    delta = 10
-    tmp_min_b = min_b
-    tmp_max_b = min_b + delta
-
-    occ_list = []
-
-    cmap = matplotlib.cm.get_cmap('Spectral')
-
-    colours = [cmap(0.0),
-               cmap(0.1),
-               cmap(0.2),
-               cmap(0.3),
-               cmap(0.4),
-               cmap(0.5),
-               cmap(0.6),
-               cmap(0.7),
-               cmap(0.8)]
-
-    while tmp_max_b < max_b:
-        df_b = df.loc[(df['b_factor'] >= tmp_min_b) & (df['b_factor'] < tmp_max_b)]
-        tmp_max_b += delta
-        tmp_min_b += delta
-        occ_list.append(df_b.occupancy)
-
-    fig, ax = plt.subplots()
-
-    norm = matplotlib.colors.Normalize(vmin=np.min(b),
-                                       vmax=np.max(b))
-
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes("right", size="5%", pad=0.05)
-
-    cb1 = matplotlib.colorbar.ColorbarBase(cax,
-                                    cmap=cmap,
-                                    norm=norm,
-                                    orientation='vertical')
-
-    cb1.ax.set_ylabel("B factor", Rotation = 270, fontsize=12)
-
-    ax.set_xlim(0,1)
-
-    ax.set_xlabel("Occupancy", fontsize=12)
-    ax.set_ylabel("Frequency", fontsize=12)
-    ax.hist(occ_list,
-             bins=25,
-             color=colours,
-             stacked=True,
-             )
-
-
-
-    plt.savefig("{}_{}.png".format(out_file,len(occ)),
-                dpi=300)
+    b_factor = df.b_factor
+    plot_occ_hist(occ=occ, b_factor=b_factor, out_file=out_file)

@@ -6,7 +6,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 def plot_histogram_collection_bin(
     data,
@@ -101,10 +101,10 @@ def refinement_summary_plot(refinement_csv, out_file_path):
     fig.savefig(out_file_path, dpi=300)
 
 
-def occupancy_histogram(occ_correct_csv, plot_path, state):
+def occupancy_histogram_from_state_occ(occ_correct_csv, plot_path, state):
 
     """
-    Plot ground state occupancy histogram
+    Plot occupancy histogram
 
     Parameters
     ----------
@@ -125,16 +125,14 @@ def occupancy_histogram(occ_correct_csv, plot_path, state):
 
     # Select out residues corresponding to the state: "ground" or "bound"
     state_df = get_state_df(occ_correct_df=occ_correct_df, state=state)
+    occ = state_df["state occupancy"]
 
-    fig, ax = plt.subplots()
-    ax.grid(False)
-    plt.xlabel("Occupancy")
-    plt.ylabel("Frequncy")
-    plt.title("{} state: {} datasets".format(len(state_df), state.capitalize()))
+    print(occ_correct_df.columns.values)
+    print(state_df.columns.values)
 
-    plt.hist(state_df["state occupancy"], bins=100)
-    plt.savefig(plot_path, dpi=300)
-    plt.close()
+    b_factor = state_df["B_mean"]
+
+    plot_occ_hist(occ=occ, b_factor=b_factor, out_file=plot_path)
 
 
 def get_state_df(occ_correct_df, state):
@@ -157,8 +155,8 @@ def get_state_df(occ_correct_df, state):
     state_df = occ_correct_df.loc[(occ_correct_df["state"] == state)]
 
     # Drop to unique occuopancies for each pdb
-    state_df = state_df[["state occupancy", "pdb_latest"]]
-    state_df = state_df.drop_duplicates()
+    state_df = state_df[["state occupancy", "pdb_latest","B_mean"]]
+    state_df = state_df.drop_duplicates(subset=["state occupancy", "pdb_latest"])
 
     return state_df
 
@@ -218,3 +216,81 @@ def convergence_ratio_histogram(occ_state_comment_csv, plot_path):
         title="Convergence of refinement: " "{} datasets".format(len(ground_df)),
         xlabel="Convergence ratio between " "last two point |x(n)/x(n-1)-1|",
     )
+
+
+def plot_occ_hist(occ, b_factor,out_file):
+
+    # get dataframe object and rename if from a state-df
+    df = pd.concat([occ, b_factor], axis=1)
+    df = df.rename(columns={"state occupancy":"occupancy",
+                            "B_mean":"b_factor"})
+
+    print(df)
+
+    plt.xlim(0,1)
+    plt.xlabel("Occupancy")
+    plt.ylabel("Freqeuncy")
+
+    # TODO Change to maximum vlaue, and change colour split
+    min_b = 0
+    max_b = 120
+    delta = 10
+    tmp_min_b = min_b
+    tmp_max_b = min_b + delta
+
+    occ_list = []
+
+    cmap = matplotlib.cm.get_cmap('Spectral')
+
+    colours = [cmap(0.0),
+               cmap(0.1),
+               cmap(0.2),
+               cmap(0.3),
+               cmap(0.4),
+               cmap(0.5),
+               cmap(0.6),
+               cmap(0.7),
+               cmap(0.8),
+               cmap(0.9),
+               cmap(0.95),
+               cmap(1.0)]
+
+    # Set up bins of occupancy from min_b to max_b in steps of delta
+    while tmp_max_b < max_b:
+        df_b = df.loc[(df['b_factor'] >= tmp_min_b) & (df['b_factor'] < tmp_max_b)]
+        tmp_max_b += delta
+        tmp_min_b += delta
+        occ_list.append(df_b.occupancy)
+    else:
+        df_b = df.loc[(df['b_factor'] >= max_b)]
+        occ_list.append(df_b.occupancy)
+
+    fig, ax = plt.subplots()
+
+    norm = matplotlib.colors.Normalize(vmin=0,
+                                       vmax=120)
+
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.05)
+
+    cb1 = matplotlib.colorbar.ColorbarBase(cax,
+                                    cmap=cmap,
+                                    norm=norm,
+                                    orientation='vertical')
+
+    cb1.ax.set_yticklabels(['0', '20', '40', '60', '80', '100', "$\geq 120$"])
+    cb1.ax.set_ylabel("B factor", Rotation = 270, fontsize=12)
+
+    ax.set_xlim(0,1)
+
+    ax.set_xlabel("Occupancy", fontsize=12)
+    ax.set_ylabel("Frequency", fontsize=12)
+
+    ax.hist(occ_list,
+             bins=25,
+             color=colours,
+             stacked=True,
+             )
+
+    plt.savefig("{}_{}.png".format(out_file,len(occ)),
+                dpi=300)

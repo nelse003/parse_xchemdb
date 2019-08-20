@@ -230,11 +230,11 @@ luigi.build(
         # ),
 
         PlotBoundOccHistogram(
-            #occ_state_comment_csv=test_paths.occ_state_comment_csv,
-            #log_occ_resname=test_paths.log_occ_resname,
-            #log_occ_csv=test_paths.log_occ_csv,
-            #log_pdb_mtz_csv=test_paths.log_pdb_mtz,
-            #occ_correct_csv=test_paths.occ_correct_csv,
+            occ_state_comment_csv = os.path.join(out_dir, "refmac_superposed_occ_state_comment.csv"),
+            log_occ_resname=os.path.join(out_dir, "refmac_superposed_log_resname.csv"),
+            log_occ_csv=os.path.join(out_dir, "refmac_superposed_log_occ.csv"),
+            log_pdb_mtz_csv=test_paths.convergence_refinement,
+            occ_correct_csv=os.path.join(out_dir, "refmac_superposed_occ_correct.csv"),
             plot_path=os.path.join(out_dir, "refmac_superposed_occ_bound_histogram.png"),
             script_path=test_paths.script_dir,
         )
