@@ -289,6 +289,15 @@ luigi.build(
         #     refinement_program="buster",
         #     refinement_type="superposed",
         # ),
+
+        PlotBoundOccHistogram(
+            log_pdb_mtz_csv=os.path.join(out_dir, "buster_superposed_log_pdb_mtz.csv"),
+            occ_correct_csv=os.path.join(out_dir, "buster_superposed_occ_correct.csv"),
+            plot_path=os.path.join(out_dir, "buster_superposed_occ_bound_histogram.png"),
+            script_path=test_paths.script_dir,
+            refinement_program="buster",
+        )
+
         # Generate new unconstrained refinements phenix
         # RefinementFolderToCsv(
         #     refinement_csv=os.path.join(out_dir, "phenix_log_pdb_mtz.csv"),
