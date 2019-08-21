@@ -39,7 +39,7 @@ def update_from_pdb(pdb_df):
     """
     Find residue name, B factors given DataFrame with chain, residue id and altloc
 
-    Carries out cctbx.iotbx depdendent searching of pdb file.
+    Carries out cctbx.iotbx dependent searching of pdb file.
     Requires a dataframe where the row has at least,
         pdb_latest: The
 
@@ -66,13 +66,22 @@ def update_from_pdb(pdb_df):
     rows = []
     for index, row in pdb_df.iterrows():
 
-        # Get selection object which corresponds to supplied chain residue id and altloc
-        sel = sel_cache.selection(
-            "chain {} resid {} altloc {}".format(row.chain, row.resid, row.alte)
-        )
+        try:
+            # Get selection object which corresponds to supplied chain residue id and altloc
+            sel = sel_cache.selection(
+                "chain {} resid {} altloc {}".format(row.chain, row.resid, row.alte)
+            )
+        except AttributeError:
+            # Use ligand LIG instead of chain resid and alte
+            # This doesn't work at the next step, a large number
+            # are being dropped under "Likely dummy atoms"
+            sel = sel_cache.selection(
+                "resname LIG"
+            )
+
         # Select that residue from main hierarchy
         hier = pdb_in.hierarchy.select(sel)
-        resnames = []
+        resnames = set()
         for chain in hier.only_model().chains():
             for residue_group in chain.residue_groups():
                 for atom_group in residue_group.atom_groups():
@@ -94,9 +103,9 @@ def update_from_pdb(pdb_df):
             rows.append(row)
         else:
             raise ValueError(
-                "Multiple residues for "
-                "chain {} resid {} altloc {} "
-                "of pdb: {}".format(row.chain, row.resid, row.alte, pdb)
+                "Multiple residues for selection"
+                # "chain {} resid {} altloc {} "
+                # "of pdb: {}".format(row.chain, row.resid, row.alte, pdb)
             )
 
     # Append rows
@@ -208,7 +217,7 @@ def get_resname_for_log_occ(log_occ_csv, log_occ_resname_csv):
             # Get resnames, mean B factor and B factor standard deviation for
             # each residue involved in complete groups
             pdb_df = update_from_pdb(pdb_df)
-        # Dummay atoms might cause duplicate atoms whihc triggers issue with reading occupancy.
+        # Dummy atoms might cause duplicate atoms which triggers issue with reading occupancy.
         # Need to measure number of issues
         except ValueError:
             print("Likeley issue with dummy atoms")

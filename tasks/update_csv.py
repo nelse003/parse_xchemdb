@@ -1,6 +1,7 @@
 import os
 import luigi
 from luigi.util import requires
+import shutil
 
 from annotate_ligand_state import annotate_csv_with_state_comment
 from annotate_ligand_state import state_occupancies
@@ -11,6 +12,38 @@ from path_config import Path
 from utils.refinement_summary import refinement_summary
 from tasks.database import ParseXchemdbToCsv, SuperposedToCsv
 from tasks.filesystem import RefinementFolderToCsv
+
+#@requires(RefinementFolderToCsv)
+class OccFromPdb(luigi.Task):
+    """
+    Append ligand occupancy and b factor to csv containing at least the path to pdb
+
+    Methods
+    -------
+
+    Notes
+    ------
+
+    """
+    log_pdb_mtz_csv = luigi.Parameter()
+    occ_correct_csv = luigi.Parameter()
+    script_path = luigi.Parameter()
+
+    def output(self):
+        return luigi.LocalTarget(self.occ_correct_csv)
+
+    def run(self):
+        os.system("source {}".format(Path().ccp4))
+
+        print("ccp4-python {}/ccp4/get_occ_b_from_pdb.py {} {}".format(
+                self.script_path, self.log_pdb_mtz_csv, self.occ_correct_csv
+            ))
+
+        os.system(
+            "ccp4-python {}/ccp4/get_occ_b_from_pdb.py {} {}".format(
+                self.script_path, self.log_pdb_mtz_csv, self.occ_correct_csv
+            )
+        )
 
 
 @requires(ParseXchemdbToCsv)
@@ -41,6 +74,7 @@ class OccFromLog(luigi.Task):
 
     log_occ_csv = luigi.Parameter()
     log_pdb_mtz_csv = luigi.Parameter()
+    refinement_program = luigi.Parameter()
 
     def output(self):
         return luigi.LocalTarget(self.log_occ_csv)
@@ -49,6 +83,7 @@ class OccFromLog(luigi.Task):
         get_occ_from_log(
             log_pdb_mtz_csv=self.log_pdb_mtz_csv, log_occ_csv=self.log_occ_csv
         )
+
 
 
 @requires(OccFromLog)

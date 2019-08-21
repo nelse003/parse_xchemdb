@@ -125,14 +125,36 @@ def occupancy_histogram_from_state_occ(occ_correct_csv, plot_path, state):
 
     # Select out residues corresponding to the state: "ground" or "bound"
     state_df = get_state_df(occ_correct_df=occ_correct_df, state=state)
+
     occ = state_df["state occupancy"]
-
-    print(occ_correct_df.columns.values)
-    print(state_df.columns.values)
-
     b_factor = state_df["B_mean"]
 
     plot_occ_hist(occ=occ, b_factor=b_factor, out_file=plot_path)
+
+
+def occupancy_histogram(occ_correct_csv, plot_path):
+    """
+    Plot occupancy histogram
+
+    Parameters
+    ----------
+    occ_conv_csv : str
+        path to csv with occupancy convergence information
+        for each residue involved in complete groups
+    plot_path : str
+        path to plot
+
+    Returns
+    -------
+    None
+    """
+    occ_df = pd.read_csv(occ_correct_csv)
+
+    occ = occ_df["occupancy"]
+    b_factor = occ_df["B_mean"]
+
+    plot_occ_hist(occ=occ, b_factor=b_factor, out_file=plot_path)
+
 
 
 def get_state_df(occ_correct_df, state):

@@ -35,7 +35,7 @@ def match_occ(occ_group, complete_groups):
             return complete_group
 
 
-def get_occ_from_log( log_pdb_mtz_csv, log_occ_csv):
+def get_occ_from_log(log_pdb_mtz_csv, log_occ_csv):
     """
     For all pdbs in supplied csv read refmac log to get occupancies
 
@@ -50,8 +50,8 @@ def get_occ_from_log( log_pdb_mtz_csv, log_occ_csv):
     -------
 
     """
-
     log_df = pd.read_csv(log_pdb_mtz_csv)
+    print(log_df.tail(5))
 
     occ_df_list = []
     for index, row in log_df.iterrows():
@@ -121,7 +121,6 @@ def read_occ_group_from_refmac_log(log_path):
     # Open file and loop over lines
     with open(log_path, "r") as log:
         for line in log:
-
             # Log file is group per cycle, with the CGMAT cycle number
             # identifying the cycle begining
             if "CGMAT cycle number =" in line:

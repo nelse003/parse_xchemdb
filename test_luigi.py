@@ -229,15 +229,15 @@ luigi.build(
         #     refinement_type="superposed",
         # ),
 
-        PlotBoundOccHistogram(
-            occ_state_comment_csv = os.path.join(out_dir, "refmac_superposed_occ_state_comment.csv"),
-            log_occ_resname=os.path.join(out_dir, "refmac_superposed_log_resname.csv"),
-            log_occ_csv=os.path.join(out_dir, "refmac_superposed_log_occ.csv"),
-            log_pdb_mtz_csv=test_paths.convergence_refinement,
-            occ_correct_csv=os.path.join(out_dir, "refmac_superposed_occ_correct.csv"),
-            plot_path=os.path.join(out_dir, "refmac_superposed_occ_bound_histogram.png"),
-            script_path=test_paths.script_dir,
-        )
+        # PlotBoundOccHistogram(
+        #     occ_state_comment_csv = os.path.join(out_dir, "refmac_superposed_occ_state_comment.csv"),
+        #     log_occ_resname=os.path.join(out_dir, "refmac_superposed_log_resname.csv"),
+        #     log_occ_csv=os.path.join(out_dir, "refmac_superposed_log_occ.csv"),
+        #     log_pdb_mtz_csv=test_paths.convergence_refinement,
+        #     occ_correct_csv=os.path.join(out_dir, "refmac_superposed_occ_correct.csv"),
+        #     plot_path=os.path.join(out_dir, "refmac_superposed_occ_bound_histogram.png"),
+        #     script_path=test_paths.script_dir,
+        # )
 
         ###################################################
         # Generate new Superposed refinements phenix
@@ -252,6 +252,15 @@ luigi.build(
         #     refinement_program="phenix",
         #     refinement_type="superposed",
         # ),
+
+        PlotBoundOccHistogram(
+            log_pdb_mtz_csv=os.path.join(out_dir, "phenix_superposed_log_pdb_mtz.csv"),
+            occ_correct_csv=os.path.join(out_dir, "phenix_superposed_occ_correct.csv"),
+            plot_path=os.path.join(out_dir, "phenix_superposed_occ_bound_histogram.png"),
+            script_path=test_paths.script_dir,
+            refinement_program="phenix",
+        )
+
         #####################################################
         # Generate new unconstrained refinements REFMAC5
         # Calls BatchRefinement
@@ -292,6 +301,18 @@ luigi.build(
         #     refinement_program="phenix",
         #     refinement_type="bound",
         # ),
+
+        # PlotBoundOccHistogram(
+        #     occ_state_comment_csv=os.path.join(out_dir, "phenix_occ_state_comment.csv"),
+        #     log_occ_resname=os.path.join(out_dir, "phenix_log_resname.csv"),
+        #     log_occ_csv=os.path.join(out_dir, "phenix_log_occ.csv"),
+        #     log_pdb_mtz_csv=os.path.join(out_dir, "phenix_log_pdb_mtz.csv"),
+        #     occ_correct_csv=os.path.join(out_dir, "phenix_occ_correct.csv"),
+        #     plot_path=os.path.join(out_dir, "phenix_occ_bound_histogram.png"),
+        #     script_path=test_paths.script_dir,
+        #     refinement_program="phenix",
+        # )
+
         # Generate new exhaustive search refinements
         # RefinementFolderToCsv(
         #     refinement_csv=os.path.join(out_dir, "exhaustive_log_pdb_mtz.csv"),

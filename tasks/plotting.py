@@ -4,14 +4,14 @@ from luigi.util import requires
 
 from tasks.update_csv import StateOccupancyToCsv
 from tasks.update_csv import SummaryRefinement
+from tasks.update_csv import OccFromPdb
 
 from plotting import refinement_summary_plot
 from plotting import occupancy_histogram_from_state_occ
+from plotting import occupancy_histogram
 from plotting import occupancy_vs_convergence
 from plotting import convergence_ratio_histogram
 
-
-@requires(StateOccupancyToCsv)
 class PlotOccCorrect(luigi.Task):
 
     # TODO Consder making requires more broad,
@@ -57,6 +57,40 @@ class PlotOccCorrect(luigi.Task):
 
     """
     plot_path = luigi.Parameter()
+    refinement_program = luigi.Parameter()
+
+    log_pdb_mtz_csv = luigi.Parameter()
+    occ_correct_csv = luigi.Parameter()
+    script_path = luigi.Parameter()
+
+    def requires(self):
+        if "refmac" in self.refinement_program:
+
+            return StateOccupancyToCsv(
+                occ_state_comment_csv=self.occ_state_comment_csv,
+                log_occ_resname=self.log_occ_resname,
+                log_occ_csv=self.log_occ_csv,
+                log_pdb_mtz_csv=self.log_pdb_mtz_csv,
+                occ_correct_csv=self.occ_correct_csv)
+
+        elif "phenix" in self.refinement_program:
+
+            return OccFromPdb(log_pdb_mtz_csv=self.log_pdb_mtz_csv,
+                              occ_correct_csv=self.occ_correct_csv,
+                              script_path=self.script_path)
+
+        elif "buster" in self.refinement_program:
+
+            return OccFromPdb(log_pdb_mtz_csv=self.log_pdb_mtz_csv,
+                              occ_correct_csv=self.occ_correct_csv,
+                              script_path=self.script_path)
+
+
+        elif "exhaustive" in self.refinement_program:
+            pass
+
+
+
 
     def output(self):
         return luigi.LocalTarget(self.plot_path)
@@ -258,11 +292,15 @@ class PlotBoundOccHistogram(PlotOccCorrect):
     """
 
     def run(self):
-        occupancy_histogram_from_state_occ(
-            occ_correct_csv=self.occ_correct_csv,
-            plot_path=self.plot_path,
-            state="bound",
-        )
+        if "refmac" in self.refinement_program:
+            occupancy_histogram_from_state_occ(
+                occ_correct_csv=self.occ_correct_csv,
+                plot_path=self.plot_path,
+                state="bound",
+            )
+        else:
+            occupancy_histogram(occ_correct_csv=self.occ_correct_csv,
+                                plot_path=self.plot_path,)
 
 
 @requires(SummaryRefinement)
