@@ -73,6 +73,7 @@ class BatchRefinement(luigi.Task):
 
     extra_params = luigi.Parameter(default="NCYC=50", significant=False)
     ncyc = luigi.Parameter(default=50, significant=False)
+    test = luigi.Parameter(default=None, significant=False)
 
     def output(self):
         return luigi.LocalTarget(self.output_csv)
@@ -98,6 +99,11 @@ class BatchRefinement(luigi.Task):
         # Loop over crystal/refinement table csv
         refinement_tasks = []
         for i in df.index:
+
+            if self.test is not None:
+                if i > self.test:
+                    break
+
             cif = df.at[i, "cif"]
             pdb = df.at[i, "pdb_latest"]
             mtz = df.at[i, "mtz_free"]

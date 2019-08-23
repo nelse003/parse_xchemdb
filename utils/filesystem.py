@@ -10,7 +10,7 @@ from refinement.giant_scripts import make_restraints
 from path_config import Path
 
 
-def parse_refinement_folder(refinement_dir, refinement_csv, refinement_type):
+def parse_refinement_folder(refinement_dir, refinement_csv, refinement_type, test=None):
 
     """
     Parse folder for refinements
@@ -73,6 +73,8 @@ def parse_refinement_folder(refinement_dir, refinement_csv, refinement_type):
         elif refinement_type == "bound":
             for f in os.listdir(crystal_dir):
                 if f == "refmac.log":
+                    refinement_log = os.path.join(refinement_dir, crystal, f)
+                elif f == "refine.log":
                     refinement_log = os.path.join(refinement_dir, crystal, f)
 
         # Add row if pdb, mtz and log have been found for this crystal

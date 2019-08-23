@@ -57,6 +57,7 @@ class PlotOccCorrect(luigi.Task):
 
     """
     plot_path = luigi.Parameter()
+    refinement_type = luigi.Parameter(significant=False)
     refinement_program = luigi.Parameter()
 
     log_pdb_mtz_csv = luigi.Parameter()
@@ -65,13 +66,19 @@ class PlotOccCorrect(luigi.Task):
 
     def requires(self):
         if "refmac" in self.refinement_program:
-
-            return StateOccupancyToCsv(
-                occ_state_comment_csv=self.occ_state_comment_csv,
-                log_occ_resname=self.log_occ_resname,
-                log_occ_csv=self.log_occ_csv,
-                log_pdb_mtz_csv=self.log_pdb_mtz_csv,
-                occ_correct_csv=self.occ_correct_csv)
+            if self.refinement_type == "superposed":
+                return StateOccupancyToCsv(
+                    occ_state_comment_csv=self.occ_state_comment_csv,
+                    log_occ_resname=self.log_occ_resname,
+                    log_occ_csv=self.log_occ_csv,
+                    log_pdb_mtz_csv=self.log_pdb_mtz_csv,
+                    occ_correct_csv=self.occ_correct_csv,
+                    refinement_program=self.refinement_program,
+                    script_path=self.script_path)
+            else:
+                return OccFromPdb(log_pdb_mtz_csv=self.log_pdb_mtz_csv,
+                  occ_correct_csv=self.occ_correct_csv,
+                  script_path=self.script_path)
 
         elif "phenix" in self.refinement_program:
 
@@ -290,17 +297,25 @@ class PlotBoundOccHistogram(PlotOccCorrect):
 
 
     """
+    occ_state_comment_csv = luigi.Parameter(significant=False)
+    log_occ_resname = luigi.Parameter(significant=False)
+    log_occ_csv = luigi.Parameter(significant=False)
+    refinement_program = luigi.Parameter(significant=False)
 
     def run(self):
         if "refmac" in self.refinement_program:
-            occupancy_histogram_from_state_occ(
-                occ_correct_csv=self.occ_correct_csv,
-                plot_path=self.plot_path,
-                state="bound",
-            )
+            if "superposed" in self.refinement_type:
+                occupancy_histogram_from_state_occ(
+                    occ_correct_csv=self.occ_correct_csv,
+                    plot_path=self.plot_path,
+                    state="bound",
+                )
+            else:
+                occupancy_histogram(occ_correct_csv=self.occ_correct_csv,
+                                    plot_path=self.plot_path,)
         else:
             occupancy_histogram(occ_correct_csv=self.occ_correct_csv,
-                                plot_path=self.plot_path,)
+                                plot_path=self.plot_path, )
 
 
 @requires(SummaryRefinement)

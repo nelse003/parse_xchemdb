@@ -253,13 +253,13 @@ luigi.build(
         #     refinement_type="superposed",
         # ),
 
-        PlotBoundOccHistogram(
-            log_pdb_mtz_csv=os.path.join(out_dir, "phenix_superposed_log_pdb_mtz.csv"),
-            occ_correct_csv=os.path.join(out_dir, "phenix_superposed_occ_correct.csv"),
-            plot_path=os.path.join(out_dir, "phenix_superposed_occ_bound_histogram.png"),
-            script_path=test_paths.script_dir,
-            refinement_program="phenix",
-        )
+        # PlotBoundOccHistogram(
+        #     log_pdb_mtz_csv=os.path.join(out_dir, "phenix_superposed_log_pdb_mtz.csv"),
+        #     occ_correct_csv=os.path.join(out_dir, "phenix_superposed_occ_correct.csv"),
+        #     plot_path=os.path.join(out_dir, "phenix_superposed_occ_bound_histogram.png"),
+        #     script_path=test_paths.script_dir,
+        #     refinement_program="phenix",
+        # ),
 
         #####################################################
         # Generate new unconstrained refinements REFMAC5
@@ -274,29 +274,44 @@ luigi.build(
         #     refinement_type="bound",
         #     refinement_program="refmac",
         # ),
+
+        # PlotBoundOccHistogram(
+        #     occ_state_comment_csv = os.path.join(out_dir, "refmac_occ_state_comment.csv"),
+        #     log_occ_resname=os.path.join(out_dir, "refmac_log_resname.csv"),
+        #     log_occ_csv=os.path.join(out_dir, "refmac_log_occ.csv"),
+        #     log_pdb_mtz_csv=test_paths.bound_refinement,
+        #     occ_correct_csv=os.path.join(out_dir, "refmac_occ_correct.csv"),
+        #     plot_path=os.path.join(out_dir, "refmac_occ_bound_histogram.png"),
+        #     script_path=test_paths.script_dir,
+        #     refinement_program="refmac",
+        #     refinement_type="bound",
+        # ),
+
         # PDK2-x0885
         # unable to find a dictionary for residue " TF3"!
         # Works for NUDT5A-x1298
         ####################################################
         # Generate new refinement buster superposed
-        # RefinementFolderToCsv(
-        #     refinement_csv=os.path.join(out_dir, "buster_superposed_log_pdb_mtz.csv"),
-        #     output_csv=os.path.join(out_dir, "buster_superposed_batch.csv"),
-        #     out_dir=os.path.join(out_dir, "buster_superposed"),
-        #     extra_params=None,
-        #     tmp_dir=test_paths.tmp_dir,
-        #     log_pdb_mtz_csv=os.path.join(out_dir, "log_pdb_mtz.csv"),
-        #     refinement_program="buster",
-        #     refinement_type="superposed",
-        # ),
-
-        PlotBoundOccHistogram(
-            log_pdb_mtz_csv=os.path.join(out_dir, "buster_superposed_log_pdb_mtz.csv"),
-            occ_correct_csv=os.path.join(out_dir, "buster_superposed_occ_correct.csv"),
-            plot_path=os.path.join(out_dir, "buster_superposed_occ_bound_histogram.png"),
-            script_path=test_paths.script_dir,
+        RefinementFolderToCsv(
+            refinement_csv=os.path.join(out_dir, "buster_superposed_log_pdb_mtz.csv"),
+            output_csv=os.path.join(out_dir, "buster_superposed_batch.csv"),
+            out_dir=os.path.join(out_dir, "buster_superposed"),
+            extra_params=None,
+            tmp_dir=test_paths.tmp_dir,
+            log_pdb_mtz_csv=os.path.join(out_dir, "log_pdb_mtz.csv"),
             refinement_program="buster",
-        )
+            refinement_type="superposed",
+            test=10,
+        ),
+        #
+        # PlotBoundOccHistogram(
+        #     log_pdb_mtz_csv=os.path.join(out_dir, "buster_superposed_log_pdb_mtz.csv"),
+        #     occ_correct_csv=os.path.join(out_dir, "buster_superposed_occ_correct.csv"),
+        #     plot_path=os.path.join(out_dir, "buster_superposed_occ_bound_histogram.png"),
+        #     script_path=test_paths.script_dir,
+        #     refinement_program="buster",
+        #     refinement_type="superposed"
+        # ),
 
         # Generate new unconstrained refinements phenix
         # RefinementFolderToCsv(
@@ -310,17 +325,18 @@ luigi.build(
         #     refinement_program="phenix",
         #     refinement_type="bound",
         # ),
-
+        #
         # PlotBoundOccHistogram(
-        #     occ_state_comment_csv=os.path.join(out_dir, "phenix_occ_state_comment.csv"),
-        #     log_occ_resname=os.path.join(out_dir, "phenix_log_resname.csv"),
-        #     log_occ_csv=os.path.join(out_dir, "phenix_log_occ.csv"),
+        #     occ_state_comment_csv=None,
+        #     log_occ_resname=None,
+        #     log_occ_csv=None,
         #     log_pdb_mtz_csv=os.path.join(out_dir, "phenix_log_pdb_mtz.csv"),
         #     occ_correct_csv=os.path.join(out_dir, "phenix_occ_correct.csv"),
         #     plot_path=os.path.join(out_dir, "phenix_occ_bound_histogram.png"),
         #     script_path=test_paths.script_dir,
         #     refinement_program="phenix",
-        # )
+        #     refinement_type="bound",
+        # ),
 
         # Generate new exhaustive search refinements
         # RefinementFolderToCsv(
@@ -355,6 +371,17 @@ luigi.build(
         #     extra_params="",
         #     tmp_dir=test_paths.tmp_dir,
         #     log_pdb_mtz_csv=os.path.join(out_dir, "log_pdb_mtz.csv"),
+        #     refinement_program="buster",
+        #     refinement_type="bound",
+        # ),
+        # PlotBoundOccHistogram(
+        #     occ_state_comment_csv=None,
+        #     log_occ_resname=None,
+        #     log_occ_csv=None,
+        #     log_pdb_mtz_csv=os.path.join(out_dir, "buster_log_pdb_mtz.csv"),
+        #     occ_correct_csv=os.path.join(out_dir, "buster_occ_correct.csv"),
+        #     plot_path=os.path.join(out_dir, "buster_occ_bound_histogram.png"),
+        #     script_path=test_paths.script_dir,
         #     refinement_program="buster",
         #     refinement_type="bound",
         # ),
