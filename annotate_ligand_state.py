@@ -307,33 +307,11 @@ def state_occupancies(occ_state_comment_csv, occ_correct_csv):
     -------
     None
     """
-
     # Read CSV
     occ_df = pd.read_csv(occ_state_comment_csv, index_col=[0, 1])
 
     # Select only residues that are correctly occupied
     occ_correct_df = occ_df[occ_df["comment"] == "Correctly Occupied"]
-
-    # print(occ_correct_df.head())
-    # print(occ_correct_df.columns.values)
-
-    # TODO Fix to run where rows are different lengths
-
-    int_cols = []
-    for col in occ_correct_df.columns.values:
-        try:
-            int_cols.append(int(col))
-        except ValueError:
-            continue
-    str_cols = list(map(str, int_cols))
-    df = occ_correct_df[str_cols]
-
-    # TODO Find a more robust convergence metric
-
-    occ_correct_df["converge"] = abs(df[str_cols[-1]] / df[str_cols[-2]] - 1)
-
-    # Select the final occupancy value
-    occ_correct_df["occupancy"] = df[str_cols[-1]]
 
     pdb_df_list = []
     for pdb in occ_correct_df.pdb_latest.unique():
@@ -342,8 +320,37 @@ def state_occupancies(occ_state_comment_csv, occ_correct_csv):
         ground = 0
 
         pdb_df = occ_correct_df.loc[(occ_correct_df["pdb_latest"] == pdb)]
+        int_cols = []
+        for col in pdb_df.columns.values:
+            try:
+                int_cols.append(int(col))
+            except ValueError:
+                continue
+        str_cols = list(map(str, int_cols))
+        int_pdb_df = pdb_df[str_cols]
+        # Drops columns where there is no convergence information
+        int_pdb_df = int_pdb_df.dropna(axis='columns')
 
-        grouped = pdb_df.groupby(["complete group", "occupancy", "alte", "state"])
+        for col in int_pdb_df.columns.values:
+            try:
+                int_cols.append(int(col))
+            except ValueError:
+                continue
+        str_cols = list(map(str, int_cols))
+        pdb_df["converge"] = abs(int_pdb_df[str_cols[-1]] / int_pdb_df[str_cols[-2]] - 1)
+
+        # Select the final occupancy value
+        pdb_df["occupancy"] = int_pdb_df[str_cols[-1]]
+
+        print(int_pdb_df)
+        print(pdb_df)
+
+
+
+        grouped = pdb_df.groupby(["complete group",
+                                  "occupancy",
+                                  "alte",
+                                  "state"])
 
         for name, group in grouped:
 
@@ -365,7 +372,11 @@ def state_occupancies(occ_state_comment_csv, occ_correct_csv):
             func=state_occ, bound=bound, ground=ground, pdb=pdb, axis=1
         )
 
+        # TODO Find a more robust convergence metric
+
         pdb_df_list.append(pdb_df)
+
+        print(pdb_df)
 
     occ_correct_df = pd.concat(pdb_df_list)
     occ_correct_df.to_csv(occ_correct_csv)

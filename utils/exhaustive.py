@@ -45,33 +45,30 @@ def find_all_exhaustive_minima(out_dir, in_csv, out_csv):
 
         if os.path.isdir(os.path.join(out_dir, xtal_dir)):
 
-            xtal_csv = os.path.join(out_dir,
-                                    xtal_dir,
-                                    in_csv)
+            xtal_csv = os.path.join(out_dir, xtal_dir, in_csv)
 
             if os.path.isfile(xtal_csv):
-                df = pd.read_csv(xtal_csv,
-                                 header=None,
-                                 names=["bound_occupancy",
-                                          "ground_occupancy",
-                                          "u_iso",
-                                          "fo_fc"]
-                                )
-                #print(df)
+                df = pd.read_csv(
+                    xtal_csv,
+                    header=None,
+                    names=["bound_occupancy", "ground_occupancy", "u_iso", "fo_fc"],
+                )
+                # print(df)
                 index_to_drop = df[(df.bound_occupancy > 1.00)].index
                 df.drop(index_to_drop, inplace=True)
 
-                xtal =  xtal_dir
-                occ = df.loc[df['fo_fc'].idxmin()]['bound_occupancy']
-                u_iso = df.loc[df['fo_fc'].idxmin()]['u_iso']
+                xtal = xtal_dir
+                occ = df.loc[df["fo_fc"].idxmin()]["bound_occupancy"]
+                u_iso = df.loc[df["fo_fc"].idxmin()]["u_iso"]
                 b_factor = u_iso_to_b_fac(u_iso)
 
-                summary_df_dict[xtal] =  [occ, b_factor]
+                summary_df_dict[xtal] = [occ, b_factor]
 
-    summary_df = pd.DataFrame.from_dict(summary_df_dict,
-                              orient='index',
-                              columns=["occupancy","b_factor"])
+    summary_df = pd.DataFrame.from_dict(
+        summary_df_dict, orient="index", columns=["occupancy", "b_factor"]
+    )
     summary_df.to_csv(os.path.join(out_dir, out_csv))
+
 
 def plot_scatter_exhaustive_minima(out_csv, out_file):
 

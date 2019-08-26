@@ -4,6 +4,7 @@ import numpy as np
 from iotbx.pdb import hierarchy
 import argparse
 
+
 def update_from_pdb(pdb_df):
     """
     Find residue name, B factors given DataFrame with LIG
@@ -46,7 +47,6 @@ def update_from_pdb(pdb_df):
         except IndexError:
             continue
 
-
         for chain in model.chains():
             for residue_group in chain.residue_groups():
                 for atom_group in residue_group.atom_groups():
@@ -73,10 +73,10 @@ def update_from_pdb(pdb_df):
                     mean_b = np.mean(b)
                     std_b = np.std(b)
 
-                    copy_row['chain'] = chain.id
-                    copy_row['resseq'] = residue_group.resseq
-                    copy_row['altloc'] = atom_group.altloc
-                    copy_row['occupancy'] = occupancy
+                    copy_row["chain"] = chain.id
+                    copy_row["resseq"] = residue_group.resseq
+                    copy_row["altloc"] = atom_group.altloc
+                    copy_row["occupancy"] = occupancy
                     copy_row["B_mean"] = mean_b
                     copy_row["B_std"] = std_b
                     rows.append(copy_row)
@@ -95,22 +95,19 @@ def update_from_pdb(pdb_df):
     # This will cause the whole dataframe
     # to be of object datatype.
     # This is a poor quality fix for working row by row
-    pdb_df['occupancy'] = pdb_df['occupancy'].astype(float)
-    pdb_df['B_mean'] = pdb_df['B_mean'].astype(float)
-    pdb_df['B_std'] = pdb_df['B_std'].astype(float)
+    pdb_df["occupancy"] = pdb_df["occupancy"].astype(float)
+    pdb_df["B_mean"] = pdb_df["B_mean"].astype(float)
+    pdb_df["B_std"] = pdb_df["B_std"].astype(float)
 
     # Aggregation can combine rows with different methods.
     # here we sum occupancy across altloc
     # and average the other quantities for the resseq
-    pdb_df = pdb_df.groupby(['resseq',
-                          'crystal_name',
-                          'pdb_latest',
-                          'mtz_latest',
-                          'refine_log',
-                          'chain'], as_index=False).agg({'occupancy':'sum',
-                                                              'B_mean':'mean',
-                                                              'B_std':'mean'})
+    pdb_df = pdb_df.groupby(
+        ["resseq", "crystal_name", "pdb_latest", "mtz_latest", "refine_log", "chain"],
+        as_index=False,
+    ).agg({"occupancy": "sum", "B_mean": "mean", "B_std": "mean"})
     return pdb_df
+
 
 def main():
 
@@ -138,6 +135,7 @@ def main():
     pdb_df = pd.read_csv(args.log_occ_csv)
     log_occ_correct_df = update_from_pdb(pdb_df)
     log_occ_correct_df.to_csv(args.log_occ_correct)
+
 
 if __name__ == "__main__":
     main()

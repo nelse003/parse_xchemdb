@@ -3,6 +3,7 @@ from utils.exhaustive import find_all_exhaustive_minima
 from utils.exhaustive import plot_scatter_exhaustive_minima
 from utils.exhaustive import plot_hist_exhaustive_minima
 
+
 class ExhaustiveOcc(luigi.Task):
 
     """
@@ -22,9 +23,10 @@ class ExhaustiveOcc(luigi.Task):
         return luigi.LocalTarget(self.out_csv)
 
     def run(self):
-        find_all_exhaustive_minima(out_dir=self.out_dir,
-                               in_csv=self.in_csv,
-                               out_csv=self.out_csv)
+        find_all_exhaustive_minima(
+            out_dir=self.out_dir, in_csv=self.in_csv, out_csv=self.out_csv
+        )
+
 
 class PlotScatterExhaustiveOcc(luigi.Task):
 
@@ -32,6 +34,7 @@ class PlotScatterExhaustiveOcc(luigi.Task):
     out_csv: luigi.Parameter()
         output csv file containing minima
     """
+
     out_csv = luigi.Parameter()
     out_file = luigi.Parameter()
 
@@ -39,8 +42,8 @@ class PlotScatterExhaustiveOcc(luigi.Task):
         return luigi.LocalTarget(self.out_file)
 
     def run(self):
-        plot_scatter_exhaustive_minima(out_csv=self.out_csv,
-                                   out_file=self.out_file)
+        plot_scatter_exhaustive_minima(out_csv=self.out_csv, out_file=self.out_file)
+
 
 class PlotHistExhaustiveOcc(luigi.Task):
 
@@ -48,6 +51,7 @@ class PlotHistExhaustiveOcc(luigi.Task):
     out_csv: luigi.Parameter()
         output csv file containing minima
     """
+
     out_csv = luigi.Parameter()
     out_file = luigi.Parameter()
 
@@ -55,5 +59,4 @@ class PlotHistExhaustiveOcc(luigi.Task):
         return luigi.LocalTarget(self.out_file)
 
     def run(self):
-        plot_hist_exhaustive_minima(out_csv=self.out_csv,
-                                   out_file=self.out_file)
+        plot_hist_exhaustive_minima(out_csv=self.out_csv, out_file=self.out_file)

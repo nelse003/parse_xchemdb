@@ -68,21 +68,31 @@ def update_from_pdb(pdb_df):
 
         try:
             # Get selection object which corresponds to supplied chain residue id and altloc
+            # Type conversion in res.id neeed otherwise nothing is selected
             sel = sel_cache.selection(
-                "chain {} resid {} altloc {}".format(row.chain, row.resid, row.alte)
+                "chain {} and resid {} and altloc {}".format(row.chain, str(int(row.resid)), row.alte)
             )
         except AttributeError:
             # Use ligand LIG instead of chain resid and alte
             # This doesn't work at the next step, a large number
             # are being dropped under "Likely dummy atoms"
-            sel = sel_cache.selection(
-                "resname LIG"
-            )
+            sel = sel_cache.selection("resname LIG")
 
         # Select that residue from main hierarchy
         hier = pdb_in.hierarchy.select(sel)
-        resnames = set()
-        for chain in hier.only_model().chains():
+        resnames = []
+
+        # catch when multiple models are in pdb file
+        try:
+            model = hier.only_model()
+        except AssertionError:
+            pass
+        try:
+            model = hier.models()[0]
+        except IndexError:
+            continue
+
+        for chain in model.chains():
             for residue_group in chain.residue_groups():
                 for atom_group in residue_group.atom_groups():
                     resnames.append(atom_group.resname)
@@ -96,19 +106,19 @@ def update_from_pdb(pdb_df):
                     std_b = np.std(b)
 
         # Append information to row
-        if len(resnames) == 1:
-            row["resname"] = resnames[0]
-            row["B_mean"] = mean_b
-            row["B_std"] = std_b
-            rows.append(row)
-        else:
-            raise ValueError(
-                "Multiple residues for selection"
-                # "chain {} resid {} altloc {} "
-                # "of pdb: {}".format(row.chain, row.resid, row.alte, pdb)
-            )
+        #if len(resnames) == 1:
+        row["resname"] = resnames[0]
+        row["B_mean"] = mean_b
+        row["B_std"] = std_b
+        rows.append(row)
+        # else:
+        #     raise ValueError(
+        #         "Multiple residues for selection"
+        #         # "chain {} resid {} altloc {} "
+        #         # "of pdb: {}".format(row.chain, row.resid, row.alte, pdb)
+        #     )
 
-    # Append rows
+    # Append rows)
     pdb_df = pd.concat(rows, axis=1)
 
     # Transpose to get in same orientation as input
@@ -228,6 +238,7 @@ def get_resname_for_log_occ(log_occ_csv, log_occ_resname_csv):
         update_progress(float(pos) / float(len(log_df.pdb_latest.unique())))
         # Append to local storage
         log_df_list.append(pdb_df)
+
 
     log_occ_resname_df = pd.concat(log_df_list)
     log_occ_resname_df.to_csv(log_occ_resname_csv)

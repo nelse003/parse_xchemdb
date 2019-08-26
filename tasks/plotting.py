@@ -12,6 +12,7 @@ from plotting import occupancy_histogram
 from plotting import occupancy_vs_convergence
 from plotting import convergence_ratio_histogram
 
+
 class PlotOccCorrect(luigi.Task):
 
     # TODO Consder making requires more broad,
@@ -74,30 +75,33 @@ class PlotOccCorrect(luigi.Task):
                     log_pdb_mtz_csv=self.log_pdb_mtz_csv,
                     occ_correct_csv=self.occ_correct_csv,
                     refinement_program=self.refinement_program,
-                    script_path=self.script_path)
+                    script_path=self.script_path,
+                )
             else:
-                return OccFromPdb(log_pdb_mtz_csv=self.log_pdb_mtz_csv,
-                  occ_correct_csv=self.occ_correct_csv,
-                  script_path=self.script_path)
+                return OccFromPdb(
+                    log_pdb_mtz_csv=self.log_pdb_mtz_csv,
+                    occ_correct_csv=self.occ_correct_csv,
+                    script_path=self.script_path,
+                )
 
         elif "phenix" in self.refinement_program:
 
-            return OccFromPdb(log_pdb_mtz_csv=self.log_pdb_mtz_csv,
-                              occ_correct_csv=self.occ_correct_csv,
-                              script_path=self.script_path)
+            return OccFromPdb(
+                log_pdb_mtz_csv=self.log_pdb_mtz_csv,
+                occ_correct_csv=self.occ_correct_csv,
+                script_path=self.script_path,
+            )
 
         elif "buster" in self.refinement_program:
 
-            return OccFromPdb(log_pdb_mtz_csv=self.log_pdb_mtz_csv,
-                              occ_correct_csv=self.occ_correct_csv,
-                              script_path=self.script_path)
-
+            return OccFromPdb(
+                log_pdb_mtz_csv=self.log_pdb_mtz_csv,
+                occ_correct_csv=self.occ_correct_csv,
+                script_path=self.script_path,
+            )
 
         elif "exhaustive" in self.refinement_program:
             pass
-
-
-
 
     def output(self):
         return luigi.LocalTarget(self.plot_path)
@@ -297,6 +301,7 @@ class PlotBoundOccHistogram(PlotOccCorrect):
 
 
     """
+
     occ_state_comment_csv = luigi.Parameter(significant=False)
     log_occ_resname = luigi.Parameter(significant=False)
     log_occ_csv = luigi.Parameter(significant=False)
@@ -311,11 +316,13 @@ class PlotBoundOccHistogram(PlotOccCorrect):
                     state="bound",
                 )
             else:
-                occupancy_histogram(occ_correct_csv=self.occ_correct_csv,
-                                    plot_path=self.plot_path,)
+                occupancy_histogram(
+                    occ_correct_csv=self.occ_correct_csv, plot_path=self.plot_path
+                )
         else:
-            occupancy_histogram(occ_correct_csv=self.occ_correct_csv,
-                                plot_path=self.plot_path, )
+            occupancy_histogram(
+                occ_correct_csv=self.occ_correct_csv, plot_path=self.plot_path
+            )
 
 
 @requires(SummaryRefinement)

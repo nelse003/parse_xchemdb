@@ -112,8 +112,6 @@ class CheckRefinementIssues(luigi.Task):
         # Check for ligand code in refmac library
         if "refmac" in self.refinement_program and len(lig_res_names) != 0:
 
-            print("REFMACCCAADS")
-
             # http://www.ccp4.ac.uk/html/refmac5/dictionary/list-of-ligands.html
             print(Path().ccp4)
             print(Path().ccp4.rstrip("/bin/ccp4.setup-sh"))

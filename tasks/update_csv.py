@@ -13,7 +13,7 @@ from utils.refinement_summary import refinement_summary
 from tasks.database import ParseXchemdbToCsv, SuperposedToCsv
 from tasks.filesystem import RefinementFolderToCsv
 
-#@requires(RefinementFolderToCsv)
+# @requires(RefinementFolderToCsv)
 class OccFromPdb(luigi.Task):
     """
     Append ligand occupancy and b factor to csv containing at least the path to pdb
@@ -25,6 +25,7 @@ class OccFromPdb(luigi.Task):
     ------
 
     """
+
     log_pdb_mtz_csv = luigi.Parameter()
     occ_correct_csv = luigi.Parameter()
     script_path = luigi.Parameter()
@@ -35,9 +36,11 @@ class OccFromPdb(luigi.Task):
     def run(self):
         os.system("source {}".format(Path().ccp4))
 
-        print("ccp4-python {}/ccp4/get_occ_b_from_pdb.py {} {}".format(
+        print(
+            "ccp4-python {}/ccp4/get_occ_b_from_pdb.py {} {}".format(
                 self.script_path, self.log_pdb_mtz_csv, self.occ_correct_csv
-            ))
+            )
+        )
 
         os.system(
             "ccp4-python {}/ccp4/get_occ_b_from_pdb.py {} {}".format(
@@ -83,7 +86,6 @@ class OccFromLog(luigi.Task):
         get_occ_from_log(
             log_pdb_mtz_csv=self.log_pdb_mtz_csv, log_occ_csv=self.log_occ_csv
         )
-
 
 
 @requires(OccFromLog)
