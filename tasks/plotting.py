@@ -11,6 +11,7 @@ from plotting import occupancy_histogram_from_state_occ
 from plotting import occupancy_histogram
 from plotting import occupancy_vs_convergence
 from plotting import convergence_ratio_histogram
+from plotting import convergence_ratio_kde_plot
 
 
 class PlotOccCorrect(luigi.Task):
@@ -60,7 +61,9 @@ class PlotOccCorrect(luigi.Task):
     plot_path = luigi.Parameter()
     refinement_type = luigi.Parameter(significant=False)
     refinement_program = luigi.Parameter()
-
+    occ_state_comment_csv = luigi.Parameter()
+    log_occ_resname = luigi.Parameter()
+    log_occ_csv = luigi.Parameter()
     log_pdb_mtz_csv = luigi.Parameter()
     occ_correct_csv = luigi.Parameter()
     script_path = luigi.Parameter()
@@ -153,6 +156,62 @@ class PlotConvergenceHistogram(PlotOccCorrect):
     def run(self):
         convergence_ratio_histogram(
             occ_state_comment_csv=self.occ_correct_csv, plot_path=self.plot_path
+        )
+
+
+class PlotConvergenceDistPlot(PlotOccCorrect):
+    """
+    Plots a distplot of two convergence ratios
+
+    Notes
+    ------
+    Subclass of PlotOccCorrect, requires
+
+    Attributes
+    ----------
+    occ_state_comment_csv_2: luigi.Parameter()
+         path to csv with state and comment to be compared to the first.
+
+    Inherited
+
+    occ_state_comment_csv: luigi.Parameter()
+         path to csv with state and comment
+
+    log_occ_resname: luigi.Parameter()
+         path to csv annotate with residue names for
+         residues involved in complete refinment groups,
+         as parsed from the REFMAC5 Log file
+
+    log_occ_csv: luigi.Parameter()
+        path to csv file where occupancies have
+        been obtained from REFMAC logs
+
+    log_pdb_mtz_csv: luigi.Parameter()
+        path to summary csv containing at least path to pdb, mtz
+        and refinement log file
+
+    test: luigi.Parameter(), optional
+        integer representing number of rows to extract when
+        used as test
+
+    occ_correct_csv: luigi.Parameter()
+        path to csv with convergence information,
+        and occupancy for the "bound" or "ground" state
+
+    New
+
+    plot_path: luigi.Parameter()
+        path to plot file to be plotted
+
+    """
+
+    occ_correct_csv_2 = luigi.Parameter()
+
+    def run(self):
+        convergence_ratio_kde_plot(
+            occ_correct_csv_1=self.occ_correct_csv,
+            occ_correct_csv_2=self.occ_correct_csv_2,
+            plot_path=self.plot_path,
         )
 
 

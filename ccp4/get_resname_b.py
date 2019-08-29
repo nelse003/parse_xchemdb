@@ -70,7 +70,9 @@ def update_from_pdb(pdb_df):
             # Get selection object which corresponds to supplied chain residue id and altloc
             # Type conversion in res.id neeed otherwise nothing is selected
             sel = sel_cache.selection(
-                "chain {} and resid {} and altloc {}".format(row.chain, str(int(row.resid)), row.alte)
+                "chain {} and resid {} and altloc {}".format(
+                    row.chain, str(int(row.resid)), row.alte
+                )
             )
         except AttributeError:
             # Use ligand LIG instead of chain resid and alte
@@ -106,7 +108,7 @@ def update_from_pdb(pdb_df):
                     std_b = np.std(b)
 
         # Append information to row
-        #if len(resnames) == 1:
+        # if len(resnames) == 1:
         row["resname"] = resnames[0]
         row["B_mean"] = mean_b
         row["B_std"] = std_b
@@ -238,7 +240,6 @@ def get_resname_for_log_occ(log_occ_csv, log_occ_resname_csv):
         update_progress(float(pos) / float(len(log_df.pdb_latest.unique())))
         # Append to local storage
         log_df_list.append(pdb_df)
-
 
     log_occ_resname_df = pd.concat(log_df_list)
     log_occ_resname_df.to_csv(log_occ_resname_csv)

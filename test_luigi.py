@@ -6,6 +6,7 @@ from tasks.plotting import PlotConvergenceHistogram
 from tasks.plotting import PlotOccConvScatter
 from tasks.plotting import PlotGroundOccHistogram
 from tasks.plotting import PlotBoundOccHistogram
+from tasks.plotting import PlotConvergenceDistPlot
 from tasks.exhaustive import PlotHistExhaustiveOcc
 from tasks.exhaustive import PlotScatterExhaustiveOcc
 
@@ -112,9 +113,8 @@ luigi.build(
         #     script_path=test_paths.script_dir,
         #     #test=test,
         # ),
-
         PlotBoundOccHistogram(
-            occ_state_comment_csv = test_paths.occ_state_comment_csv,
+            occ_state_comment_csv=test_paths.occ_state_comment_csv,
             log_occ_resname=test_paths.log_occ_resname,
             log_occ_csv=test_paths.log_occ_csv,
             log_pdb_mtz_csv=test_paths.log_pdb_mtz,
@@ -124,7 +124,6 @@ luigi.build(
             refinement_type="superposed",
             refinement_program="refmac",
         )
-
         # These will also call/test:
         #
         # ResnameToOccLog
@@ -139,7 +138,21 @@ luigi.build(
         #     occ_correct_csv=test_paths.occ_correct_csv,
         #     plot_path=test_paths.convergence_histogram,
         #     script_path=test_paths.script_dir,
-        #     test=test,
+        #     refinement_type="superposed",
+        #     refinement_program="refmac"
+        # ),
+        #
+        # PlotConvergenceDistPlot(
+        #     occ_state_comment_csv=test_paths.occ_state_comment_csv,
+        #     occ_correct_csv_2=os.path.join(out_dir, "refmac_superposed_occ_correct.csv"),
+        #     log_occ_resname=test_paths.log_occ_resname,
+        #     log_occ_csv=test_paths.log_occ_csv,
+        #     log_pdb_mtz_csv=test_paths.log_pdb_mtz,
+        #     occ_correct_csv=test_paths.occ_correct_csv,
+        #     plot_path=os.path.join(out_dir, "convergence_kde_plot.png"),
+        #     script_path=test_paths.script_dir,
+        #     refinement_type="superposed",
+        #     refinement_program="refmac"
         # ),
         # PlotOccConvScatter(
         #     occ_state_comment_csv=test_paths.occ_state_comment_csv,

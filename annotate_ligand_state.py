@@ -329,7 +329,7 @@ def state_occupancies(occ_state_comment_csv, occ_correct_csv):
         str_cols = list(map(str, int_cols))
         int_pdb_df = pdb_df[str_cols]
         # Drops columns where there is no convergence information
-        int_pdb_df = int_pdb_df.dropna(axis='columns')
+        int_pdb_df = int_pdb_df.dropna(axis="columns")
 
         for col in int_pdb_df.columns.values:
             try:
@@ -337,7 +337,9 @@ def state_occupancies(occ_state_comment_csv, occ_correct_csv):
             except ValueError:
                 continue
         str_cols = list(map(str, int_cols))
-        pdb_df["converge"] = abs(int_pdb_df[str_cols[-1]] / int_pdb_df[str_cols[-2]] - 1)
+        pdb_df["converge"] = abs(
+            int_pdb_df[str_cols[-1]] / int_pdb_df[str_cols[-2]] - 1
+        )
 
         # Select the final occupancy value
         pdb_df["occupancy"] = int_pdb_df[str_cols[-1]]
@@ -345,12 +347,7 @@ def state_occupancies(occ_state_comment_csv, occ_correct_csv):
         print(int_pdb_df)
         print(pdb_df)
 
-
-
-        grouped = pdb_df.groupby(["complete group",
-                                  "occupancy",
-                                  "alte",
-                                  "state"])
+        grouped = pdb_df.groupby(["complete group", "occupancy", "alte", "state"])
 
         for name, group in grouped:
 
