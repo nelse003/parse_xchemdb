@@ -1,6 +1,11 @@
 import luigi
 from luigi.util import requires
-
+import seaborn as sns
+import pandas as pd
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
 
 from tasks.update_csv import StateOccupancyToCsv
 from tasks.update_csv import SummaryRefinement
@@ -12,7 +17,7 @@ from plotting import occupancy_histogram
 from plotting import occupancy_vs_convergence
 from plotting import convergence_ratio_histogram
 from plotting import convergence_ratio_kde_plot
-
+from plotting import get_state_df
 
 class PlotOccCorrect(luigi.Task):
 
@@ -263,6 +268,301 @@ class PlotOccConvScatter(PlotOccCorrect):
         occupancy_vs_convergence(
             occ_correct_csv=self.occ_correct_csv, plot_path=self.plot_path
         )
+
+class PlotOccKde(luigi.Task):
+    """
+    Plot Kernel density plots of occupancy
+
+    Attributes
+    ----------
+    refmac_occ_correct_csv : luigi.Parameter()
+        path to refmac occ correct csv file
+
+    refmac_superposed_occ_correct_csv : luigi.Parameter()
+        path to refmac superposed occ correct csv file
+
+    phenix_superposed_occ_correct_csv : luigi.Parameter()
+        path to phenix superposed occ correct csv file
+
+    phenix_occ_correct_csv: luigi.Parameter()
+        path to phenix occ correct csv file
+
+    buster_superposed_occ_correct_csv: luigi.Parameter()
+        path to buster superposed occ correct csv file
+
+    buster_occ_correct_csv: luigi.Parameter()
+        path to buster occ correct csv file
+
+    exhaustive_csv : luigi.Parameter()
+        path to exhaustive csv file
+
+    plot_path: luigi.Parameter()
+        path to output plot
+    """
+    refmac_occ_correct_csv = luigi.Parameter()
+    refmac_superposed_occ_correct_csv = luigi.Parameter()
+    phenix_superposed_occ_correct_csv = luigi.Parameter()
+    phenix_occ_correct_csv = luigi.Parameter()
+    buster_superposed_occ_correct_csv = luigi.Parameter()
+    buster_occ_correct_csv = luigi.Parameter()
+    exhaustive_csv = luigi.Parameter()
+
+    plot_path = luigi.Parameter()
+
+    def run(self):
+        refmac_df = pd.read_csv(self.refmac_occ_correct_csv )
+        refmac_superposed_df = pd.read_csv(self.refmac_superposed_occ_correct_csv)
+        phenix_df = pd.read_csv(self.phenix_occ_correct_csv)
+        phenix_superposed_df = pd.read_csv(self.phenix_superposed_occ_correct_csv)
+        buster_df = pd.read_csv(self.buster_occ_correct_csv)
+        buster_superposed_df = pd.read_csv(self.buster_superposed_occ_correct_csv)
+        exhaustive_df = pd.read_csv(self.exhaustive_csv)
+
+        refmac_superposed_state_df = get_state_df(occ_correct_df=refmac_superposed_df, state="bound")
+        refmac_superposed_occ = refmac_superposed_state_df["state occupancy"]
+
+        plt.xlim(0,1)
+
+        sns.kdeplot(refmac_superposed_occ, label="refmac superposed")
+        sns.kdeplot(refmac_df['occupancy'], label="refmac")
+        sns.kdeplot(phenix_df['occupancy'], label="phenix")
+        sns.kdeplot(buster_df['occupancy'], label="buster")
+        sns.kdeplot(phenix_superposed_df['occupancy'], label="phenix superposed")
+        sns.kdeplot(buster_superposed_df['occupancy'], label="buster superposed")
+        sns.kdeplot(exhaustive_df['occupancy'], label="exhaustive")
+
+        plt.savefig(self.plot_path)
+        plt.close()
+
+class PlotBKde(luigi.Task):
+    """
+    Plot Kernel density plots of B
+
+    Attributes
+    ----------
+    refmac_occ_correct_csv : luigi.Parameter()
+        path to refmac occ correct csv file
+
+    refmac_superposed_occ_correct_csv : luigi.Parameter()
+        path to refmac superposed occ correct csv file
+
+    phenix_superposed_occ_correct_csv : luigi.Parameter()
+        path to phenix superposed occ correct csv file
+
+    phenix_occ_correct_csv: luigi.Parameter()
+        path to phenix occ correct csv file
+
+    buster_superposed_occ_correct_csv: luigi.Parameter()
+        path to buster superposed occ correct csv file
+
+    buster_occ_correct_csv: luigi.Parameter()
+        path to buster occ correct csv file
+
+    exhaustive_csv : luigi.Parameter()
+        path to exhaustive csv file
+
+    plot_path: luigi.Parameter()
+        path to output plot
+    """
+    refmac_occ_correct_csv = luigi.Parameter()
+    refmac_superposed_occ_correct_csv = luigi.Parameter()
+    phenix_superposed_occ_correct_csv = luigi.Parameter()
+    phenix_occ_correct_csv = luigi.Parameter()
+    buster_superposed_occ_correct_csv = luigi.Parameter()
+    buster_occ_correct_csv = luigi.Parameter()
+    exhaustive_csv = luigi.Parameter()
+
+    plot_path = luigi.Parameter()
+
+    def run(self):
+        refmac_df = pd.read_csv(self.refmac_occ_correct_csv )
+        refmac_superposed_df = pd.read_csv(self.refmac_superposed_occ_correct_csv)
+        phenix_df = pd.read_csv(self.phenix_occ_correct_csv)
+        phenix_superposed_df = pd.read_csv(self.phenix_superposed_occ_correct_csv)
+        buster_df = pd.read_csv(self.buster_occ_correct_csv)
+        buster_superposed_df = pd.read_csv(self.buster_superposed_occ_correct_csv)
+        exhaustive_df = pd.read_csv(self.exhaustive_csv)
+
+        refmac_superposed_state_df = get_state_df(occ_correct_df=refmac_superposed_df, state="bound")
+
+        plt.ylabel("Density")
+        plt.xlabel("B Factor")
+
+        sns.kdeplot(refmac_superposed_state_df['B_mean'], label="REFMAC5 superposed")
+        sns.kdeplot(refmac_df['B_mean'], label="REFMAC5")
+        sns.kdeplot(phenix_df['B_mean'], label="phenix.refine")
+        sns.kdeplot(buster_df['B_mean'], label="buster refine")
+        sns.kdeplot(phenix_superposed_df['B_mean'], label="phenix.refine superposed")
+        sns.kdeplot(buster_superposed_df['B_mean'], label="buster superposed")
+        sns.kdeplot(exhaustive_df['b_factor'], label="exhaustive")
+
+        plt.savefig(self.plot_path, dpi=300)
+        plt.close()
+
+class PlotBViolin(luigi.Task):
+    """
+    Plot Kernel density plots of B
+
+    Attributes
+    ----------
+    refmac_occ_correct_csv : luigi.Parameter()
+        path to refmac occ correct csv file
+
+    refmac_superposed_occ_correct_csv : luigi.Parameter()
+        path to refmac superposed occ correct csv file
+
+    phenix_superposed_occ_correct_csv : luigi.Parameter()
+        path to phenix superposed occ correct csv file
+
+    phenix_occ_correct_csv: luigi.Parameter()
+        path to phenix occ correct csv file
+
+    buster_superposed_occ_correct_csv: luigi.Parameter()
+        path to buster superposed occ correct csv file
+
+    buster_occ_correct_csv: luigi.Parameter()
+        path to buster occ correct csv file
+
+    exhaustive_csv : luigi.Parameter()
+        path to exhaustive csv file
+
+    plot_path: luigi.Parameter()
+        path to output plot
+    """
+    refmac_occ_correct_csv = luigi.Parameter()
+    refmac_superposed_occ_correct_csv = luigi.Parameter()
+    phenix_superposed_occ_correct_csv = luigi.Parameter()
+    phenix_occ_correct_csv = luigi.Parameter()
+    buster_superposed_occ_correct_csv = luigi.Parameter()
+    buster_occ_correct_csv = luigi.Parameter()
+    exhaustive_csv = luigi.Parameter()
+
+    plot_path = luigi.Parameter()
+
+    def run(self):
+
+        refmac_df = pd.read_csv(self.refmac_occ_correct_csv )
+        refmac_superposed_df = pd.read_csv(self.refmac_superposed_occ_correct_csv)
+        phenix_df = pd.read_csv(self.phenix_occ_correct_csv)
+        phenix_superposed_df = pd.read_csv(self.phenix_superposed_occ_correct_csv)
+        buster_df = pd.read_csv(self.buster_occ_correct_csv)
+        buster_superposed_df = pd.read_csv(self.buster_superposed_occ_correct_csv)
+        exhaustive_df = pd.read_csv(self.exhaustive_csv, index_col=0)
+
+        refmac_superposed_state_df = get_state_df(occ_correct_df=refmac_superposed_df, state="bound")
+
+        fig = plt.subplots(figsize=(10,10))
+
+        b_dict = {}
+        b_dict["REFMAC5 superposed"] = refmac_superposed_state_df['B_mean']
+        b_dict["REFMAC5 "] = refmac_df['B_mean']
+        b_dict['phenix.refine'] = phenix_df['B_mean']
+        b_dict['phenix.refine superposed'] = phenix_superposed_df['B_mean']
+        b_dict['buster refine'] = buster_df['B_mean']
+        b_dict['buster refine superposed'] = buster_superposed_df['B_mean']
+        b_dict['exhaustive'] = exhaustive_df['b_factor']
+
+        b_df = pd.DataFrame.from_dict(b_dict)
+        # cut = 0 means no extrapolation from data
+        ax = sns.violinplot(data=b_df, cut=0)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=90, fontsize=16)
+        plt.yticks(fontsize=16)
+
+        ax.spines["right"].set_visible(False)
+        ax.spines["top"].set_visible(False)
+
+        plt.ylabel("B factor", fontsize=18)
+
+        plt.tight_layout()
+        plt.savefig(self.plot_path, dpi=300)
+        plt.close()
+
+
+class PlotOccViolin(luigi.Task):
+    """
+    Plot Kernel density plots of B
+
+    Attributes
+    ----------
+    refmac_occ_correct_csv : luigi.Parameter()
+        path to refmac occ correct csv file
+
+    refmac_superposed_occ_correct_csv : luigi.Parameter()
+        path to refmac superposed occ correct csv file
+
+    phenix_superposed_occ_correct_csv : luigi.Parameter()
+        path to phenix superposed occ correct csv file
+
+    phenix_occ_correct_csv: luigi.Parameter()
+        path to phenix occ correct csv file
+
+    buster_superposed_occ_correct_csv: luigi.Parameter()
+        path to buster superposed occ correct csv file
+
+    buster_occ_correct_csv: luigi.Parameter()
+        path to buster occ correct csv file
+
+    exhaustive_csv : luigi.Parameter()
+        path to exhaustive csv file
+
+    plot_path: luigi.Parameter()
+        path to output plot
+    """
+    refmac_occ_correct_csv = luigi.Parameter()
+    refmac_superposed_occ_correct_csv = luigi.Parameter()
+    phenix_superposed_occ_correct_csv = luigi.Parameter()
+    phenix_occ_correct_csv = luigi.Parameter()
+    buster_superposed_occ_correct_csv = luigi.Parameter()
+    buster_occ_correct_csv = luigi.Parameter()
+    exhaustive_csv = luigi.Parameter()
+
+    plot_path = luigi.Parameter()
+
+    def run(self):
+
+        refmac_df = pd.read_csv(self.refmac_occ_correct_csv )
+        refmac_superposed_df = pd.read_csv(self.refmac_superposed_occ_correct_csv)
+        phenix_df = pd.read_csv(self.phenix_occ_correct_csv)
+        phenix_superposed_df = pd.read_csv(self.phenix_superposed_occ_correct_csv)
+        buster_df = pd.read_csv(self.buster_occ_correct_csv)
+        buster_superposed_df = pd.read_csv(self.buster_superposed_occ_correct_csv)
+        exhaustive_df = pd.read_csv(self.exhaustive_csv, index_col=0)
+
+        refmac_superposed_state_df = get_state_df(occ_correct_df=refmac_superposed_df, state="bound")
+
+        fig = plt.subplots(figsize=(10,10))
+
+        occ_dict = {}
+        occ_dict["REFMAC5 superposed"] = refmac_superposed_state_df['state occupancy']
+        occ_dict["REFMAC5"] = refmac_df[refmac_df.occupancy <= 1.0]['occupancy']
+        occ_dict['phenix.refine'] = phenix_df['occupancy']
+        occ_dict['phenix.refine superposed'] = phenix_superposed_df['occupancy']
+        occ_dict['buster refine'] = buster_df['occupancy']
+        occ_dict['buster refine superposed'] = buster_superposed_df[buster_superposed_df.occupancy <= 1.0]['occupancy']
+        occ_dict['exhaustive'] = exhaustive_df['occupancy']
+
+        print("Refmac 5% {}".format(np.percentile(occ_dict["REFMAC5"],5)))
+        print("Refmac Superposed5% {}".format(np.percentile(occ_dict["REFMAC5 superposed"],5)))
+        print("Buster 5% {}".format(np.percentile(occ_dict["buster refine"], 5)))
+        print("Buster superposed 5% {}".format(np.percentile(occ_dict["buster refine superposed"], 5)))
+        print("phenix.refine 5% {}".format(np.percentile(occ_dict["phenix.refine"], 5)))
+        print("phenix.refine superposed 5% {}".format(np.percentile(occ_dict["phenix.refine superposed"], 5)))
+        print("exhaustive 5% {}".format(np.percentile(occ_dict["exhaustive"], 5)))
+
+        occ_df = pd.DataFrame.from_dict(occ_dict)
+
+        ax = sns.violinplot(data=occ_df,cut=0)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=90, fontsize=16)
+        plt.yticks(fontsize=16)
+
+        ax.spines["right"].set_visible(False)
+        ax.spines["top"].set_visible(False)
+
+        plt.ylabel("Occupancy", fontsize=18)
+
+        plt.tight_layout()
+        plt.savefig(self.plot_path, dpi=300)
+        plt.close()
 
 
 class PlotGroundOccHistogram(PlotOccCorrect):

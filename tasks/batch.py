@@ -11,6 +11,85 @@ import tasks.refinement
 import tasks.superposed_refinement
 import tasks.qsub
 
+class BatchEdstats(luigi.Task):
+    """
+    Run a Batch of Edstats jobs
+
+    Methods
+    ------------
+    output()
+        csv path to a csv summarising failures and
+        sucesses of jobs submitted to qsub
+
+    requires()
+        batch of QsubEdstats tasks
+
+    Attributes
+    --------------
+    output_csv: luigi.Parameter()
+        path to output csv
+    refinement_folder: luigi.Parameter()
+        path to refinement folder
+
+    Notes
+    -----
+    requires the failure and success event handlers
+    to be set on the success and failure csv write functions
+    """
+    output_csv = luigi.Parameter()
+    refinement_folder = luigi.Parameter()
+
+    def output(self):
+        return luigi.LocalTarget(self.output_csv)
+
+    def requires(self):
+        """
+        Batch of QSubEdstats task
+
+        Returns
+        -------
+
+        """
+        edstats_tasks=[]
+        # Loop over folders for refienemnts
+        for xtal_folder in os.listdir(self.refinement_folder):
+
+            pdb = None
+            mtz = None
+
+            print(os.path.join(self.refinement_folder, xtal_folder))
+
+            fol = os.path.join(self.refinement_folder, xtal_folder)
+
+            if os.path.isdir(fol):
+                for f in os.listdir(fol):
+                    if f == "refine.pdb":
+                        tmp_pdb = os.path.join(fol, "refine.pdb")
+                        if os.path.exists(tmp_pdb):
+                            pdb = tmp_pdb
+
+                    elif f == "refine.mtz":
+                        tmp_mtz = os.path.join(fol, "refine.mtz")
+                        if os.path.exists(tmp_mtz):
+                            mtz=tmp_mtz
+
+            # for when looping over crystal folders,
+            # may be extra files
+            else:
+                continue
+            # If pdb and mtz are not found
+            if None in (pdb, mtz):
+                continue
+
+            edstat_task = tasks.qsub.QsubEdstats(pdb=pdb,
+                                                 mtz=mtz,
+                                                 out_dir=fol,
+                                                 ccp4=Path().ccp4)
+
+            edstats_tasks.append(edstat_task)
+
+        return edstats_tasks
+
 
 class BatchRefinement(luigi.Task):
 
@@ -163,6 +242,7 @@ class BatchRefinement(luigi.Task):
 @tasks.qsub.QsubSuperposedRefinement.event_handler(luigi.Event.FAILURE)
 @tasks.refinement.PrepareRefinement.event_handler(luigi.Event.FAILURE)
 @tasks.qsub.QsubRefinement.event_handler(luigi.Event.FAILURE)
+@tasks.qsub.QsubEdstats.event_handler(luigi.Event.FAILURE)
 def failure_write_to_csv(task, exception):
     """
     If failure of task occurs, summarise in CSV
@@ -188,6 +268,7 @@ def failure_write_to_csv(task, exception):
 @tasks.qsub.QsubSuperposedRefinement.event_handler(luigi.Event.SUCCESS)
 @tasks.refinement.PrepareRefinement.event_handler(luigi.Event.SUCCESS)
 @tasks.qsub.QsubRefinement.event_handler(luigi.Event.SUCCESS)
+@tasks.qsub.QsubEdstats.event_handler(luigi.Event.SUCCESS)
 def success_write_to_csv(task):
     """
     If success of task occurs, summarise in CSV

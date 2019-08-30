@@ -7,10 +7,15 @@ from tasks.plotting import PlotOccConvScatter
 from tasks.plotting import PlotGroundOccHistogram
 from tasks.plotting import PlotBoundOccHistogram
 from tasks.plotting import PlotConvergenceDistPlot
+from tasks.plotting import PlotOccKde
+from tasks.plotting import PlotBKde
+from tasks.plotting import PlotBViolin
+from tasks.plotting import PlotOccViolin
 from tasks.exhaustive import PlotHistExhaustiveOcc
 from tasks.exhaustive import PlotScatterExhaustiveOcc
-
+from tasks.qsub import QsubEdstats
 from tasks.batch import BatchRefinement
+from tasks.batch import BatchEdstats
 from tasks.filesystem import RefinementFolderToCsv
 from tasks.update_csv import OccFromLog
 from tasks.database import ParseXchemdbToCsv
@@ -113,17 +118,95 @@ luigi.build(
         #     script_path=test_paths.script_dir,
         #     #test=test,
         # ),
-        PlotBoundOccHistogram(
-            occ_state_comment_csv=test_paths.occ_state_comment_csv,
-            log_occ_resname=test_paths.log_occ_resname,
-            log_occ_csv=test_paths.log_occ_csv,
-            log_pdb_mtz_csv=test_paths.log_pdb_mtz,
-            occ_correct_csv=test_paths.occ_correct_csv,
-            plot_path=os.path.join(out_dir, "pre_occ_bound_histogram.png"),
-            script_path=test_paths.script_dir,
-            refinement_type="superposed",
-            refinement_program="refmac",
-        )
+        # PlotBoundOccHistogram(
+        #     occ_state_comment_csv=test_paths.occ_state_comment_csv,
+        #     log_occ_resname=test_paths.log_occ_resname,
+        #     log_occ_csv=test_paths.log_occ_csv,
+        #     log_pdb_mtz_csv=test_paths.log_pdb_mtz,
+        #     occ_correct_csv=test_paths.occ_correct_csv,
+        #     plot_path=os.path.join(out_dir, "pre_occ_bound_histogram.png"),
+        #     script_path=test_paths.script_dir,
+        #     refinement_type="superposed",
+        #     refinement_program="refmac",
+        # )
+        # PlotOccKde(
+        #     refmac_occ_correct_csv = os.path.join(out_dir, "refmac_occ_correct.csv"),
+        #     refmac_superposed_occ_correct_csv = os.path.join(out_dir, "refmac_superposed_occ_correct.csv"),
+        #     phenix_superposed_occ_correct_csv = os.path.join(out_dir, "phenix_superposed_occ_correct.csv"),
+        #     phenix_occ_correct_csv = os.path.join(out_dir, "phenix_occ_correct.csv"),
+        #     buster_superposed_occ_correct_csv=os.path.join(out_dir, "buster_superposed_occ_correct.csv"),
+        #     buster_occ_correct_csv=os.path.join(out_dir, "buster_occ_correct.csv"),
+        #     exhaustive_csv = os.path.join(out_dir, "exhaustive_minima.csv"),
+        #     plot_path = os.path.join(out_dir, "occ_kde.png")
+        # ),
+        # PlotBKde(
+        #     refmac_occ_correct_csv = os.path.join(out_dir, "refmac_occ_correct.csv"),
+        #     refmac_superposed_occ_correct_csv = os.path.join(out_dir, "refmac_superposed_occ_correct.csv"),
+        #     phenix_superposed_occ_correct_csv = os.path.join(out_dir, "phenix_superposed_occ_correct.csv"),
+        #     phenix_occ_correct_csv = os.path.join(out_dir, "phenix_occ_correct.csv"),
+        #     buster_superposed_occ_correct_csv=os.path.join(out_dir, "buster_superposed_occ_correct.csv"),
+        #     buster_occ_correct_csv=os.path.join(out_dir, "buster_occ_correct.csv"),
+        #     exhaustive_csv = os.path.join(out_dir, "exhaustive_minima.csv"),
+        #     plot_path = os.path.join(out_dir, "B_kde.png")
+        # ),
+        # PlotBViolin(
+        #     refmac_occ_correct_csv = os.path.join(out_dir, "refmac_occ_correct.csv"),
+        #     refmac_superposed_occ_correct_csv = os.path.join(out_dir, "refmac_superposed_occ_correct.csv"),
+        #     phenix_superposed_occ_correct_csv = os.path.join(out_dir, "phenix_superposed_occ_correct.csv"),
+        #     phenix_occ_correct_csv = os.path.join(out_dir, "phenix_occ_correct.csv"),
+        #     buster_superposed_occ_correct_csv=os.path.join(out_dir, "buster_superposed_occ_correct.csv"),
+        #     buster_occ_correct_csv=os.path.join(out_dir, "buster_occ_correct.csv"),
+        #     exhaustive_csv = os.path.join(out_dir, "exhaustive_minima.csv"),
+        #     plot_path = os.path.join(out_dir, "B_violin.png")
+        # ),
+        # PlotOccViolin(
+        #     refmac_occ_correct_csv=os.path.join(out_dir, "refmac_occ_correct.csv"),
+        #     refmac_superposed_occ_correct_csv=os.path.join(out_dir, "refmac_superposed_occ_correct.csv"),
+        #     phenix_superposed_occ_correct_csv=os.path.join(out_dir, "phenix_superposed_occ_correct.csv"),
+        #     phenix_occ_correct_csv=os.path.join(out_dir, "phenix_occ_correct.csv"),
+        #     buster_superposed_occ_correct_csv=os.path.join(out_dir, "buster_superposed_occ_correct.csv"),
+        #     buster_occ_correct_csv=os.path.join(out_dir, "buster_occ_correct.csv"),
+        #     exhaustive_csv=os.path.join(out_dir, "exhaustive_minima.csv"),
+        #     plot_path=os.path.join(out_dir, "Occ_violin.png")
+        # ),
+        # QsubEdstats(pdb="/dls/science/groups/i04-1/elliot-dev/Work/"
+        #                 "exhaustive_parse_xchem_db/all_10_08_19/"
+        #                 "buster/ALAS2A-x1036/refine.pdb",
+        #             mtz="/dls/science/groups/i04-1/elliot-dev/Work/"
+        #                 "exhaustive_parse_xchem_db/all_10_08_19/"
+        #                 "buster/ALAS2A-x1036/refine.mtz",
+        #             out_dir="/dls/science/groups/i04-1/elliot-dev/Work/"
+        #                 "exhaustive_parse_xchem_db/all_10_08_19/"
+        #                 "buster/ALAS2A-x1036",
+        #             ccp4=Path().ccp4)
+        #
+        # BatchEdstats(output_csv=os.path.join(out_dir,"Buster_edstats.csv"),
+        #              refinement_folder=os.path.join(out_dir,"buster"))
+        #
+        # BatchEdstats(output_csv=os.path.join(out_dir,
+        #                                      "Buster_superposed_edstats.csv"),
+        #              refinement_folder=os.path.join(out_dir,"buster_superposed")),
+        #
+        # BatchEdstats(output_csv=os.path.join(out_dir,
+        #                                      "refmac_edstats.csv"),
+        #              refinement_folder=os.path.join(out_dir,
+        #                                             "bound_refinement")),
+        #
+        # BatchEdstats(output_csv=os.path.join(out_dir,
+        #                                      "refmac_superposed_edstats.csv"),
+        #              refinement_folder=os.path.join(out_dir,
+        #                                             "convergence_refinement")),
+        #
+        # BatchEdstats(output_csv=os.path.join(out_dir,
+        #                                      "phenix_edstats.csv"),
+        #              refinement_folder=os.path.join(out_dir,
+        #                                             "phenix")),
+        #
+        # BatchEdstats(output_csv=os.path.join(out_dir,
+        #                                      "phenix_superposed_edstats.csv"),
+        #              refinement_folder=os.path.join(out_dir,
+        #                                             "phenix_superposed")),
+        #
         # These will also call/test:
         #
         # ResnameToOccLog
@@ -188,56 +271,6 @@ luigi.build(
     local_scheduler=False,
     workers=100,
 )
-# luigi.build(
-#     [
-#         # These will also call/test:
-#         # ResnameToOccLog
-#         # OccFromLog
-#         # StateOccupancyToCsv
-#         PlotConvergenceHistogram(
-#             occ_state_comment_csv=test_paths.occ_state_comment_csv,
-#             log_occ_resname=test_paths.convergence_occ_resname,
-#             log_occ_csv=test_paths.convergence_occ,
-#             log_pdb_mtz_csv=test_paths.convergence_refinement,
-#             occ_correct_csv=test_paths.convergence_occ_correct,
-#             plot_path=test_paths.convergence_conv_hist,
-#             script_path=test_paths.script_dir,
-#             test=test,
-#         ),
-#         PlotOccConvScatter(
-#             occ_state_comment_csv=test_paths.occ_state_comment_csv,
-#             log_occ_resname=test_paths.convergence_occ_resname,
-#             log_occ_csv=test_paths.convergence_occ,
-#             log_pdb_mtz_csv=test_paths.convergence_refinement,
-#             occ_correct_csv=test_paths.convergence_occ_correct,
-#             plot_path=test_paths.convergence_occ_conv_scatter,
-#             script_path=test_paths.script_dir,
-#             test=test,
-#         ),
-#         PlotBoundOccHistogram(
-#             occ_state_comment_csv=test_paths.occ_state_comment_csv,
-#             log_occ_resname=test_paths.convergence_occ_resname,
-#             log_occ_csv=test_paths.convergence_occ,
-#             log_pdb_mtz_csv=test_paths.convergence_refinement,
-#             occ_correct_csv=test_paths.convergence_occ_correct,
-#             plot_path=test_paths.convergence_bound_hist,
-#             script_path=test_paths.script_dir,
-#             test=test,
-#         ),
-#         PlotGroundOccHistogram(
-#             occ_state_comment_csv=test_paths.occ_state_comment_csv,
-#             log_occ_resname=test_paths.convergence_occ_resname,
-#             log_occ_csv=test_paths.convergence_occ,
-#             log_pdb_mtz_csv=test_paths.convergence_refinement,
-#             occ_correct_csv=test_paths.convergence_occ_correct,
-#             plot_path=test_paths.convergence_ground_hist,
-#             script_path=test_paths.script_dir,
-#             test=test,
-#         ),
-#     ],
-#     local_scheduler=False,
-#     workers=20,
-# )
 
 luigi.build(
     [
