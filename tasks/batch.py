@@ -10,6 +10,75 @@ from path_config import Path
 import tasks.refinement
 import tasks.superposed_refinement
 import tasks.qsub
+from tasks.qsub import QsubMinimaPdb
+
+
+class BatchMinima(luigi.Task):
+    """
+    Run an batch of convert exhasutive minima to pdb tasks
+
+    Methods
+    ------------
+    output()
+        csv path to a csv summarising failures and
+        sucesses of jobs submitted to qsub
+
+    requires()
+        batch of QsubMinimaPdbTasks
+
+    """
+    output_csv = luigi.Parameter()
+    refinement_folder = luigi.Parameter()
+
+    def output(self):
+        return luigi.LocalTarget(self.output_csv)
+
+    def requires(self):
+        """
+        Batch of QSubEdstats task
+
+        Returns
+        -------
+
+        """
+        minima_tasks=[]
+        # Loop over folders for refienemnts
+        for xtal_folder in os.listdir(self.refinement_folder):
+
+            pdb = None
+
+            fol = os.path.join(self.refinement_folder, xtal_folder)
+
+            output_pdb = os.path.join(fol,"refine.pdb")
+            csv_name = os.path.join(fol,"exhaustive_search.csv")
+
+            if os.path.isdir(fol):
+                for f in os.listdir(fol):
+                    if f == "input.pdb":
+                        tmp_pdb = os.path.join(fol, "input.pdb")
+                        if os.path.exists(tmp_pdb):
+                            pdb = tmp_pdb
+
+            # for when looping over crystal folders,
+            # may be extra files
+            else:
+                continue
+            # If pdb and mtz are not found
+            if pdb is None:
+                continue
+
+            task = QsubMinimaPdb(input_pdb=pdb,
+                                 output_pdb=output_pdb,
+                                 csv_name=csv_name)
+
+            # If QsubMinma task already completed
+            if os.path.exists(output_pdb):
+                continue
+
+            minima_tasks.append(task)
+
+        return minima_tasks
+
 
 class BatchEdstats(luigi.Task):
     """
@@ -243,6 +312,7 @@ class BatchRefinement(luigi.Task):
 @tasks.refinement.PrepareRefinement.event_handler(luigi.Event.FAILURE)
 @tasks.qsub.QsubRefinement.event_handler(luigi.Event.FAILURE)
 @tasks.qsub.QsubEdstats.event_handler(luigi.Event.FAILURE)
+@tasks.qsub.QsubMinimaPdb.event_handler(luigi.Event.FAILURE)
 def failure_write_to_csv(task, exception):
     """
     If failure of task occurs, summarise in CSV
@@ -269,6 +339,7 @@ def failure_write_to_csv(task, exception):
 @tasks.refinement.PrepareRefinement.event_handler(luigi.Event.SUCCESS)
 @tasks.qsub.QsubRefinement.event_handler(luigi.Event.SUCCESS)
 @tasks.qsub.QsubEdstats.event_handler(luigi.Event.SUCCESS)
+@tasks.qsub.QsubMinimaPdb.event_handler(luigi.Event.SUCCESS)
 def success_write_to_csv(task):
     """
     If success of task occurs, summarise in CSV

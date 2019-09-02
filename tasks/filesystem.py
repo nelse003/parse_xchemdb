@@ -1,3 +1,5 @@
+import os
+import pandas as pd
 import luigi
 from luigi.util import requires
 
@@ -5,7 +7,7 @@ from utils.filesystem import parse_refinement_folder
 
 import tasks.batch
 
-@requires(tasks.batch.BatchEdstats)
+#@requires(tasks.batch.BatchEdstats)
 class SummariseEdstats(luigi.Task):
     """Bring all edstats into single file
 
@@ -22,22 +24,26 @@ class SummariseEdstats(luigi.Task):
     refinement_folder: luigi.Parameter()
         path to refinement folder
     """
+    summary_csv = luigi.Parameter()
+    refinement_folder = luigi.Parameter()
 
     def output(self):
-        return luigi.Target(self.summary_csv)
+        return luigi.LocalTarget(self.summary_csv)
 
     def run(self):
         edstats_results = []
         for xtal_folder in os.listdir(self.refinement_folder):
 
             edstats_csv = os.path.join(self.refinement_folder,
-                                           xtal_folder,
-                                           "residue_scores.csv")
+                                       xtal_folder,
+                                       "residue_scores.csv")
+
             if os.path.exists(edstats_csv):
-                edstats_results.append(pd.read_csv(edstat_csv))
+                edstats_results.append(pd.read_csv(edstats_csv))
 
         edstats_summary_df = pd.concat(edstats_results)
         edstats_summary_df.to_csv(self.summary_csv)
+
 
 @requires(tasks.batch.BatchRefinement)
 class RefinementFolderToCsv(luigi.Task):

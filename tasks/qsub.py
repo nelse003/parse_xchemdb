@@ -1,3 +1,4 @@
+import sys
 import os
 import luigi
 import time
@@ -8,6 +9,9 @@ from path_config import Path
 
 import tasks.refinement
 import tasks.superposed_refinement
+
+
+sys.path.append("/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_search")
 
 class QsubTask(luigi.Task):
     """
@@ -29,9 +33,77 @@ class QsubTask(luigi.Task):
 
         return queue_jobs
 
+
+class QsubMinimaPdb(QsubTask):
+    """
+    Task for submission of turning exhasutive minima csv into pdb
+    """
+    input_pdb = luigi.Parameter()
+    output_pdb = luigi.Parameter()
+    csv_name = luigi.Parameter()
+
+    def output(self):
+        return luigi.LocalTarget(self.output_pdb)
+
+    def run(self):
+
+        minima_py = "/dls/science/groups/i04-1/elliot-dev/" \
+                    "Work/exhaustive_search/exhaustive/utils/minima.py"
+
+        queue_jobs = self.get_queue_jobs()
+
+        cmd = "ccp4-python {minima_py} --input_pdb {input_pdb} " \
+              "--output_pdb {output_pdb} --csv_name {csv_name}".format(
+            minima_py=minima_py,
+            input_pdb=self.input_pdb,
+            output_pdb=self.output_pdb,
+            csv_name=self.csv_name)
+
+        if not os.path.isfile(self.output_pdb):
+
+            job = os.path.join(os.path.dirname(self.output_pdb), "minima.csh")
+            job_file = os.path.basename(str(job))
+
+            with open(job,'w') as f:
+                f.write("source {ccp4}\n".format(ccp4=Path().ccp4))
+                f.write(cmd)
+
+            if job_file not in queue_jobs and not self.submitted:
+                submit_job(job_directory=os.path.dirname(self.output_pdb),
+                            job_script=job_file)
+                self.submitted = True
+
+                print(
+                    "The job had no output, and was not found to be running "
+                    "in the queue. The job has been submitted. "
+                )
+
+            # Run until job complete
+            time.sleep(5)
+            queue_jobs = self.get_queue_jobs()
+            if job_file in queue_jobs:
+                time.sleep(30)
+                self.run()
+
+
 class QsubEdstats(QsubTask):
     """
-    Task for submission of Edstats
+    Task for submission of giant.score_model Edstats
+
+    Atrributes
+    -----------
+    pdb: luigi.Parameter()
+        path to pdb file
+
+    mtz: luigi.Parameter()
+        path to mtz file
+
+    out_dir: luigi.Parameter()
+        path to output directory
+
+    ccp4: luigi.Parameter()
+        path to source ccp4 from
+
     """
     pdb = luigi.Parameter()
     mtz = luigi.Parameter()
@@ -39,8 +111,8 @@ class QsubEdstats(QsubTask):
     ccp4 = luigi.Parameter()
 
     def output(self):
-        output_csv = os.path.join(self.out_dir, "residue_scores.csv")
-        return luigi.LocalTarget(output_csv)
+        csv = os.path.join(self.out_dir, "residue_scores.csv")
+        return luigi.LocalTarget(csv)
 
     def run(self):
 
@@ -168,7 +240,8 @@ class QsubRefinementTask(QsubTask):
             # Check whether <crystal_name>.csh is running in queue,
             # If not submit job to queue
             if job_file not in queue_jobs and not self.submitted:
-                submit_job(job_directory=Path().tmp_dir, job_script=job_file)
+                submit_job(job_directory=Path().tmp_dir,
+                           job_script=job_file)
 
                 # If the job has already been submitted then change flag
                 # This means recursion only loops until job is finished

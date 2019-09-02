@@ -14,12 +14,15 @@ from tasks.plotting import PlotOccViolin
 from tasks.exhaustive import PlotHistExhaustiveOcc
 from tasks.exhaustive import PlotScatterExhaustiveOcc
 from tasks.qsub import QsubEdstats
+from tasks.qsub import QsubMinimaPdb
 from tasks.batch import BatchRefinement
 from tasks.batch import BatchEdstats
+from tasks.batch import BatchMinima
 from tasks.filesystem import RefinementFolderToCsv
 from tasks.update_csv import OccFromLog
 from tasks.database import ParseXchemdbToCsv
 from tasks.exhaustive import ExhaustiveOcc
+from tasks.filesystem import SummariseEdstats
 
 from path_config import Path
 
@@ -182,31 +185,122 @@ luigi.build(
         #
         # BatchEdstats(output_csv=os.path.join(out_dir,"Buster_edstats.csv"),
         #              refinement_folder=os.path.join(out_dir,"buster"))
+
+        # SummariseEdstats(output_csv=os.path.join(out_dir,
+        #                                          "buster_edstats.csv"),
+        #
+        #                  refinement_folder=os.path.join(out_dir,
+        #                                             "buster"),
+        #
+        #                  summary_csv=os.path.join(out_dir,
+        #                                           "buster_"
+        #                                           "edstats_summary.csv")),
+
         #
         # BatchEdstats(output_csv=os.path.join(out_dir,
         #                                      "Buster_superposed_edstats.csv"),
         #              refinement_folder=os.path.join(out_dir,"buster_superposed")),
+
+        # SummariseEdstats(output_csv=os.path.join(out_dir,
+        #                                          "buster_superposed_edstats.csv"),
+        #
+        #                  refinement_folder=os.path.join(out_dir,
+        #                                                 "buster_superposed"),
+        #
+        #                  summary_csv=os.path.join(out_dir,
+        #                                           "buster_superposed_"
+        #                                           "edstats_summary.csv")),
+
         #
         # BatchEdstats(output_csv=os.path.join(out_dir,
         #                                      "refmac_edstats.csv"),
         #              refinement_folder=os.path.join(out_dir,
         #                                             "bound_refinement")),
+
+        # SummariseEdstats(output_csv=os.path.join(out_dir,
+        #                                          "refmac_edstats.csv"),
+        #
+        #                  refinement_folder=os.path.join(out_dir,
+        #                                                 "refmac"),
+        #
+        #                  summary_csv=os.path.join(out_dir,
+        #                                           "refmac_"
+        #                                           "edstats_summary.csv")),
+
         #
         # BatchEdstats(output_csv=os.path.join(out_dir,
         #                                      "refmac_superposed_edstats.csv"),
         #              refinement_folder=os.path.join(out_dir,
         #                                             "convergence_refinement")),
+
+        # SummariseEdstats(output_csv=os.path.join(out_dir,
+        #                                          "refmac_superposed_edstats.csv"),
+        #
+        #                  refinement_folder=os.path.join(out_dir,
+        #                                                 "refmac_superposed"),
+        #
+        #                  summary_csv=os.path.join(out_dir,
+        #                                           "refmac_superposed_"
+        #                                           "edstats_summary.csv")),
+
         #
         # BatchEdstats(output_csv=os.path.join(out_dir,
         #                                      "phenix_edstats.csv"),
         #              refinement_folder=os.path.join(out_dir,
         #                                             "phenix")),
+
+        # SummariseEdstats(output_csv=os.path.join(out_dir,
+        #                                          "phenix_edstats.csv"),
+        #
+        #                  refinement_folder=os.path.join(out_dir,
+        #                                                 "phenix"),
+        #
+        #                  summary_csv=os.path.join(out_dir,
+        #                                           "phenix_"
+        #                                           "edstats_summary.csv")),
+
         #
         # BatchEdstats(output_csv=os.path.join(out_dir,
         #                                      "phenix_superposed_edstats.csv"),
         #              refinement_folder=os.path.join(out_dir,
         #                                             "phenix_superposed")),
+
+        # SummariseEdstats(output_csv=os.path.join(out_dir,
+        #                                          "phenix_superposed_edstats.csv"),
         #
+        #                  refinement_folder=os.path.join(out_dir,
+        #                                                 "phenix_superposed"),
+        #
+        #                  summary_csv=os.path.join(out_dir,
+        #                                           "phenix_superposed_"
+        #                                           "edstats_summary.csv")),
+        # BatchMinima(output_csv=os.path.join(
+        #     out_dir, "exhaustive_write_pdb_sumamry.csv"),
+        #             refinement_folder=os.path.join(
+        #     out_dir, "exhaustive")),
+
+        # ,
+        #
+        #                  ,
+        #
+        #
+        SummariseEdstats(refinement_folder=os.path.join(out_dir,
+                                                       "exhaustive"),
+                         summary_csv=os.path.join(out_dir,
+                                                  "exhaustive_"
+                                                  "edstats_summary.csv"),),
+                         # output_csv=os.path.join(out_dir, "exhasutive_edstats.csv")),
+
+        # This is required to get suitable mtz files for exhaustive pdb files
+        # to run giant.score_model
+        # BatchRefinement(output_csv=os.path.join(out_dir,"batch_refine_zero_cycle_exhaustive.csv"),
+        #     out_dir=os.path.join(out_dir,"exhaustive"),
+        #     tmp_dir=test_paths.tmp_dir,
+        #     extra_params="NCYC 0",
+        #     log_pdb_mtz_csv=test_paths.log_pdb_mtz,
+        #     refinement_program="refmac",
+        #     refinement_type="superposed"),
+
         # These will also call/test:
         #
         # ResnameToOccLog
