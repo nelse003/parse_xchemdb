@@ -13,7 +13,7 @@ import tasks.qsub
 from tasks.qsub import QsubMinimaPdb
 
 
-class BatchMinima(luigi.Task):
+class BatchExhaustiveMinimaToPdb(luigi.Task):
     """
     Run an batch of convert exhasutive minima to pdb tasks
 
@@ -29,6 +29,7 @@ class BatchMinima(luigi.Task):
     """
     output_csv = luigi.Parameter()
     refinement_folder = luigi.Parameter()
+    overwrite = luigi.Parameter(default=False)
 
     def output(self):
         return luigi.LocalTarget(self.output_csv)
@@ -51,6 +52,9 @@ class BatchMinima(luigi.Task):
 
             output_pdb = os.path.join(fol,"refine.pdb")
             csv_name = os.path.join(fol,"exhaustive_search.csv")
+
+            if not self.overwrite and os.path.exists(csv_name):
+                continue
 
             if os.path.isdir(fol):
                 for f in os.listdir(fol):

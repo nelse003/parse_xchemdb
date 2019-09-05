@@ -51,11 +51,15 @@ def find_all_exhaustive_minima(out_dir, in_csv, out_csv):
                 df = pd.read_csv(
                     xtal_csv,
                     header=None,
-                    names=["bound_occupancy", "ground_occupancy", "u_iso", "fo_fc"],
+                    names=["bound_occupancy",
+                           "ground_occupancy",
+                           "u_iso",
+                           "fo_fc"],
                 )
                 # print(df)
                 index_to_drop = df[(df.bound_occupancy > 1.00)].index
-                df.drop(index_to_drop, inplace=True)
+                df.drop(index_to_drop,
+                        inplace=True)
 
                 xtal = xtal_dir
                 occ = df.loc[df["fo_fc"].idxmin()]["bound_occupancy"]

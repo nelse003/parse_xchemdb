@@ -17,17 +17,19 @@ from tasks.qsub import QsubEdstats
 from tasks.qsub import QsubMinimaPdb
 from tasks.batch import BatchRefinement
 from tasks.batch import BatchEdstats
-from tasks.batch import BatchMinima
+from tasks.batch import BatchExhaustiveMinimaToPdb
 from tasks.filesystem import RefinementFolderToCsv
 from tasks.update_csv import OccFromLog
 from tasks.database import ParseXchemdbToCsv
 from tasks.exhaustive import ExhaustiveOcc
 from tasks.filesystem import SummariseEdstats
+from tasks.plotting import PlotEdstatMetric
 
 from path_config import Path
 
 out_dir = (
-    "/dls/science/groups/i04-1/elliot-dev/Work/exhaustive_parse_xchem_db/all_10_08_19/"
+    "/dls/science/groups/i04-1/elliot-dev/Work/"
+    "exhaustive_parse_xchem_db/all_10_08_19/"
 )
 
 # Paths for analysing original refinements
@@ -97,6 +99,8 @@ test_paths.bound_refinement = os.path.join(out_dir, "bound_refinement_log_pdb_mt
 # test = "ACVR1A-x1242"
 # test = "TBXTA-x0992"
 
+
+
 luigi.build(
     [
         # Analyse existing refinements
@@ -132,46 +136,7 @@ luigi.build(
         #     refinement_type="superposed",
         #     refinement_program="refmac",
         # )
-        # PlotOccKde(
-        #     refmac_occ_correct_csv = os.path.join(out_dir, "refmac_occ_correct.csv"),
-        #     refmac_superposed_occ_correct_csv = os.path.join(out_dir, "refmac_superposed_occ_correct.csv"),
-        #     phenix_superposed_occ_correct_csv = os.path.join(out_dir, "phenix_superposed_occ_correct.csv"),
-        #     phenix_occ_correct_csv = os.path.join(out_dir, "phenix_occ_correct.csv"),
-        #     buster_superposed_occ_correct_csv=os.path.join(out_dir, "buster_superposed_occ_correct.csv"),
-        #     buster_occ_correct_csv=os.path.join(out_dir, "buster_occ_correct.csv"),
-        #     exhaustive_csv = os.path.join(out_dir, "exhaustive_minima.csv"),
-        #     plot_path = os.path.join(out_dir, "occ_kde.png")
-        # ),
-        # PlotBKde(
-        #     refmac_occ_correct_csv = os.path.join(out_dir, "refmac_occ_correct.csv"),
-        #     refmac_superposed_occ_correct_csv = os.path.join(out_dir, "refmac_superposed_occ_correct.csv"),
-        #     phenix_superposed_occ_correct_csv = os.path.join(out_dir, "phenix_superposed_occ_correct.csv"),
-        #     phenix_occ_correct_csv = os.path.join(out_dir, "phenix_occ_correct.csv"),
-        #     buster_superposed_occ_correct_csv=os.path.join(out_dir, "buster_superposed_occ_correct.csv"),
-        #     buster_occ_correct_csv=os.path.join(out_dir, "buster_occ_correct.csv"),
-        #     exhaustive_csv = os.path.join(out_dir, "exhaustive_minima.csv"),
-        #     plot_path = os.path.join(out_dir, "B_kde.png")
-        # ),
-        # PlotBViolin(
-        #     refmac_occ_correct_csv = os.path.join(out_dir, "refmac_occ_correct.csv"),
-        #     refmac_superposed_occ_correct_csv = os.path.join(out_dir, "refmac_superposed_occ_correct.csv"),
-        #     phenix_superposed_occ_correct_csv = os.path.join(out_dir, "phenix_superposed_occ_correct.csv"),
-        #     phenix_occ_correct_csv = os.path.join(out_dir, "phenix_occ_correct.csv"),
-        #     buster_superposed_occ_correct_csv=os.path.join(out_dir, "buster_superposed_occ_correct.csv"),
-        #     buster_occ_correct_csv=os.path.join(out_dir, "buster_occ_correct.csv"),
-        #     exhaustive_csv = os.path.join(out_dir, "exhaustive_minima.csv"),
-        #     plot_path = os.path.join(out_dir, "B_violin.png")
-        # ),
-        # PlotOccViolin(
-        #     refmac_occ_correct_csv=os.path.join(out_dir, "refmac_occ_correct.csv"),
-        #     refmac_superposed_occ_correct_csv=os.path.join(out_dir, "refmac_superposed_occ_correct.csv"),
-        #     phenix_superposed_occ_correct_csv=os.path.join(out_dir, "phenix_superposed_occ_correct.csv"),
-        #     phenix_occ_correct_csv=os.path.join(out_dir, "phenix_occ_correct.csv"),
-        #     buster_superposed_occ_correct_csv=os.path.join(out_dir, "buster_superposed_occ_correct.csv"),
-        #     buster_occ_correct_csv=os.path.join(out_dir, "buster_occ_correct.csv"),
-        #     exhaustive_csv=os.path.join(out_dir, "exhaustive_minima.csv"),
-        #     plot_path=os.path.join(out_dir, "Occ_violin.png")
-        # ),
+
         # QsubEdstats(pdb="/dls/science/groups/i04-1/elliot-dev/Work/"
         #                 "exhaustive_parse_xchem_db/all_10_08_19/"
         #                 "buster/ALAS2A-x1036/refine.pdb",
@@ -274,22 +239,27 @@ luigi.build(
         #                  summary_csv=os.path.join(out_dir,
         #                                           "phenix_superposed_"
         #                                           "edstats_summary.csv")),
-        # BatchMinima(output_csv=os.path.join(
-        #     out_dir, "exhaustive_write_pdb_sumamry.csv"),
-        #             refinement_folder=os.path.join(
-        #     out_dir, "exhaustive")),
 
         # ,
         #
         #                  ,
         #
         #
-        SummariseEdstats(refinement_folder=os.path.join(out_dir,
-                                                       "exhaustive"),
-                         summary_csv=os.path.join(out_dir,
-                                                  "exhaustive_"
-                                                  "edstats_summary.csv"),),
-                         # output_csv=os.path.join(out_dir, "exhasutive_edstats.csv")),
+
+
+        # PlotRSCC(exhaustive_csv=os.path.join(out_dir, "exhaustive_minima.csv"),
+        #          exhaustive_edstats_csv=os.path.join(out_dir,
+        #                                           "exhaustive_"
+        #                                           "edstats_summary.csv"),
+        #          plot_path=os.path.join(out_dir, "RSCC_OCC_exhaustive.png"))
+
+
+
+        # Convert exhaustive result into pdb file
+        # BatchExhaustiveMinimaToPdb(output_csv=os.path.join(
+        #     out_dir, "exhaustive_write_pdb_sumamry.csv"),
+        #             refinement_folder=os.path.join(
+        #     out_dir, "exhaustive")),
 
         # This is required to get suitable mtz files for exhaustive pdb files
         # to run giant.score_model
@@ -300,6 +270,19 @@ luigi.build(
         #     log_pdb_mtz_csv=test_paths.log_pdb_mtz,
         #     refinement_program="refmac",
         #     refinement_type="superposed"),
+
+        # Get the
+        # BatchEdstats(output_csv=os.path.join(out_dir,
+        #                                      "exhaustive_edstats.csv"),
+        #              refinement_folder=os.path.join(out_dir,
+        #                                             "exhaustive")),
+
+        # SummariseEdstats(refinement_folder=os.path.join(out_dir,
+        #                                                "exhaustive"),
+        #                  edstats_csv=os.path.join(out_dir,
+        #                                           "exhaustive_"
+        #                                           "edstats_summary.csv"),),
+
 
         # These will also call/test:
         #

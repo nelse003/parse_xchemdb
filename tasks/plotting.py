@@ -1,15 +1,21 @@
 import luigi
-from luigi.util import requires
-import seaborn as sns
-import pandas as pd
 import matplotlib
+import os
+import pandas as pd
+import seaborn as sns
+from luigi.util import requires
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+import itertools
+import seaborn as sns
 
 from tasks.update_csv import StateOccupancyToCsv
 from tasks.update_csv import SummaryRefinement
 from tasks.update_csv import OccFromPdb
+
+from tasks.filesystem import SummariseEdstats
 
 from plotting import refinement_summary_plot
 from plotting import occupancy_histogram_from_state_occ
@@ -19,8 +25,8 @@ from plotting import convergence_ratio_histogram
 from plotting import convergence_ratio_kde_plot
 from plotting import get_state_df
 
-class PlotOccCorrect(luigi.Task):
 
+class PlotOccCorrect(luigi.Task):
     # TODO Consder making requires more broad,
     #      allowing any task with sufficient columns
     #      in output table?
@@ -220,6 +226,225 @@ class PlotConvergenceDistPlot(PlotOccCorrect):
         )
 
 
+class PlotEdstatsDistPlot(luigi.Task):
+    """
+    Plot distplot of all methods for metric
+    """
+    metric = luigi.Parameter()
+    plot_path = luigi.Parameter()
+    out_dir = luigi.Parameter()
+    xlim = luigi.Parameter(default=None)
+
+    def run(self):
+
+        if not os.path.exists(self.out_dir):
+            os.makedirs(self.out_dir)
+
+        if not os.path.exists(os.path.dirname(self.plot_path)):
+            os.makedirs(os.path.dirname(self.plot_path))
+
+        method_dict = {
+            'refmac_superposed': 'convergence_refinement',
+            'refmac': 'bound_refinement',
+            'phenix': 'phenix',
+            'phenix_superposed': 'phenix_superposed',
+            'buster': 'buster',
+            'buster_superposed': 'buster_superposed',
+            'exhaustive': 'exhaustive',
+        }
+        fig, ax = plt.subplots()
+
+        metric_dfs = {}
+        for method in method_dict.keys():
+
+            # issue with RSZD plots
+            if self.metric == "RSZD":
+                if "superposed" in method or "exhaustive" in method:
+                    continue
+
+            edstats_csv = os.path.join(self.out_dir,
+                                       "{method}_edstats.csv".format(
+                                           method=method))
+
+            edstats_df = pd.read_csv(edstats_csv)
+
+
+            if self.xlim is not None:
+                plt.xlim(self.xlim)
+
+            ax.spines["right"].set_visible(False)
+            ax.spines["top"].set_visible(False)
+
+            metric_dfs[method] = edstats_df[self.metric]
+
+            if self.metric == 'Surroundings B-factor Ratio':
+                sns.kdeplot(edstats_df[self.metric].dropna(),
+                            gridsize=1000,
+                            label=method.replace('_', ' '))
+                plt.axvline(x=1,
+                            linestyle='--',
+                            color='k',
+                            linewidth=0.5)
+                plt.text(x=0.70,
+                         y=2.55,
+                         s="Acceptable\ncutoff\nNear 1.0",
+                         multialignment='center',
+                         fontsize=10)
+
+            elif self.metric == "RSZD":
+                pass
+            else:
+                sns.distplot(edstats_df[self.metric].dropna(),
+                             hist=False,
+                             label=method.replace('_', ' '))
+
+
+            plt.ylabel('Density')
+
+            if self.metric == "RSCC":
+                plt.axvline(x=0.7,
+                            linestyle='--',
+                            color='k',
+                            linewidth=0.5)
+                plt.text(x=0.72,
+                         y=5.0,
+                         s="Acceptable\ncutoff\n$>$ 0.7",
+                         fontsize=10)
+
+            if self.metric == "RSZO/OCC":
+                plt.axvline(x=2,
+                            linestyle='--',
+                            color='k',
+                            linewidth=0.5)
+                plt.text(x=2.05,
+                         y=0.55,
+                         s="Acceptable\ncutoff\n$>$ 2.0",
+                         fontsize=10,
+                         multialignment='left')
+
+        if self.metric == "RSZD":
+
+            plt.hist(
+                metric_dfs.values(),
+                label = metric_dfs.keys(),
+                alpha=0.5,
+                bins=100,
+                density=True,
+                color=[sns.color_palette()[1],
+                       sns.color_palette()[2],
+                       sns.color_palette()[4]]
+                     )
+
+            plt.axvline(x=3,
+                        linestyle='--',
+                        color='k',
+                        linewidth=0.5)
+
+            plt.text(x=2.30,
+                     y=0.35,
+                     s="Acceptable\ncutoff\n3.0 $<$",
+                     fontsize=10,
+                     multialignment='right')
+
+            plt.xlabel("RSZD")
+            plt.legend()
+
+        plt.savefig(self.plot_path, dpi=300)
+
+
+class PlotEdstats(luigi.Task):
+    """
+    Plot multiple instances of PlotEdstatsMetrics
+    """
+    out_dir = luigi.Parameter()
+
+    def requires(self):
+        x_metrics = ['Occupancy',
+                     'Average B-factor (Residue)',
+                     'Surroundings B-factor Ratio']
+        y_metrics = ['RSCC', 'RSZO', 'RSZO/OCC', 'RSZD']
+
+        # method : folder
+        method_dict = {
+            'refmac_superposed': 'convergence_refinement',
+            'refmac': 'bound_refinement',
+            'phenix': 'phenix',
+            'phenix_superposed': 'phenix_superposed',
+            'buster': 'buster',
+            'buster_superposed': 'buster_superposed',
+            'exhaustive': 'exhaustive',
+        }
+        tasks = []
+        for plot_metric in itertools.product(method_dict.items(),
+                                             x_metrics,
+                                             y_metrics):
+            task = PlotEdstatMetric(
+                edstats_csv=os.path.join(self.out_dir,
+                                         "{method}_edstats.csv".format(method=plot_metric[0][0])),
+                x_metric=plot_metric[1],
+                y_metric=plot_metric[2],
+                refinement_folder=plot_metric[0][1],
+                plot_path=os.path.join(self.out_dir,
+                                       "edstats_figures",
+                                       "{method}_{x_metric}_{y_metric}.png".format(
+                                           method=plot_metric[0][0],
+                                           x_metric=plot_metric[1],
+                                           y_metric=plot_metric[2].replace('/', '_'))
+                                       )
+            )
+            tasks.append(task)
+
+        return tasks
+
+
+@requires(SummariseEdstats)
+class PlotEdstatMetric(luigi.Task):
+    """
+    Plot edstats metrics with marginal distributions on scatterplot
+
+    Methods
+    -------------
+    run()
+        plot occ vs RSCC
+
+    Attributes
+    -------------
+    summary_csv : luigi.Parameter()
+        path to exhaustive csv file
+
+    edstats_csv: luigi.Parameter()
+        path to edstats summary from edstats
+
+    plot_path: luigi.Parameter()
+        path to output plot
+
+    x_metric: luigi.Parameter()
+        metric used on x axis
+
+    y_metric: luigi.Parameter()
+        metric used on y axis
+    """
+    edstats_csv = luigi.Parameter()
+    plot_path = luigi.Parameter()
+    y_metric = luigi.Parameter()
+    x_metric = luigi.Parameter()
+
+    def run(self):
+        edstats_df = pd.read_csv(self.edstats_csv, index_col=0)
+
+        g = sns.JointGrid(x=edstats_df[self.x_metric],
+                          y=edstats_df[self.y_metric])
+
+        g = g.plot_marginals(sns.distplot,
+                             color='black',
+                             kde=True,
+                             hist=False)
+
+        g = g.plot_joint(plt.scatter, alpha=0.5)
+
+        plt.savefig(self.plot_path)
+
+
 class PlotOccConvScatter(PlotOccCorrect):
     """
     Plots a scatter plot of convergence ratios occupancy:
@@ -269,6 +494,7 @@ class PlotOccConvScatter(PlotOccCorrect):
             occ_correct_csv=self.occ_correct_csv, plot_path=self.plot_path
         )
 
+
 class PlotOccKde(luigi.Task):
     """
     Plot Kernel density plots of occupancy
@@ -310,7 +536,7 @@ class PlotOccKde(luigi.Task):
     plot_path = luigi.Parameter()
 
     def run(self):
-        refmac_df = pd.read_csv(self.refmac_occ_correct_csv )
+        refmac_df = pd.read_csv(self.refmac_occ_correct_csv)
         refmac_superposed_df = pd.read_csv(self.refmac_superposed_occ_correct_csv)
         phenix_df = pd.read_csv(self.phenix_occ_correct_csv)
         phenix_superposed_df = pd.read_csv(self.phenix_superposed_occ_correct_csv)
@@ -321,7 +547,7 @@ class PlotOccKde(luigi.Task):
         refmac_superposed_state_df = get_state_df(occ_correct_df=refmac_superposed_df, state="bound")
         refmac_superposed_occ = refmac_superposed_state_df["state occupancy"]
 
-        plt.xlim(0,1)
+        plt.xlim(0, 1)
 
         sns.kdeplot(refmac_superposed_occ, label="refmac superposed")
         sns.kdeplot(refmac_df['occupancy'], label="refmac")
@@ -333,6 +559,7 @@ class PlotOccKde(luigi.Task):
 
         plt.savefig(self.plot_path)
         plt.close()
+
 
 class PlotBKde(luigi.Task):
     """
@@ -375,7 +602,7 @@ class PlotBKde(luigi.Task):
     plot_path = luigi.Parameter()
 
     def run(self):
-        refmac_df = pd.read_csv(self.refmac_occ_correct_csv )
+        refmac_df = pd.read_csv(self.refmac_occ_correct_csv)
         refmac_superposed_df = pd.read_csv(self.refmac_superposed_occ_correct_csv)
         phenix_df = pd.read_csv(self.phenix_occ_correct_csv)
         phenix_superposed_df = pd.read_csv(self.phenix_superposed_occ_correct_csv)
@@ -398,6 +625,7 @@ class PlotBKde(luigi.Task):
 
         plt.savefig(self.plot_path, dpi=300)
         plt.close()
+
 
 class PlotBViolin(luigi.Task):
     """
@@ -440,8 +668,7 @@ class PlotBViolin(luigi.Task):
     plot_path = luigi.Parameter()
 
     def run(self):
-
-        refmac_df = pd.read_csv(self.refmac_occ_correct_csv )
+        refmac_df = pd.read_csv(self.refmac_occ_correct_csv)
         refmac_superposed_df = pd.read_csv(self.refmac_superposed_occ_correct_csv)
         phenix_df = pd.read_csv(self.phenix_occ_correct_csv)
         phenix_superposed_df = pd.read_csv(self.phenix_superposed_occ_correct_csv)
@@ -451,7 +678,7 @@ class PlotBViolin(luigi.Task):
 
         refmac_superposed_state_df = get_state_df(occ_correct_df=refmac_superposed_df, state="bound")
 
-        fig = plt.subplots(figsize=(10,10))
+        fig = plt.subplots(figsize=(10, 10))
 
         b_dict = {}
         b_dict["REFMAC5 superposed"] = refmac_superposed_state_df['B_mean']
@@ -519,8 +746,7 @@ class PlotOccViolin(luigi.Task):
     plot_path = luigi.Parameter()
 
     def run(self):
-
-        refmac_df = pd.read_csv(self.refmac_occ_correct_csv )
+        refmac_df = pd.read_csv(self.refmac_occ_correct_csv)
         refmac_superposed_df = pd.read_csv(self.refmac_superposed_occ_correct_csv)
         phenix_df = pd.read_csv(self.phenix_occ_correct_csv)
         phenix_superposed_df = pd.read_csv(self.phenix_superposed_occ_correct_csv)
@@ -530,7 +756,7 @@ class PlotOccViolin(luigi.Task):
 
         refmac_superposed_state_df = get_state_df(occ_correct_df=refmac_superposed_df, state="bound")
 
-        fig = plt.subplots(figsize=(10,10))
+        fig = plt.subplots(figsize=(10, 10))
 
         occ_dict = {}
         occ_dict["REFMAC5 superposed"] = refmac_superposed_state_df['state occupancy']
@@ -541,8 +767,8 @@ class PlotOccViolin(luigi.Task):
         occ_dict['buster refine superposed'] = buster_superposed_df[buster_superposed_df.occupancy <= 1.0]['occupancy']
         occ_dict['exhaustive'] = exhaustive_df['occupancy']
 
-        print("Refmac 5% {}".format(np.percentile(occ_dict["REFMAC5"],5)))
-        print("Refmac Superposed5% {}".format(np.percentile(occ_dict["REFMAC5 superposed"],5)))
+        print("Refmac 5% {}".format(np.percentile(occ_dict["REFMAC5"], 5)))
+        print("Refmac Superposed5% {}".format(np.percentile(occ_dict["REFMAC5 superposed"], 5)))
         print("Buster 5% {}".format(np.percentile(occ_dict["buster refine"], 5)))
         print("Buster superposed 5% {}".format(np.percentile(occ_dict["buster refine superposed"], 5)))
         print("phenix.refine 5% {}".format(np.percentile(occ_dict["phenix.refine"], 5)))
@@ -551,7 +777,7 @@ class PlotOccViolin(luigi.Task):
 
         occ_df = pd.DataFrame.from_dict(occ_dict)
 
-        ax = sns.violinplot(data=occ_df,cut=0)
+        ax = sns.violinplot(data=occ_df, cut=0)
         ax.set_xticklabels(ax.get_xticklabels(), rotation=90, fontsize=16)
         plt.yticks(fontsize=16)
 
