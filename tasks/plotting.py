@@ -25,6 +25,175 @@ from plotting import convergence_ratio_histogram
 from plotting import convergence_ratio_kde_plot
 from plotting import get_state_df
 
+from utils.file_parsing import strip_bdc_file_path
+from utils.file_parsing import pdb_file_to_crystal
+
+from parse_xchemdb import parse_args
+from parse_xchemdb import get_databases
+
+import statsmodels.api as sm
+import scipy.stats
+from statsmodels.graphics.regressionplots import abline_plot
+
+class PanddaEventRefinementPlot(luigi.Task):
+    """
+    Map pandda event BDC to refinements
+    """
+    out_dir = luigi.Parameter()
+    preferred_metric = luigi.Parameter(default=False)
+
+    def run(self):
+        events_df = pd.read_csv(os.path.join(self.out_dir,
+                                 "pandda_events.csv"))
+
+        args = parse_args()
+        databases = get_databases(args)
+
+        crystal_events_df = pd.merge(left=databases["crystals"],
+                 right=databases["pandda_events"],
+                 left_on="id",
+                 right_on="crystal_id")
+
+        crystal_events_df["1-BDC"] = crystal_events_df["pandda_event_map_native"].apply(strip_bdc_file_path)
+
+        method_dict = {
+            'refmac_superposed': 'convergence_refinement',
+            'refmac': 'bound_refinement',
+            'phenix': 'phenix',
+            'phenix_superposed': 'phenix_superposed',
+            'buster': 'buster',
+            'buster_superposed': 'buster_superposed',
+            'exhaustive': 'exhaustive',
+        }
+
+        palette = sns.color_palette()
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+
+        for i, method in enumerate(method_dict.keys()):
+            edstats_csv = os.path.join(self.out_dir,"{method}_edstats.csv".format(method=method))
+            edstats_df = pd.read_csv(edstats_csv)
+            edstats_df['crystal_name'] = edstats_df['PDB'].apply(pdb_file_to_crystal)
+
+
+            events_edstats = pd.merge(left=crystal_events_df,
+                                      right=edstats_df,
+                                      on='crystal_name')
+
+            if self.preferred_metric:
+                print(len(events_edstats))
+                events_edstats = events_edstats[events_edstats['RSCC'] >= 0.7]
+                # print(len(events_edstats))
+                # events_edstats = events_edstats[events_edstats['RSZD'] <= 3.0]
+                # print(len(events_edstats))
+                #events_edstats = events_edstats[events_edstats['RSZO'] >= 2.0]
+                #print(len(events_edstats))
+
+            events_edstats['1-BDC'] = events_edstats['1-BDC'].astype('float')
+
+            model = sm.OLS(events_edstats['Occupancy'], events_edstats['1-BDC'])#, sm.add_constant(events_edstats['1-BDC']))
+
+            # Plot statsmodel fit
+            x_line = np.linspace(0, 1, 100)
+            y_line = model.fit().params[0] * x_line
+
+            print(i)
+
+            if i==0:
+
+                ax.set_xlabel("Psuedo Occupancy 1- BDC")
+                ax.set_ylabel("Refined Occupancy")
+                marker_size=12
+                plt.text(x=0.2,
+                         y=0.2,
+                         s="{method}:\n y={slope}x $R^2$:{r_squared}".format(method=method.replace('_',' '),
+                                                                           slope=round(model.fit().params[0],2),
+                                                                           r_squared=round(model.fit().rsquared,2)
+                                                                           ),
+                         fontsize=8
+                         )
+
+
+            else:
+                # Arrange subplots
+                if i==1:
+                    ax1 =plt.axes([0.65, 0.80, 0.2, 0.2])
+                    ax = ax1
+
+                if i==2:
+                    ax2 =plt.axes([0.65, 0.50, 0.2, 0.2])
+                    ax = ax2
+
+                    # plt.text(x=0.70,
+                    #          y=0.5,
+                    #          s=" y={slope}x $R^2$:{r_squared}".format(slope=round(model.fit().params[0], 2),
+                    #                                                   r_squared=round(model.fit().rsquared, 2)),
+                    #         fontsize = 6
+                    #          )
+                if i==3:
+                    ax3 =plt.axes([0.65, 0.20, 0.2, 0.2])
+                    ax = ax3
+                if i==4:
+                    ax4 =plt.axes([0.95, 0.20, 0.2, 0.2])
+                    ax = ax4
+                if i==5:
+                    ax5 =plt.axes([0.95, 0.50, 0.2, 0.2])
+                    ax = ax5
+                if i==6:
+                    ax6 =plt.axes([0.95, 0.80, 0.2, 0.2])
+                    ax = ax6
+
+                plt.text(x=0.5,
+                         y=0.2,
+                         s=" y={slope}x $R^2$:{r_squared}".format(slope=round(model.fit().params[0], 2),
+                                                                  r_squared=round(model.fit().rsquared, 2)),
+                         fontsize=6
+                         )
+
+                ax.set_title(method.replace('_',' '),
+                             fontsize=8)
+                ax.xaxis.set_tick_params(labelsize=6)
+                ax.yaxis.set_tick_params(labelsize=6)
+
+                marker_size=8
+
+
+
+            ax.spines["right"].set_visible(False)
+            ax.spines["top"].set_visible(False)
+            ax.set_ylim(0, 1)
+            ax.set_xlim(0, 1)
+
+            ax.plot(x_line,
+                     y_line,
+                     color='k')
+
+            ax.scatter(x=events_edstats['1-BDC'],
+                        y=events_edstats['Occupancy'],
+                        color=palette[i],
+                        s=marker_size)
+
+
+            print("{method}:{len}".format(method=method, len=len(events_edstats['1-BDC'].dropna())))
+            print(model.fit().summary())
+            #
+            # plt.savefig(os.path.join(self.out_dir,
+            #                          "edstats_figures",
+            #                          "{method}_BDC_occupancy.png".format(method=method)))
+            # plt.close()
+
+        if self.preferred_metric:
+            name = "metrics_BDC_occupancy.png"
+        else:
+            name = "BDC_occupancy.png"
+        plt.savefig(os.path.join(self.out_dir,
+                                 "edstats_figures",
+                                 name),
+                    bbox_inches='tight',
+                    dpi=300)
+
+            #plt.close()
 
 class PlotOccCorrect(luigi.Task):
     # TODO Consder making requires more broad,
@@ -235,6 +404,7 @@ class PlotEdstatsDistPlot(luigi.Task):
     out_dir = luigi.Parameter()
     xlim = luigi.Parameter(default=None)
 
+
     def run(self):
 
         if not os.path.exists(self.out_dir):
@@ -255,6 +425,7 @@ class PlotEdstatsDistPlot(luigi.Task):
         fig, ax = plt.subplots()
 
         metric_dfs = {}
+        ratios = []
         for method in method_dict.keys():
 
             # issue with RSZD plots
@@ -321,6 +492,13 @@ class PlotEdstatsDistPlot(luigi.Task):
                          s="Acceptable\ncutoff\n$>$ 2.0",
                          fontsize=10,
                          multialignment='left')
+
+                ratio = len(edstats_df.loc[edstats_df[self.metric] > 2.0])/len(edstats_df[self.metric].dropna())
+                print(ratio,method)
+                ratios.append(ratio)
+
+        if self.metric == "RSZO/OCC":
+            print(np.mean(ratios), np.std(ratios))
 
         if self.metric == "RSZD":
 
@@ -547,16 +725,155 @@ class PlotOccKde(luigi.Task):
         refmac_superposed_state_df = get_state_df(occ_correct_df=refmac_superposed_df, state="bound")
         refmac_superposed_occ = refmac_superposed_state_df["state occupancy"]
 
-        plt.xlim(0, 1)
+        #plt.xlim(0, 1)
 
-        sns.kdeplot(refmac_superposed_occ, label="refmac superposed")
-        sns.kdeplot(refmac_df['occupancy'], label="refmac")
-        sns.kdeplot(phenix_df['occupancy'], label="phenix")
-        sns.kdeplot(buster_df['occupancy'], label="buster")
-        sns.kdeplot(phenix_superposed_df['occupancy'], label="phenix superposed")
-        sns.kdeplot(buster_superposed_df['occupancy'], label="buster superposed")
-        sns.kdeplot(exhaustive_df['occupancy'], label="exhaustive")
+        ax = plt.subplot(111)
 
+        ax.spines["right"].set_visible(False)
+        ax.spines["top"].set_visible(False)
+
+        sns.kdeplot(refmac_superposed_occ, label="refmac superposed", clip=(0,1))
+        sns.kdeplot(refmac_df['occupancy'], label="refmac", clip=(0,1))
+        sns.kdeplot(phenix_df['occupancy'], label="phenix", clip=(0,1))
+        sns.kdeplot(buster_df['occupancy'], label="buster", clip=(0,1))
+        sns.kdeplot(phenix_superposed_df['occupancy'], label="phenix superposed", clip=(0,1))
+        sns.kdeplot(buster_superposed_df['occupancy'], label="buster superposed", clip=(0,1))
+        sns.kdeplot(exhaustive_df['occupancy'], label="exhaustive", clip=(0,1))
+
+        plt.ylabel("Density")
+        plt.xlabel("Occupancy")
+
+        plt.savefig(self.plot_path)
+        plt.close()
+
+class PlotOccDiffKde(luigi.Task):
+    """
+    Plot Kernel density plots of occupancy difference
+
+    Attributes
+    ----------
+    refmac_occ_correct_csv : luigi.Parameter()
+        path to refmac occ correct csv file
+
+    refmac_superposed_occ_correct_csv : luigi.Parameter()
+        path to refmac superposed occ correct csv file
+
+    phenix_superposed_occ_correct_csv : luigi.Parameter()
+        path to phenix superposed occ correct csv file
+
+    phenix_occ_correct_csv: luigi.Parameter()
+        path to phenix occ correct csv file
+
+    buster_superposed_occ_correct_csv: luigi.Parameter()
+        path to buster superposed occ correct csv file
+
+    buster_occ_correct_csv: luigi.Parameter()
+        path to buster occ correct csv file
+
+    exhaustive_csv : luigi.Parameter()
+        path to exhaustive csv file
+
+    plot_path: luigi.Parameter()
+        path to output plot
+    """
+    refmac_occ_correct_csv = luigi.Parameter()
+    refmac_superposed_occ_correct_csv = luigi.Parameter()
+    phenix_superposed_occ_correct_csv = luigi.Parameter()
+    phenix_occ_correct_csv = luigi.Parameter()
+    buster_superposed_occ_correct_csv = luigi.Parameter()
+    buster_occ_correct_csv = luigi.Parameter()
+    exhaustive_csv = luigi.Parameter()
+
+    plot_path = luigi.Parameter()
+
+    def run(self):
+        refmac_df = pd.read_csv(self.refmac_occ_correct_csv)
+        refmac_superposed_df = pd.read_csv(self.refmac_superposed_occ_correct_csv)
+        phenix_df = pd.read_csv(self.phenix_occ_correct_csv)
+        phenix_superposed_df = pd.read_csv(self.phenix_superposed_occ_correct_csv)
+        buster_df = pd.read_csv(self.buster_occ_correct_csv)
+        buster_superposed_df = pd.read_csv(self.buster_superposed_occ_correct_csv)
+        exhaustive_df = pd.read_csv(self.exhaustive_csv)
+
+        refmac_superposed_state_df = get_state_df(occ_correct_df=refmac_superposed_df, state="bound")
+        refmac_superposed_state_df = refmac_superposed_state_df.rename(
+            {"state occupancy":"occupancy"},
+            axis='columns')
+
+        refmac_superposed_state_df["crystal_name"] = refmac_superposed_state_df["pdb_latest"].apply(
+            lambda file_name: os.path.basename(os.path.dirname(file_name)))
+
+        print(refmac_superposed_df.columns.values)
+
+        refmac_diff = refmac_superposed_state_df.merge(right=refmac_df,
+                                                       on="crystal_name",
+                                                       suffixes=('Superposed',
+                                                                 'NonSuperposed'))
+
+        phenix_diff = phenix_superposed_df.merge(right=phenix_df,
+                                                 on="crystal_name",
+                                                 suffixes=('Superposed',
+                                                           'NonSuperposed'))
+
+        buster_diff = buster_superposed_df.merge(right=buster_df,
+                                                 on="crystal_name",
+                                                 suffixes=('Superposed',
+                                                           'NonSuperposed'))
+        # Data for superposed vs non superposed
+        r_diff_mean = np.mean(refmac_diff["occupancyNonSuperposed"] - refmac_diff["occupancySuperposed"])
+        b_diff_mean = np.mean(buster_diff["occupancyNonSuperposed"] - buster_diff["occupancySuperposed"])
+        p_diff_mean = np.mean(phenix_diff["occupancyNonSuperposed"] - phenix_diff["occupancySuperposed"])
+
+        diff_mean = np.mean((r_diff_mean,
+                            b_diff_mean,
+                            p_diff_mean))
+
+        r_diff_std = np.std(refmac_diff["occupancyNonSuperposed"] - refmac_diff["occupancySuperposed"])
+        b_diff_std = np.std(buster_diff["occupancyNonSuperposed"] - buster_diff["occupancySuperposed"])
+        p_diff_std = np.std(phenix_diff["occupancyNonSuperposed"] - phenix_diff["occupancySuperposed"])
+
+        diff_std_mean = np.mean((r_diff_std,
+                                b_diff_std,
+                                p_diff_std))
+
+        print(r_diff_mean, b_diff_mean, p_diff_mean)
+        print(diff_mean)
+        print(r_diff_std, b_diff_std, p_diff_std)
+        print(diff_std_mean)
+        ###########################
+
+
+        buster_kde =  scipy.stats.gaussian_kde(buster_diff["occupancyNonSuperposed"])
+        buster_superposed_kde = scipy.stats.gaussian_kde(buster_diff["occupancySuperposed"])
+
+        refmac_kde = scipy.stats.gaussian_kde(refmac_diff["occupancyNonSuperposed"])
+        refmac_superposed_kde = scipy.stats.gaussian_kde(refmac_diff["occupancySuperposed"])
+
+        phenix_kde = scipy.stats.gaussian_kde(phenix_diff["occupancyNonSuperposed"])
+        phenix_superposed_kde = scipy.stats.gaussian_kde(phenix_diff["occupancySuperposed"])
+
+        grid = np.linspace(0,1,1000)
+
+        plt.ylim(-3.2,3.2)
+
+        plt.plot(grid, buster_kde(grid) - buster_superposed_kde(grid), label="Buster")
+        plt.plot(grid, refmac_kde(grid) - refmac_superposed_kde(grid), label="Refmac")
+        plt.plot(grid, phenix_kde(grid) - phenix_superposed_kde(grid), label="Phenix")
+
+        ax = plt.subplot(111)
+        ax.spines["right"].set_visible(False)
+        ax.spines["top"].set_visible(False)
+
+        plt.ylabel("Density difference\n"
+                   "between non-superposed\n"
+                   "and superposed", fontsize=14)
+        plt.xlabel("Occupancy", fontsize=14)
+
+        plt.yticks(fontsize=14)
+        plt.xticks(fontsize=14)
+
+        plt.legend(frameon=False, fontsize=14)
+        plt.tight_layout()
         plt.savefig(self.plot_path)
         plt.close()
 
@@ -612,8 +929,13 @@ class PlotBKde(luigi.Task):
 
         refmac_superposed_state_df = get_state_df(occ_correct_df=refmac_superposed_df, state="bound")
 
+        ax = plt.subplot(111)
+
         plt.ylabel("Density")
         plt.xlabel("B Factor")
+
+        ax.spines["right"].set_visible(False)
+        ax.spines["top"].set_visible(False)
 
         sns.kdeplot(refmac_superposed_state_df['B_mean'], label="REFMAC5 superposed")
         sns.kdeplot(refmac_df['B_mean'], label="REFMAC5")

@@ -6,12 +6,11 @@ import numpy as np
 import itertools
 
 from utils.filesystem import parse_refinement_folder
-
 import tasks.batch
+
 
 # TODO Sort out batch follow up
 #@requires(tasks.batch.BatchEdstats)
-
 class EdstatsResultSummaries(luigi.Task):
     """Get sumamry from edstats"""
     out_dir = luigi.Parameter()
@@ -96,7 +95,9 @@ class EdstatsResultSummaries(luigi.Task):
         print(np.std(RSCC_80_per))
 
 class SummariseEdstats(luigi.Task):
-    """Bring all edstats into single file
+
+    """
+    Bring all edstats into single file
 
     Attributes
     --------------

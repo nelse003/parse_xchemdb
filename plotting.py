@@ -317,7 +317,11 @@ def plot_occ_hist(occ, b_factor, out_file):
     df = pd.concat([occ, b_factor], axis=1)
     df = df.rename(columns={"state occupancy": "occupancy", "B_mean": "b_factor"})
 
-    print(df)
+    per25 = np.percentile(df['occupancy'],25)
+    per75 = np.percentile(df['occupancy'],75)
+    median = np.median(df['occupancy'])
+
+    print(f'25% {per25} 75% {per75} median {median}')
 
     plt.xlim(0, 1)
     plt.xlabel("Occupancy")
@@ -332,7 +336,7 @@ def plot_occ_hist(occ, b_factor, out_file):
 
     occ_list = []
 
-    cmap = matplotlib.cm.get_cmap("Spectral")
+    cmap = matplotlib.cm.get_cmap("Spectral_r")
 
     colours = [
         cmap(0.0),
@@ -360,24 +364,70 @@ def plot_occ_hist(occ, b_factor, out_file):
         occ_list.append(df_b.occupancy)
 
     fig, ax = plt.subplots()
+    ax.spines["right"].set_visible(False)
+    ax.spines["top"].set_visible(False)
 
     norm = matplotlib.colors.Normalize(vmin=0, vmax=120)
 
     divider = make_axes_locatable(ax)
-    cax = divider.append_axes("right", size="5%", pad=0.05)
+
+    ax.tick_params(axis='both', which='major', labelsize=14)
+    ax.tick_params(axis='both', which='minor', labelsize=14)
+    ax.set_xlim(0, 1)
+
+    ax.set_xlabel("Occupancy", fontsize=16)
+    ax.set_ylabel("Frequency", fontsize=16)
+
+    ax.hist(occ_list, bins=25, color=colours, stacked=True)
+
+    print("1%: {}. Min {}".format(np.percentile(occ, 1),
+                                  np.min(occ)))
+
+    ax.axvline(x=np.percentile(occ, 1),
+                linestyle='--',
+                color='k',
+                linewidth=1.0)
+
+    y_min, y_max = ax.get_ylim()
+    if np.percentile(occ, 1) < 0.1:
+        ax.text(x=np.percentile(occ, 1)+0.02,
+                y=0.4*y_max,
+                s="1\% percentile:\n{}".format(round(np.percentile(occ, 1),2)),
+                horizontalalignment='left',
+                fontsize=14,
+                )
+        ax.text(x=np.percentile(occ, 5)-0.02,
+                y=0.8*y_max,
+                s="5\% percentile:\n{}".format(round(np.percentile(occ, 5),2)),
+                horizontalalignment='right',
+                fontsize=14,
+                )
+        ax.axvline(x=np.percentile(occ, 5),
+                   linestyle=':',
+                   color='k',
+                   linewidth=1.0)
+    else:
+        ax.text(x=np.percentile(occ, 1)-0.02,
+                y=0.8*y_max,
+                s="1\% percentile:\n{}".format(round(np.percentile(occ, 1),2)),
+                horizontalalignment='right',
+                fontsize=12,
+                )
+
+    if ".png" in out_file:
+        out_file = out_file.strip(".png")
+
+    plt.tight_layout()
+    plt.savefig("{}_{}.png".format(out_file, len(occ)), dpi=300)
+
+    cax = divider.append_axes("right", size="5%", pad=0.2)
 
     cb1 = matplotlib.colorbar.ColorbarBase(
         cax, cmap=cmap, norm=norm, orientation="vertical"
     )
 
-    cb1.ax.set_yticklabels(["0", "20", "40", "60", "80", "100", "$\geq 120$"])
-    cb1.ax.set_ylabel("B factor", Rotation=270, fontsize=12)
+    cb1.ax.set_yticklabels(["0", "20", "40", "60", "80", "100", "$\geq 120$"], fontsize=16)
+    cb1.ax.set_ylabel("B factor", Rotation=270, fontsize=16)
 
-    ax.set_xlim(0, 1)
-
-    ax.set_xlabel("Occupancy", fontsize=12)
-    ax.set_ylabel("Frequency", fontsize=12)
-
-    ax.hist(occ_list, bins=25, color=colours, stacked=True)
-
-    plt.savefig("{}_{}.png".format(out_file, len(occ)), dpi=300)
+    plt.tight_layout()
+    plt.savefig("{}_{}_colourbar.png".format(out_file, len(occ)), dpi=300)
