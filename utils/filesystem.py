@@ -3,8 +3,8 @@ import os
 import shutil
 import pandas as pd
 
-from utils.smiles import smiles_from_crystal
-from utils.smiles import smiles_to_cif_acedrg
+from smiles import smiles_from_crystal
+from smiles import smiles_to_cif_acedrg
 from refinement.giant_scripts import make_restraints
 
 from path_config import Path

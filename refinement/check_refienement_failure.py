@@ -1,5 +1,5 @@
-from utils.file_parsing import check_file_for_string
-from utils.filesystem import get_most_recent_quick_refine
+from file_parsing import check_file_for_string
+from filesystem import get_most_recent_quick_refine
 
 
 def check_restraints(input_dir):

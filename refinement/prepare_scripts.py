@@ -1,14 +1,20 @@
 import os
+import sys
+import importlib
 
-from utils.smiles import smiles_from_crystal
+#TODO Remove sys path append and repalce with proper handing of relative imports
+
+sys.path.append('/dls/science/groups/i04-1/elliot-dev/parse_xchemdb/utils')
+
+from smiles import smiles_from_crystal
 from refinement.call_ccp4 import get_incomplete_occ_groups
-from utils.filesystem import check_inputs
-from utils.filesystem import get_col_labels
+from filesystem import check_inputs
+from filesystem import get_col_labels
 from refinement.check_refienement_failure import check_restraints
 from refinement.check_refienement_failure import check_refinement_for_cif_error
 from refinement.parameters import lig_pos_to_occupancy_refinement_string
-from utils.smiles import smiles_to_cif_acedrg
-from utils.symlink import make_copies_and_symlinks
+from smiles import smiles_to_cif_acedrg
+from symlink import make_copies_and_symlinks
 
 from path_config import Path
 

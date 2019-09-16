@@ -1,9 +1,24 @@
 import os, glob
 
-cif = "/dls/labxchem/data/2017/lb18145-17/processing/reference/XX02KALRNA-Rac1-Dk-2-reference.cif"
-
-
 def merge_cif(cif1, cif2, cif_out):
+
+    """
+    Merge cif using libcheck
+
+    Parameters
+    ----------
+    cif1: str
+        path to inpuit cif 1
+    cif2: str
+        path to input cif 2
+    cif_out: str
+        path to output cif
+
+    Returns
+    -------
+    None
+
+    """
 
     cmd = (
         "#!/bin/bash\n"

@@ -7,7 +7,7 @@ import copy
 
 from utils.symlink import make_symlink
 from utils.filesystem import cif_path
-from utils.merge_cif import merge_cif
+from refinement.merge_cif import merge_cif
 from refinement.prepare_scripts import prepare_superposed_refinement
 from luigi.util import requires
 from refinement.giant_scripts import make_restraints
