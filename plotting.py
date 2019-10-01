@@ -392,13 +392,13 @@ def plot_occ_hist(occ, b_factor, out_file):
     if np.percentile(occ, 1) < 0.1:
         ax.text(x=np.percentile(occ, 1)+0.02,
                 y=0.4*y_max,
-                s="1\% percentile:\n{}".format(round(np.percentile(occ, 1),2)),
+                s="1st percentile:\n{}".format(round(np.percentile(occ, 1),2)),
                 horizontalalignment='left',
                 fontsize=14,
                 )
         ax.text(x=np.percentile(occ, 5)-0.02,
                 y=0.8*y_max,
-                s="5\% percentile:\n{}".format(round(np.percentile(occ, 5),2)),
+                s="5th percentile:\n{}".format(round(np.percentile(occ, 5),2)),
                 horizontalalignment='right',
                 fontsize=14,
                 )
@@ -409,7 +409,7 @@ def plot_occ_hist(occ, b_factor, out_file):
     else:
         ax.text(x=np.percentile(occ, 1)-0.02,
                 y=0.8*y_max,
-                s="1\% percentile:\n{}".format(round(np.percentile(occ, 1),2)),
+                s="1st percentile:\n{}".format(round(np.percentile(occ, 1),2)),
                 horizontalalignment='right',
                 fontsize=12,
                 )

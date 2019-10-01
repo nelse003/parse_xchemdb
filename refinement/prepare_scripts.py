@@ -293,6 +293,70 @@ def write_phenix_csh(
     with open(csh_file, "w") as csh_f:
         csh_f.write(cmd)
 
+def write_phenix_b_fix_csh(
+    pdb,
+    mtz,
+    cif,
+    script_dir,
+    refinement_script_dir,
+    out_dir,
+    crystal,
+    ncyc,
+    params,
+):
+    """
+    Write .csh script to run phenix with fixed B. setup for nudt7 only
+
+    Parameters
+    ----------
+    pdb: pdb
+        path to pdb file
+    mtz: str
+        path to mtz file
+    script_dir:
+        path to directory with input scripts (parse_xchemdb)
+    refinement_script_dir: str
+        path to directory for csh script
+    out_dir: str
+        path for output files
+    crystal: str
+        name of crystal
+    ncyc: int
+        number of macrocycles to apply to phenix
+    refinement_type: str
+        refinement type; bound, ground or superposed
+    Returns
+    -------
+    None
+    """
+
+    crystal_dir = os.path.join(out_dir, crystal)
+
+    with open(os.path.join(script_dir, "refinement", "phenix_b_fix.csh")) as f:
+        cmd = f.read()
+
+    cmd = cmd.format(
+        out_dir=out_dir,
+        pdb=pdb,
+        mtz=mtz,
+        cif=cif,
+        params=params,
+    )
+
+    if not os.path.isdir(refinement_script_dir):
+        os.makedirs(refinement_script_dir)
+
+    if not os.path.isdir(out_dir):
+        os.makedirs(out_dir)
+
+    # File location and name
+    csh_file = os.path.join(
+        refinement_script_dir, "{}_{}.csh".format(crystal, "phenix_b_fix")
+    )
+
+    with open(csh_file, "w") as csh_f:
+        csh_f.write(cmd)
+
 
 def write_buster_csh(
     pdb,

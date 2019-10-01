@@ -346,23 +346,22 @@ luigi.build(
         #     script_path=test_paths.script_dir,
         #     test=test,
         # ),
-        # PlotBoundOccHistogram(
-        #     occ_state_comment_csv=test_paths.occ_state_comment_csv,
-        #     log_occ_resname=test_paths.log_occ_resname,
-        #     log_occ_csv=test_paths.log_occ_csv,
-        #     log_pdb_mtz_csv=test_paths.log_pdb_mtz,
-        #     occ_correct_csv=test_paths.occ_correct_csv,
-        #     plot_path=test_paths.bound_occ_histogram,
-        #     script_path=test_paths.script_dir,
-        #     refinement_program="refmac",
-        #     refinement_type="bound",
-        # ),
+        PlotBoundOccHistogram(
+            occ_state_comment_csv=test_paths.occ_state_comment_csv,
+            log_occ_resname=test_paths.log_occ_resname,
+            log_occ_csv=test_paths.log_occ_csv,
+            log_pdb_mtz_csv=test_paths.log_pdb_mtz,
+            occ_correct_csv=test_paths.occ_correct_csv,
+            plot_path=test_paths.bound_occ_histogram,
+            script_path=test_paths.script_dir,
+            refinement_program="refmac",
+            refinement_type="bound",
+        ),
     ],
     local_scheduler=False,
     workers=100,
 )
 
-exit()
 
 luigi.build(
     [
