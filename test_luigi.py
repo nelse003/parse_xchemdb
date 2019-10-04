@@ -112,7 +112,7 @@ test_paths.bound_refinement = os.path.join(out_dir, "bound_refinement_log_pdb_mt
 
 luigi.build(
     [
-        #PanddaEventRefinementPlot(out_dir=out_dir, preferred_metric=True),
+        PanddaEventRefinementPlot(out_dir=out_dir, preferred_metric=True),
         #ParseXchemdbToCsv(log_pdb_mtz_csv=os.path.join(out_dir,"testing_database.csv"))
 
         # Analyse existing refinements
@@ -137,17 +137,17 @@ luigi.build(
         #     script_path=test_paths.script_dir,
         #     #test=test,
         # ),
-        PlotBoundOccHistogram(
-            occ_state_comment_csv=test_paths.occ_state_comment_csv,
-            log_occ_resname=test_paths.log_occ_resname,
-            log_occ_csv=test_paths.log_occ_csv,
-            log_pdb_mtz_csv=test_paths.log_pdb_mtz,
-            occ_correct_csv=test_paths.occ_correct_csv,
-            plot_path=os.path.join(out_dir, "pre_occ_bound_histogram.png"),
-            script_path=test_paths.script_dir,
-            refinement_type="superposed",
-            refinement_program="refmac",
-        ),
+        # PlotBoundOccHistogram(
+        #     occ_state_comment_csv=test_paths.occ_state_comment_csv,
+        #     log_occ_resname=test_paths.log_occ_resname,
+        #     log_occ_csv=test_paths.log_occ_csv,
+        #     log_pdb_mtz_csv=test_paths.log_pdb_mtz,
+        #     occ_correct_csv=test_paths.occ_correct_csv,
+        #     plot_path=os.path.join(out_dir, "pre_occ_bound_histogram.png"),
+        #     script_path=test_paths.script_dir,
+        #     refinement_type="superposed",
+        #     refinement_program="refmac",
+        # ),
 
         # QsubEdstats(pdb="/dls/science/groups/i04-1/elliot-dev/Work/"
         #                 "exhaustive_parse_xchem_db/all_10_08_19/"
@@ -358,10 +358,10 @@ luigi.build(
             refinement_type="bound",
         ),
     ],
-    local_scheduler=False,
+    local_scheduler=True,
     workers=100,
 )
-
+exit()
 
 luigi.build(
     [

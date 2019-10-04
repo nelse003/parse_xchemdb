@@ -49,6 +49,15 @@ class PanddaEventRefinementPlot(luigi.Task):
         args = parse_args()
         databases = get_databases(args)
 
+        cols = {'buster': 'darkgreen',
+                'buster_superposed': 'limegreen',
+                'exhaustive': 'gold',
+                'phenix': 'navy',
+                'phenix_superposed': 'cornflowerblue',
+                'refmac': 'crimson',
+                'refmac_superposed': 'lightcoral',
+                }
+
         crystal_events_df = pd.merge(left=databases["crystals"],
                  right=databases["pandda_events"],
                  left_on="id",
@@ -57,13 +66,13 @@ class PanddaEventRefinementPlot(luigi.Task):
         crystal_events_df["1-BDC"] = crystal_events_df["pandda_event_map_native"].apply(strip_bdc_file_path)
 
         method_dict = {
-            'refmac_superposed': 'convergence_refinement',
-            'refmac': 'bound_refinement',
-            'phenix': 'phenix',
-            'phenix_superposed': 'phenix_superposed',
             'buster': 'buster',
             'buster_superposed': 'buster_superposed',
             'exhaustive': 'exhaustive',
+            'refmac': 'bound_refinement',
+            'refmac_superposed': 'convergence_refinement',
+            'phenix': 'phenix',
+            'phenix_superposed': 'phenix_superposed',
         }
 
         palette = sns.color_palette()
@@ -162,7 +171,7 @@ class PanddaEventRefinementPlot(luigi.Task):
 
             ax.spines["right"].set_visible(False)
             ax.spines["top"].set_visible(False)
-            ax.set_ylim(0, 1)
+            ax.set_ylim(0, 1.05)
             ax.set_xlim(0, 1)
 
             ax.plot(x_line,
@@ -171,7 +180,7 @@ class PanddaEventRefinementPlot(luigi.Task):
 
             ax.scatter(x=events_edstats['1-BDC'],
                         y=events_edstats['Occupancy'],
-                        color=palette[i],
+                        color=cols[method],
                         s=marker_size)
 
 
@@ -414,14 +423,24 @@ class PlotEdstatsDistPlot(luigi.Task):
             os.makedirs(os.path.dirname(self.plot_path))
 
         method_dict = {
-            'refmac_superposed': 'convergence_refinement',
-            'refmac': 'bound_refinement',
-            'phenix': 'phenix',
-            'phenix_superposed': 'phenix_superposed',
             'buster': 'buster',
             'buster_superposed': 'buster_superposed',
             'exhaustive': 'exhaustive',
+            'phenix': 'phenix',
+            'phenix_superposed': 'phenix_superposed',
+            'refmac': 'bound_refinement',
+            'refmac_superposed': 'convergence_refinement',
         }
+
+        cols = {'buster': 'darkgreen',
+                'buster_superposed': 'limegreen',
+                'exhaustive': 'gold',
+                'phenix': 'navy',
+                'phenix_superposed': 'cornflowerblue',
+                'refmac': 'crimson',
+                'refmac_superposed': 'lightcoral',
+                }
+
         fig, ax = plt.subplots()
 
         metric_dfs = {}
@@ -451,26 +470,31 @@ class PlotEdstatsDistPlot(luigi.Task):
             if self.metric == 'Surroundings B-factor Ratio':
                 sns.kdeplot(edstats_df[self.metric].dropna(),
                             gridsize=1000,
-                            label=method.replace('_', ' '))
+                            label=method.replace('_', ' '),
+                            color=cols[method])
+
                 plt.axvline(x=1,
                             linestyle='--',
                             color='k',
                             linewidth=0.5)
+
                 plt.text(x=0.70,
                          y=2.55,
                          s="Acceptable\ncutoff\nNear 1.0",
                          multialignment='center',
                          fontsize=10)
+                plt.legend(frameon=False)
 
             elif self.metric == "RSZD":
                 pass
             else:
                 sns.distplot(edstats_df[self.metric].dropna(),
                              hist=False,
-                             label=method.replace('_', ' '))
+                             label=method.replace('_', ' '),
+                             color=cols[method])
 
 
-            plt.ylabel('Density')
+            plt.ylabel('Frequency density')
 
             if self.metric == "RSCC":
                 plt.axvline(x=0.7,
@@ -481,6 +505,7 @@ class PlotEdstatsDistPlot(luigi.Task):
                          y=5.0,
                          s="Acceptable\ncutoff\n$>$ 0.7",
                          fontsize=10)
+                plt.legend(frameon=False)
 
             if self.metric == "RSZO/OCC":
                 plt.axvline(x=2,
@@ -492,6 +517,7 @@ class PlotEdstatsDistPlot(luigi.Task):
                          s="Acceptable\ncutoff\n$>$ 2.0",
                          fontsize=10,
                          multialignment='left')
+                plt.legend(frameon=False)
 
                 ratio = len(edstats_df.loc[edstats_df[self.metric] > 2.0])/len(edstats_df[self.metric].dropna())
                 print(ratio,method)
@@ -499,6 +525,7 @@ class PlotEdstatsDistPlot(luigi.Task):
 
         if self.metric == "RSZO/OCC":
             print(np.mean(ratios), np.std(ratios))
+
 
         if self.metric == "RSZD":
 
@@ -508,9 +535,7 @@ class PlotEdstatsDistPlot(luigi.Task):
                 alpha=0.5,
                 bins=100,
                 density=True,
-                color=[sns.color_palette()[1],
-                       sns.color_palette()[2],
-                       sns.color_palette()[4]]
+                color=['crimson','forestgreen','navy']
                      )
 
             plt.axvline(x=3,
@@ -525,7 +550,7 @@ class PlotEdstatsDistPlot(luigi.Task):
                      multialignment='right')
 
             plt.xlabel("RSZD")
-            plt.legend()
+            plt.legend(frameon=False)
 
         plt.savefig(self.plot_path, dpi=300)
 
@@ -714,6 +739,17 @@ class PlotOccKde(luigi.Task):
     plot_path = luigi.Parameter()
 
     def run(self):
+
+        # Colour map for plots
+        cols = {'buster': 'darkgreen',
+                'buster_superposed': 'limegreen',
+                'exhaustive': 'gold',
+                'phenix': 'navy',
+                'phenix_superposed': 'cornflowerblue',
+                'refmac': 'crimson',
+                'refmac_superposed': 'lightcoral',
+                }
+
         refmac_df = pd.read_csv(self.refmac_occ_correct_csv)
         refmac_superposed_df = pd.read_csv(self.refmac_superposed_occ_correct_csv)
         phenix_df = pd.read_csv(self.phenix_occ_correct_csv)
@@ -732,18 +768,45 @@ class PlotOccKde(luigi.Task):
         ax.spines["right"].set_visible(False)
         ax.spines["top"].set_visible(False)
 
-        sns.kdeplot(refmac_superposed_occ, label="refmac superposed", clip=(0,1))
-        sns.kdeplot(refmac_df['occupancy'], label="refmac", clip=(0,1))
-        sns.kdeplot(phenix_df['occupancy'], label="phenix", clip=(0,1))
-        sns.kdeplot(buster_df['occupancy'], label="buster", clip=(0,1))
-        sns.kdeplot(phenix_superposed_df['occupancy'], label="phenix superposed", clip=(0,1))
-        sns.kdeplot(buster_superposed_df['occupancy'], label="buster superposed", clip=(0,1))
-        sns.kdeplot(exhaustive_df['occupancy'], label="exhaustive", clip=(0,1))
+        sns.kdeplot(buster_df['occupancy'],
+                    label="buster",
+                    clip=(0,1),
+                    color=cols['buster'])
 
-        plt.ylabel("Density")
+        sns.kdeplot(buster_superposed_df['occupancy'],
+                    label="buster superposed",
+                    clip=(0,1),
+                    color=cols['buster_superposed'])
+
+        sns.kdeplot(exhaustive_df['occupancy'],
+                    label="exhaustive",
+                    clip=(0,1),
+                    color=cols['exhaustive'])
+
+        sns.kdeplot(phenix_df['occupancy'],
+                    label="phenix",
+                    clip=(0,1),
+                    color=cols['phenix'])
+
+        sns.kdeplot(phenix_superposed_df['occupancy'],
+                    label="phenix superposed",
+                    clip=(0,1),
+                    color=cols['phenix_superposed'])
+
+        sns.kdeplot(refmac_df['occupancy'],
+                    label="refmac",
+                    clip=(0,1),
+                    color=cols['refmac'])
+
+        sns.kdeplot(refmac_superposed_occ,
+                    label="refmac superposed",
+                    clip=(0,1),
+                    color=cols['refmac_superposed'])
+
+        plt.ylabel("Frequency density")
         plt.xlabel("Occupancy")
-
-        plt.savefig(self.plot_path)
+        plt.legend(frameon=False)
+        plt.savefig(self.plot_path, dpi=300)
         plt.close()
 
 class PlotOccDiffKde(luigi.Task):
@@ -856,9 +919,18 @@ class PlotOccDiffKde(luigi.Task):
 
         plt.ylim(-3.2,3.2)
 
-        plt.plot(grid, buster_kde(grid) - buster_superposed_kde(grid), label="Buster")
-        plt.plot(grid, refmac_kde(grid) - refmac_superposed_kde(grid), label="Refmac")
-        plt.plot(grid, phenix_kde(grid) - phenix_superposed_kde(grid), label="Phenix")
+        plt.plot(grid,
+                 buster_kde(grid) - buster_superposed_kde(grid),
+                 label="Buster",
+                 color='forestgreen')
+        plt.plot(grid,
+                 refmac_kde(grid) - refmac_superposed_kde(grid),
+                 label="Refmac",
+                 color='crimson')
+        plt.plot(grid,
+                 phenix_kde(grid) - phenix_superposed_kde(grid),
+                 label="Phenix",
+                 color='navy')
 
         ax = plt.subplot(111)
         ax.spines["right"].set_visible(False)
@@ -908,6 +980,7 @@ class PlotBKde(luigi.Task):
     plot_path: luigi.Parameter()
         path to output plot
     """
+
     refmac_occ_correct_csv = luigi.Parameter()
     refmac_superposed_occ_correct_csv = luigi.Parameter()
     phenix_superposed_occ_correct_csv = luigi.Parameter()
@@ -919,6 +992,16 @@ class PlotBKde(luigi.Task):
     plot_path = luigi.Parameter()
 
     def run(self):
+
+        cols = {'buster': 'darkgreen',
+                'buster_superposed': 'limegreen',
+                'exhaustive': 'gold',
+                'phenix': 'navy',
+                'phenix_superposed': 'cornflowerblue',
+                'refmac': 'crimson',
+                'refmac_superposed': 'lightcoral',
+                }
+
         refmac_df = pd.read_csv(self.refmac_occ_correct_csv)
         refmac_superposed_df = pd.read_csv(self.refmac_superposed_occ_correct_csv)
         phenix_df = pd.read_csv(self.phenix_occ_correct_csv)
@@ -937,14 +1020,35 @@ class PlotBKde(luigi.Task):
         ax.spines["right"].set_visible(False)
         ax.spines["top"].set_visible(False)
 
-        sns.kdeplot(refmac_superposed_state_df['B_mean'], label="REFMAC5 superposed")
-        sns.kdeplot(refmac_df['B_mean'], label="REFMAC5")
-        sns.kdeplot(phenix_df['B_mean'], label="phenix.refine")
-        sns.kdeplot(buster_df['B_mean'], label="buster refine")
-        sns.kdeplot(phenix_superposed_df['B_mean'], label="phenix.refine superposed")
-        sns.kdeplot(buster_superposed_df['B_mean'], label="buster superposed")
-        sns.kdeplot(exhaustive_df['b_factor'], label="exhaustive")
+        sns.kdeplot(buster_df['B_mean'],
+                    label="buster",
+                    color=cols['buster'])
 
+        sns.kdeplot(buster_superposed_df['B_mean'],
+                    label="buster superposed",
+                    color=cols['buster_superposed'])
+
+        sns.kdeplot(exhaustive_df['b_factor'],
+                    label="exhaustive",
+                    color=cols['exhaustive'])
+
+        sns.kdeplot(phenix_df['B_mean'],
+                    label="phenix",
+                    color = cols['phenix'])
+
+        sns.kdeplot(phenix_superposed_df['B_mean'],
+                    label="phenix superposed",
+                    color = cols['phenix_superposed'])
+
+        sns.kdeplot(refmac_df['B_mean'],
+                    label="refmac",
+                    color=cols['refmac'])
+
+        sns.kdeplot(refmac_superposed_state_df['B_mean'],
+                    label="refmac superposed",
+                    color= cols['refmac_superposed'])
+
+        plt.legend(frameon=False)
         plt.savefig(self.plot_path, dpi=300)
         plt.close()
 

@@ -51,7 +51,7 @@ luigi.build(
         #     exhaustive_csv = os.path.join(out_dir, "exhaustive_minima.csv"),
         #     plot_path = os.path.join(out_dir, "occ_diff_kde.png")
         # ),
-
+        #
         # PlotBKde(
         #     refmac_occ_correct_csv = os.path.join(out_dir, "refmac_occ_correct.csv"),
         #     refmac_superposed_occ_correct_csv = os.path.join(out_dir, "refmac_superposed_occ_correct.csv"),
@@ -86,11 +86,11 @@ luigi.build(
         #EdstatsResultSummaries(out_dir=out_dir),
 
         # PlotEdstats(out_dir=out_dir),
-        # PlotEdstatsDistPlot(metric='RSCC',
-        #                     out_dir=out_dir,
-        #                     plot_path=os.path.join(out_dir,
-        #                                            "edstats_figures",
-        #                                            "RSCC_distplot.png")),
+        PlotEdstatsDistPlot(metric='RSCC',
+                            out_dir=out_dir,
+                            plot_path=os.path.join(out_dir,
+                                                   "edstats_figures",
+                                                   "RSCC_distplot.png")),
         # PlotEdstatsDistPlot(metric='RSZO',
         #                     out_dir=out_dir,
         #                     plot_path=os.path.join(out_dir,
@@ -102,23 +102,23 @@ luigi.build(
                             plot_path=os.path.join(out_dir,
                                                    "edstats_figures",
                                                    "RSZO_OCC_distplot.png"),
-                             xlim=(-0.5, 5)),
-        #
-        # PlotEdstatsDistPlot(metric='Surroundings B-factor Ratio',
-        #                     out_dir=out_dir,
-        #                     plot_path=os.path.join(out_dir,
-        #                                            "edstats_figures",
-        #                                            "B_ratio_distplot.png"),
-        #                     xlim=(0.5, 2)),
+                              xlim=(-0.5, 5)),
 
-        # PlotEdstatsDistPlot(metric='RSZD',
-        #                     out_dir=out_dir,
-        #                     plot_path=os.path.join(out_dir,
-        #                                            "edstats_figures",
-        #                                            "RSZD_distplot.png"),
-        #                     xlim=(0, 5)),
+        PlotEdstatsDistPlot(metric='Surroundings B-factor Ratio',
+                            out_dir=out_dir,
+                            plot_path=os.path.join(out_dir,
+                                                   "edstats_figures",
+                                                   "B_ratio_distplot.png"),
+                            xlim=(0.5, 2)),
+
+        PlotEdstatsDistPlot(metric='RSZD',
+                            out_dir=out_dir,
+                            plot_path=os.path.join(out_dir,
+                                                   "edstats_figures",
+                                                   "RSZD_distplot.png"),
+                            xlim=(0, 5)),
         # PlotEdstats(out_dir=out_dir)
     ],
-    local_scheduler=False,
+    local_scheduler=True,
     workers=100,
 )
