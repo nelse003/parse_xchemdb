@@ -31,37 +31,37 @@ luigi.build(
         #                       out_file=os.path.join(out_dir,
         #                                             "exhaustive_histogram.png"))
 
-        # PlotOccKde(
-        #     refmac_occ_correct_csv = os.path.join(out_dir, "refmac_occ_correct.csv"),
-        #     refmac_superposed_occ_correct_csv = os.path.join(out_dir, "refmac_superposed_occ_correct.csv"),
-        #     phenix_superposed_occ_correct_csv = os.path.join(out_dir, "phenix_superposed_occ_correct.csv"),
-        #     phenix_occ_correct_csv = os.path.join(out_dir, "phenix_occ_correct.csv"),
-        #     buster_superposed_occ_correct_csv=os.path.join(out_dir, "buster_superposed_occ_correct.csv"),
-        #     buster_occ_correct_csv=os.path.join(out_dir, "buster_occ_correct.csv"),
-        #     exhaustive_csv = os.path.join(out_dir, "exhaustive_minima.csv"),
-        #     plot_path = os.path.join(out_dir, "occ_kde.png")
-        # ),
-        # PlotOccDiffKde(
-        #     refmac_occ_correct_csv = os.path.join(out_dir, "refmac_occ_correct.csv"),
-        #     refmac_superposed_occ_correct_csv = os.path.join(out_dir, "refmac_superposed_occ_correct.csv"),
-        #     phenix_superposed_occ_correct_csv = os.path.join(out_dir, "phenix_superposed_occ_correct.csv"),
-        #     phenix_occ_correct_csv = os.path.join(out_dir, "phenix_occ_correct.csv"),
-        #     buster_superposed_occ_correct_csv=os.path.join(out_dir, "buster_superposed_occ_correct.csv"),
-        #     buster_occ_correct_csv=os.path.join(out_dir, "buster_occ_correct.csv"),
-        #     exhaustive_csv = os.path.join(out_dir, "exhaustive_minima.csv"),
-        #     plot_path = os.path.join(out_dir, "occ_diff_kde.png")
-        # ),
-        #
-        # PlotBKde(
-        #     refmac_occ_correct_csv = os.path.join(out_dir, "refmac_occ_correct.csv"),
-        #     refmac_superposed_occ_correct_csv = os.path.join(out_dir, "refmac_superposed_occ_correct.csv"),
-        #     phenix_superposed_occ_correct_csv = os.path.join(out_dir, "phenix_superposed_occ_correct.csv"),
-        #     phenix_occ_correct_csv = os.path.join(out_dir, "phenix_occ_correct.csv"),
-        #     buster_superposed_occ_correct_csv=os.path.join(out_dir, "buster_superposed_occ_correct.csv"),
-        #     buster_occ_correct_csv=os.path.join(out_dir, "buster_occ_correct.csv"),
-        #     exhaustive_csv = os.path.join(out_dir, "exhaustive_minima.csv"),
-        #     plot_path = os.path.join(out_dir, "B_kde.png")
-        # ),
+        PlotOccKde(
+            refmac_occ_correct_csv = os.path.join(out_dir, "refmac_occ_correct.csv"),
+            refmac_superposed_occ_correct_csv = os.path.join(out_dir, "refmac_superposed_occ_correct.csv"),
+            phenix_superposed_occ_correct_csv = os.path.join(out_dir, "phenix_superposed_occ_correct.csv"),
+            phenix_occ_correct_csv = os.path.join(out_dir, "phenix_occ_correct.csv"),
+            buster_superposed_occ_correct_csv=os.path.join(out_dir, "buster_superposed_occ_correct.csv"),
+            buster_occ_correct_csv=os.path.join(out_dir, "buster_occ_correct.csv"),
+            exhaustive_csv = os.path.join(out_dir, "exhaustive_minima.csv"),
+            plot_path = os.path.join(out_dir, "occ_kde.png")
+        ),
+        PlotOccDiffKde(
+            refmac_occ_correct_csv = os.path.join(out_dir, "refmac_occ_correct.csv"),
+            refmac_superposed_occ_correct_csv = os.path.join(out_dir, "refmac_superposed_occ_correct.csv"),
+            phenix_superposed_occ_correct_csv = os.path.join(out_dir, "phenix_superposed_occ_correct.csv"),
+            phenix_occ_correct_csv = os.path.join(out_dir, "phenix_occ_correct.csv"),
+            buster_superposed_occ_correct_csv=os.path.join(out_dir, "buster_superposed_occ_correct.csv"),
+            buster_occ_correct_csv=os.path.join(out_dir, "buster_occ_correct.csv"),
+            exhaustive_csv = os.path.join(out_dir, "exhaustive_minima.csv"),
+            plot_path = os.path.join(out_dir, "occ_diff_kde.png")
+        ),
+
+        PlotBKde(
+            refmac_occ_correct_csv = os.path.join(out_dir, "refmac_occ_correct.csv"),
+            refmac_superposed_occ_correct_csv = os.path.join(out_dir, "refmac_superposed_occ_correct.csv"),
+            phenix_superposed_occ_correct_csv = os.path.join(out_dir, "phenix_superposed_occ_correct.csv"),
+            phenix_occ_correct_csv = os.path.join(out_dir, "phenix_occ_correct.csv"),
+            buster_superposed_occ_correct_csv=os.path.join(out_dir, "buster_superposed_occ_correct.csv"),
+            buster_occ_correct_csv=os.path.join(out_dir, "buster_occ_correct.csv"),
+            exhaustive_csv = os.path.join(out_dir, "exhaustive_minima.csv"),
+            plot_path = os.path.join(out_dir, "B_kde.png")
+        ),
         # PlotBViolin(
         #     refmac_occ_correct_csv = os.path.join(out_dir, "refmac_occ_correct.csv"),
         #     refmac_superposed_occ_correct_csv = os.path.join(out_dir, "refmac_superposed_occ_correct.csv"),

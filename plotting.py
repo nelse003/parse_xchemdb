@@ -286,6 +286,8 @@ def convergence_ratio_kde_plot(occ_correct_csv_1, occ_correct_csv_2, plot_path):
         bw=0.5,
         gridsize=10000,
         label="Existing refinements REFMAC5 superposed",
+        color='lightcoral',
+
     )
 
     sns.kdeplot(
@@ -293,6 +295,8 @@ def convergence_ratio_kde_plot(occ_correct_csv_1, occ_correct_csv_2, plot_path):
         bw=0.5,
         gridsize=10000,
         label="Re-refinement REFMAC5 superposed",
+        color='lightcoral',
+        ls='--',
     )
 
     ax.spines["right"].set_visible(False)
@@ -306,7 +310,7 @@ def convergence_ratio_kde_plot(occ_correct_csv_1, occ_correct_csv_2, plot_path):
     plt.ylabel("Density", fontsize=14)
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
-    plt.legend(fontsize=12)
+    plt.legend(fontsize=12,frameon=False)
     plt.tight_layout()
     plt.savefig(plot_path)  # , dpi=300)
 

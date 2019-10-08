@@ -51,7 +51,7 @@ class PanddaEventRefinementPlot(luigi.Task):
 
         cols = {'buster': 'darkgreen',
                 'buster_superposed': 'limegreen',
-                'exhaustive': 'gold',
+                'exhaustive': 'k',
                 'phenix': 'navy',
                 'phenix_superposed': 'cornflowerblue',
                 'refmac': 'crimson',
@@ -434,7 +434,7 @@ class PlotEdstatsDistPlot(luigi.Task):
 
         cols = {'buster': 'darkgreen',
                 'buster_superposed': 'limegreen',
-                'exhaustive': 'gold',
+                'exhaustive': 'k',
                 'phenix': 'navy',
                 'phenix_superposed': 'cornflowerblue',
                 'refmac': 'crimson',
@@ -743,7 +743,7 @@ class PlotOccKde(luigi.Task):
         # Colour map for plots
         cols = {'buster': 'darkgreen',
                 'buster_superposed': 'limegreen',
-                'exhaustive': 'gold',
+                'exhaustive': 'k',
                 'phenix': 'navy',
                 'phenix_superposed': 'cornflowerblue',
                 'refmac': 'crimson',
@@ -995,7 +995,7 @@ class PlotBKde(luigi.Task):
 
         cols = {'buster': 'darkgreen',
                 'buster_superposed': 'limegreen',
-                'exhaustive': 'gold',
+                'exhaustive': 'k',
                 'phenix': 'navy',
                 'phenix_superposed': 'cornflowerblue',
                 'refmac': 'crimson',

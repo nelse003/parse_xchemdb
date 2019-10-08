@@ -233,6 +233,7 @@ def write_phenix_csh(
     ncyc,
     column_labels=None,
     refinement_type="bound",
+    script_filename="phenix_template.csh",
 ):
     """
     Write .csh script to run phenix
@@ -262,7 +263,7 @@ def write_phenix_csh(
 
     crystal_dir = os.path.join(out_dir, crystal)
 
-    with open(os.path.join(script_dir, "refinement", "phenix_template.csh")) as f:
+    with open(os.path.join(script_dir, "refinement", script_filename)) as f:
         cmd = f.read()
 
     if column_labels != None:

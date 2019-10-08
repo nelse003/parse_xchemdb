@@ -112,7 +112,7 @@ test_paths.bound_refinement = os.path.join(out_dir, "bound_refinement_log_pdb_mt
 
 luigi.build(
     [
-        PanddaEventRefinementPlot(out_dir=out_dir, preferred_metric=True),
+        #PanddaEventRefinementPlot(out_dir=out_dir, preferred_metric=True),
         #ParseXchemdbToCsv(log_pdb_mtz_csv=os.path.join(out_dir,"testing_database.csv"))
 
         # Analyse existing refinements
@@ -314,18 +314,18 @@ luigi.build(
         #     refinement_program="refmac"
         # ),
         #
-        # PlotConvergenceDistPlot(
-        #     occ_state_comment_csv=test_paths.occ_state_comment_csv,
-        #     occ_correct_csv_2=os.path.join(out_dir, "refmac_superposed_occ_correct.csv"),
-        #     log_occ_resname=test_paths.log_occ_resname,
-        #     log_occ_csv=test_paths.log_occ_csv,
-        #     log_pdb_mtz_csv=test_paths.log_pdb_mtz,
-        #     occ_correct_csv=test_paths.occ_correct_csv,
-        #     plot_path=os.path.join(out_dir, "convergence_kde_plot.png"),
-        #     script_path=test_paths.script_dir,
-        #     refinement_type="superposed",
-        #     refinement_program="refmac"
-        # ),
+        PlotConvergenceDistPlot(
+            occ_state_comment_csv=test_paths.occ_state_comment_csv,
+            occ_correct_csv_2=os.path.join(out_dir, "refmac_superposed_occ_correct.csv"),
+            log_occ_resname=test_paths.log_occ_resname,
+            log_occ_csv=test_paths.log_occ_csv,
+            log_pdb_mtz_csv=test_paths.log_pdb_mtz,
+            occ_correct_csv=test_paths.occ_correct_csv,
+            plot_path=os.path.join(out_dir, "convergence_kde_plot_o.png"),
+            script_path=test_paths.script_dir,
+            refinement_type="superposed",
+            refinement_program="refmac"
+        ),
         # PlotOccConvScatter(
         #     occ_state_comment_csv=test_paths.occ_state_comment_csv,
         #     log_occ_resname=test_paths.log_occ_resname,
